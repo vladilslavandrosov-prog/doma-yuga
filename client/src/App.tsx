@@ -13,11 +13,13 @@ import Payments from "@/pages/Payments";
 import Documents from "@/pages/Documents";
 import Photos from "@/pages/Photos";
 import Chat from "@/pages/Chat";
+import About from "@/pages/About";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/about" component={About} />
       <Route path="/estimates">{() => <Estimates projectId={1} />}</Route>
       <Route path="/payments">{() => <Payments projectId={1} />}</Route>
       <Route path="/documents">{() => <Documents projectId={1} />}</Route>

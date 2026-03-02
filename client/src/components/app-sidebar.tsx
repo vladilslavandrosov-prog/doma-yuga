@@ -7,6 +7,7 @@ import {
   FileText,
   Camera,
   MessageCircle,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,6 +24,7 @@ import {
 
 const menuItems = [
   { title: "Дашборд", url: "/", icon: LayoutDashboard },
+  { title: "О компании", url: "/about", icon: Building2 },
   { title: "Сметы", url: "/estimates", icon: FileSpreadsheet },
   { title: "Оплата", url: "/payments", icon: CreditCard },
   { title: "Документы", url: "/documents", icon: FileText },

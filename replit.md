@@ -11,7 +11,7 @@
 ## Структура проекта
 ```
 client/src/
-  pages/          - Dashboard, Estimates, Payments, Documents, Photos, Chat
+  pages/          - Dashboard, About, Estimates, Payments, Documents, Photos, Chat
   components/     - ThemeProvider, app-sidebar, ui/ (shadcn components)
   lib/            - queryClient, utils
   hooks/          - use-toast, use-mobile
@@ -28,7 +28,7 @@ shared/
 «Тёплый камень и терракота» — Primary: терракотовый оранжевый (hsl 25 90% 55%), Sidebar: тёмно-синий графит (hsl 220 18% 18%), Dark mode: графитово-синий фон.
 
 ## Ключевые особенности
-- Sidebar-навигация с 6 разделами
+- Sidebar-навигация с 7 разделами (включая «О компании»)
 - Тёмная/светлая тема с переключателем
 - Адаптивный дизайн (карточки на мобильных, таблицы на десктопе)
 - Демо-данные в MemStorage (uid: demo-uid-123)
