@@ -182,6 +182,22 @@ export async function registerRoutes(
     res.json(project);
   });
 
+  app.patch("/api/admin/projects/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { name, address, startDate, status, clientId } = req.body;
+    const updates: Record<string, any> = {};
+    if (name !== undefined) updates.name = name;
+    if (address !== undefined) updates.address = address;
+    if (startDate !== undefined) updates.startDate = startDate;
+    if (status !== undefined) updates.status = status;
+    if (clientId !== undefined) updates.clientId = clientId;
+    const updated = await storage.updateProject(id, updates);
+    if (!updated) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    res.json(updated);
+  });
+
   app.get("/api/client-projects", requireAuth, async (req, res) => {
     if (!req.session.clientId) {
       return res.json([]);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { Project, Client } from "@shared/schema";
@@ -24,7 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
-import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2 } from "lucide-react";
+import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Search, Filter } from "lucide-react";
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -47,41 +47,52 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function ProjectCard({ project }: { project: Project }) {
+function ProjectCard({ project, isAdmin, onEdit }: { project: Project; isAdmin: boolean; onEdit: (p: Project) => void }) {
   const { data: client } = useQuery<Client>({
     queryKey: ["/api/project", project.id, "client"],
   });
 
   return (
-    <Link href={`/cabinet/project/${project.id}`}>
-      <Card className="hover-elevate cursor-pointer h-full" data-testid={`card-project-${project.id}`}>
-        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-          <CardTitle className="text-base font-medium truncate" data-testid={`text-project-name-${project.id}`}>
-            {project.name}
-          </CardTitle>
-          {getStatusBadge(project.status)}
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex items-start gap-2 text-sm text-muted-foreground">
-            <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{project.address}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="w-4 h-4 shrink-0" />
-            <span>Начало: {formatDate(project.startDate)}</span>
-          </div>
-          {client && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <User className="w-4 h-4 shrink-0" />
-              <span>{client.name}</span>
+    <Card className="hover-elevate h-full relative" data-testid={`card-project-${project.id}`}>
+      {isAdmin && (
+        <button
+          className="absolute top-3 right-3 z-10 p-1.5 rounded-md hover:bg-muted transition-colors"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(project); }}
+          data-testid={`button-edit-project-${project.id}`}
+        >
+          <Pencil className="w-4 h-4 text-muted-foreground hover:text-primary" />
+        </button>
+      )}
+      <Link href={`/cabinet/project/${project.id}`}>
+        <div className="cursor-pointer">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 pr-10">
+            <CardTitle className="text-base font-medium truncate" data-testid={`text-project-name-${project.id}`}>
+              {project.name}
+            </CardTitle>
+            {getStatusBadge(project.status)}
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-start gap-2 text-sm text-muted-foreground">
+              <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{project.address}</span>
             </div>
-          )}
-          <div className="flex items-center justify-end pt-1">
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span>Начало: {formatDate(project.startDate)}</span>
+            </div>
+            {client && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <User className="w-4 h-4 shrink-0" />
+                <span>{client.name}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-end pt-1">
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </div>
+      </Link>
+    </Card>
   );
 }
 
@@ -109,11 +120,16 @@ export default function Projects() {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
   const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [formName, setFormName] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formStartDate, setFormStartDate] = useState("");
   const [formStatus, setFormStatus] = useState("active");
   const [formClientId, setFormClientId] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
 
   const { data: projects, isLoading, error } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -123,6 +139,29 @@ export default function Projects() {
     queryKey: ["/api/admin/clients"],
     enabled: isAdmin,
   });
+
+  const sortedAndFiltered = useMemo(() => {
+    if (!projects) return [];
+    let filtered = [...projects];
+
+    if (statusFilter === "active") {
+      filtered = filtered.filter(p => p.status === "active");
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(q));
+    }
+
+    filtered.sort((a, b) => {
+      const aActive = a.status === "active" ? 0 : 1;
+      const bActive = b.status === "active" ? 0 : 1;
+      if (aActive !== bActive) return aActive - bActive;
+      return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+    });
+
+    return filtered;
+  }, [projects, searchQuery, statusFilter]);
 
   const createMutation = useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
@@ -144,12 +183,42 @@ export default function Projects() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) => {
+      const res = await apiRequest("PATCH", `/api/admin/projects/${id}`, data);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Ошибка обновления");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({ title: "Готово", description: "Объект обновлён" });
+      setEditOpen(false);
+      setEditingProject(null);
+    },
+    onError: (err: Error) => {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    },
+  });
+
   function resetForm() {
     setFormName("");
     setFormAddress("");
     setFormStartDate("");
     setFormStatus("active");
     setFormClientId("");
+  }
+
+  function openEdit(project: Project) {
+    setEditingProject(project);
+    setFormName(project.name);
+    setFormAddress(project.address);
+    setFormStartDate(project.startDate);
+    setFormStatus(project.status);
+    setFormClientId(String(project.clientId || ""));
+    setEditOpen(true);
   }
 
   function handleCreate(e: React.FormEvent) {
@@ -160,6 +229,21 @@ export default function Projects() {
       startDate: formStartDate,
       status: formStatus,
       clientId: formClientId ? parseInt(formClientId) : 0,
+    });
+  }
+
+  function handleUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingProject) return;
+    updateMutation.mutate({
+      id: editingProject.id,
+      data: {
+        name: formName,
+        address: formAddress,
+        startDate: formStartDate,
+        status: formStatus,
+        clientId: formClientId ? parseInt(formClientId) : 0,
+      },
     });
   }
 
@@ -197,16 +281,39 @@ export default function Projects() {
         )}
       </div>
 
-      {(!projects || projects.length === 0) ? (
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск по названию..."
+            className="pl-9"
+            data-testid="input-search-projects"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[200px]" data-testid="select-status-filter">
+            <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все объекты</SelectItem>
+            <SelectItem value="active">Только активные</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {sortedAndFiltered.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground" data-testid="text-no-projects">
-            Объекты не найдены
+            {searchQuery || statusFilter !== "all" ? "Ничего не найдено" : "Объекты не найдены"}
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+          {sortedAndFiltered.map((project) => (
+            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} onEdit={openEdit} />
           ))}
         </div>
       )}
@@ -280,6 +387,78 @@ export default function Projects() {
             )}
             <Button type="submit" className="w-full" disabled={createMutation.isPending} data-testid="button-submit-project">
               {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Создать объект"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) setEditingProject(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактирование объекта</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Название объекта *</Label>
+              <Input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                required
+                data-testid="input-edit-project-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Адрес *</Label>
+              <Input
+                value={formAddress}
+                onChange={(e) => setFormAddress(e.target.value)}
+                required
+                data-testid="input-edit-project-address"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Дата начала *</Label>
+                <Input
+                  type="date"
+                  value={formStartDate}
+                  onChange={(e) => setFormStartDate(e.target.value)}
+                  required
+                  data-testid="input-edit-project-start-date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Статус</Label>
+                <Select value={formStatus} onValueChange={setFormStatus}>
+                  <SelectTrigger data-testid="select-edit-project-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Активен</SelectItem>
+                    <SelectItem value="paused">Приостановлен</SelectItem>
+                    <SelectItem value="completed">Завершён</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {clients && clients.length > 0 && (
+              <div className="space-y-2">
+                <Label>Клиент</Label>
+                <Select value={formClientId} onValueChange={setFormClientId}>
+                  <SelectTrigger data-testid="select-edit-project-client">
+                    <SelectValue placeholder="Не назначать" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Не назначать</SelectItem>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Button type="submit" className="w-full" disabled={updateMutation.isPending} data-testid="button-submit-edit-project">
+              {updateMutation.isPending ? <Loader2 className="animate-spin" /> : "Сохранить"}
             </Button>
           </form>
         </DialogContent>
