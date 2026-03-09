@@ -185,7 +185,7 @@ export default function About() {
             </p>
           </div>
           <Button asChild data-testid="button-cabinet-demo">
-            <Link href="/cabinet">
+            <Link href="/cabinet/project/1">
               Смотреть демо
             </Link>
           </Button>

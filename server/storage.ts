@@ -11,6 +11,7 @@ import {
   type User, type InsertUser,
   type NonWorkingDay, type InsertNonWorkingDay,
   type EstimateItemPhoto, type InsertEstimateItemPhoto,
+  type GalleryPhoto, type InsertGalleryPhoto,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -58,6 +59,9 @@ export interface IStorage {
   getPhotosByEstimateItemIds(ids: number[]): Promise<EstimateItemPhoto[]>;
   createEstimateItemPhoto(photo: InsertEstimateItemPhoto): Promise<EstimateItemPhoto>;
   deleteEstimateItemPhoto(id: number): Promise<boolean>;
+  getAllGalleryPhotos(): Promise<GalleryPhoto[]>;
+  createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto>;
+  deleteGalleryPhoto(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -73,6 +77,7 @@ export class MemStorage implements IStorage {
   private messages: Map<number, Message> = new Map();
   private users: Map<number, User> = new Map();
   private nonWorkingDays: Map<number, NonWorkingDay> = new Map();
+  private galleryPhotosMap: Map<number, GalleryPhoto> = new Map();
   private nextId = 100;
 
   constructor() {
@@ -492,6 +497,21 @@ export class MemStorage implements IStorage {
 
   async deleteEstimateItemPhoto(id: number): Promise<boolean> {
     return this.estimateItemPhotos.delete(id);
+  }
+
+  async getAllGalleryPhotos(): Promise<GalleryPhoto[]> {
+    return Array.from(this.galleryPhotosMap.values());
+  }
+
+  async createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto> {
+    const id = this.nextId++;
+    const p: GalleryPhoto = { id, url: photo.url, caption: photo.caption ?? null, category: photo.category ?? "Общее" };
+    this.galleryPhotosMap.set(id, p);
+    return p;
+  }
+
+  async deleteGalleryPhoto(id: number): Promise<boolean> {
+    return this.galleryPhotosMap.delete(id);
   }
 }
 

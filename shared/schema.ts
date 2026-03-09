@@ -138,6 +138,17 @@ export const insertEstimateItemPhotoSchema = createInsertSchema(estimateItemPhot
 export type InsertEstimateItemPhoto = z.infer<typeof insertEstimateItemPhotoSchema>;
 export type EstimateItemPhoto = typeof estimateItemPhotos.$inferSelect;
 
+export const galleryPhotos = pgTable("gallery_photos", {
+  id: serial("id").primaryKey(),
+  url: text("url").notNull(),
+  caption: text("caption"),
+  category: text("category").notNull().default("Общее"),
+});
+
+export const insertGalleryPhotoSchema = createInsertSchema(galleryPhotos).omit({ id: true });
+export type InsertGalleryPhoto = z.infer<typeof insertGalleryPhotoSchema>;
+export type GalleryPhoto = typeof galleryPhotos.$inferSelect;
+
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),

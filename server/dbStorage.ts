@@ -3,7 +3,7 @@ import { db } from "./db";
 import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
-  estimateItemPhotos,
+  estimateItemPhotos, galleryPhotos,
 } from "@shared/schema";
 import type {
   Client, InsertClient,
@@ -18,6 +18,7 @@ import type {
   User, InsertUser,
   NonWorkingDay, InsertNonWorkingDay,
   EstimateItemPhoto, InsertEstimateItemPhoto,
+  GalleryPhoto, InsertGalleryPhoto,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -233,6 +234,20 @@ export class DatabaseStorage implements IStorage {
 
   async deleteEstimateItemPhoto(id: number): Promise<boolean> {
     const result = await db.delete(estimateItemPhotos).where(eq(estimateItemPhotos.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getAllGalleryPhotos(): Promise<GalleryPhoto[]> {
+    return db.select().from(galleryPhotos);
+  }
+
+  async createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto> {
+    const [row] = await db.insert(galleryPhotos).values(photo).returning();
+    return row;
+  }
+
+  async deleteGalleryPhoto(id: number): Promise<boolean> {
+    const result = await db.delete(galleryPhotos).where(eq(galleryPhotos.id, id)).returning();
     return result.length > 0;
   }
 }

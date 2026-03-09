@@ -14,6 +14,7 @@ import {
   insertUserSchema,
   insertNonWorkingDaySchema,
   insertProjectSchema,
+  insertGalleryPhotoSchema,
 } from "@shared/schema";
 
 const uploadStorage = multer.diskStorage({
@@ -587,6 +588,30 @@ export async function registerRoutes(
     const ok = await storage.deleteNonWorkingDay(parseInt(req.params.id));
     if (!ok) {
       return res.status(404).json({ error: "Non-working day not found" });
+    }
+    res.json({ ok: true });
+  });
+
+  app.get("/api/gallery", async (_req, res) => {
+    const photos = await storage.getAllGalleryPhotos();
+    res.json(photos);
+  });
+
+  app.post("/api/admin/gallery/upload", requireAdmin, uploadImage.single("photo"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    const url = `/uploads/${req.file.filename}`;
+    const caption = req.body.caption || null;
+    const category = req.body.category || "Общее";
+    const photo = await storage.createGalleryPhoto({ url, caption, category });
+    res.json(photo);
+  });
+
+  app.delete("/api/admin/gallery/:id", requireAdmin, async (req, res) => {
+    const ok = await storage.deleteGalleryPhoto(parseInt(req.params.id));
+    if (!ok) {
+      return res.status(404).json({ error: "Gallery photo not found" });
     }
     res.json({ ok: true });
   });
