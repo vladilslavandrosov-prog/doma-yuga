@@ -160,5 +160,24 @@ export async function seedDatabase() {
     { id: 3, username: "petrov", password: "petrov123", role: "client", clientId: 2 },
   ]);
 
+  const { sql } = await import("drizzle-orm");
+  const sequences = [
+    { table: "clients", seq: "clients_id_seq" },
+    { table: "projects", seq: "projects_id_seq" },
+    { table: "estimates", seq: "estimates_id_seq" },
+    { table: "estimate_items", seq: "estimate_items_id_seq" },
+    { table: "payments", seq: "payments_id_seq" },
+    { table: "documents", seq: "documents_id_seq" },
+    { table: "photos", seq: "photos_id_seq" },
+    { table: "videos", seq: "videos_id_seq" },
+    { table: "users", seq: "users_id_seq" },
+    { table: "non_working_days", seq: "non_working_days_id_seq" },
+    { table: "estimate_item_photos", seq: "estimate_item_photos_id_seq" },
+    { table: "messages", seq: "messages_id_seq" },
+  ];
+  for (const { table, seq } of sequences) {
+    await db.execute(sql.raw(`SELECT setval('${seq}', COALESCE((SELECT MAX(id) FROM ${table}), 0) + 1, false)`));
+  }
+
   console.log("Database seeded successfully!");
 }
