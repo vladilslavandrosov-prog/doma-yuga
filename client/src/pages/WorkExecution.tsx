@@ -1039,7 +1039,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EstimateItemWithPhotos | null>(null);
   const isMobile = useIsMobile();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { toast } = useToast();
 
   const { data: estimates, isLoading, error } = useQuery<EstimateWithItems[]>({
