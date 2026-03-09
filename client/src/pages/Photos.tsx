@@ -169,15 +169,19 @@ export default function Photos({ projectId }: { projectId: number }) {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
+            </div>
+            <CardContent className="p-3 space-y-2">
+              <p className="text-sm font-medium" data-testid={`text-photo-caption-${photo.id}`}>{photo.caption}</p>
+              <p className="text-xs text-muted-foreground" data-testid={`text-photo-date-${photo.id}`}>{formatDate(photo.date)}</p>
               {isAdmin && (
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="absolute top-2 right-2 z-10 opacity-90 hover:opacity-100"
+                  className="w-full"
                   data-testid={`button-delete-photo-${photo.id}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm("Удалить фото?")) {
+                    if (confirm("Удалить это фото?")) {
                       deleteMutation.mutate(photo.id);
                     }
                   }}
@@ -186,10 +190,6 @@ export default function Photos({ projectId }: { projectId: number }) {
                   Удалить
                 </Button>
               )}
-            </div>
-            <CardContent className="p-3 space-y-1">
-              <p className="text-sm font-medium" data-testid={`text-photo-caption-${photo.id}`}>{photo.caption}</p>
-              <p className="text-xs text-muted-foreground" data-testid={`text-photo-date-${photo.id}`}>{formatDate(photo.date)}</p>
             </CardContent>
           </Card>
         ))}
