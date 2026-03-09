@@ -642,13 +642,6 @@ export async function registerRoutes(
       createdAt: new Date().toISOString(),
     });
 
-    const { sendTelegramNotification } = await import("./telegram");
-    sendTelegramNotification(
-      project.name,
-      "Администратор",
-      `📅 ${comment.date}\n${comment.text}`,
-    );
-
     res.json(comment);
   });
 
@@ -662,14 +655,6 @@ export async function registerRoutes(
     if (!updated) {
       return res.status(404).json({ error: "Comment not found" });
     }
-
-    const { sendTelegramNotification } = await import("./telegram");
-    const project = await storage.getProjectById(updated.projectId);
-    sendTelegramNotification(
-      project?.name ?? `Проект #${updated.projectId}`,
-      "Администратор",
-      `📅 ${updated.date} (изменено)\n${updated.text}`,
-    );
 
     res.json(updated);
   });
