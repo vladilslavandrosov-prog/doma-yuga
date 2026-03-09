@@ -186,6 +186,22 @@ export async function registerRoutes(
       return res.status(400).json({ error: parsed.error });
     }
     const message = await storage.createMessage(parsed.data);
+
+    if (sender === "client") {
+      const { sendTelegramNotification } = await import("./telegram");
+      const project = await storage.getProjectById(projectId);
+      let clientName = "Клиент";
+      if (project) {
+        const client = await storage.getClientById(project.clientId);
+        if (client) clientName = client.name;
+      }
+      sendTelegramNotification(
+        project?.name ?? `Проект #${projectId}`,
+        clientName,
+        message.text,
+      );
+    }
+
     res.json(message);
   });
 

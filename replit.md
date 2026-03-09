@@ -73,5 +73,11 @@ uploads/          - Загруженные фото (served at /uploads/*)
 - Чат с отправкой сообщений и пометкой прочитанных
 - Sidebar footer: имя пользователя, роль, кнопка выхода
 
+## Telegram-бот
+- При отправке сообщения клиентом в чат — уведомление уходит в Telegram
+- Используются секреты TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID
+- Модуль: server/telegram.ts (функция sendTelegramNotification)
+- Интеграция в POST /api/project/:id/messages — только для sender="client"
+
 ## GitHub
 Repository: vladilslavandrosov-prog/website (main branch)
