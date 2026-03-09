@@ -16,6 +16,7 @@ import {
   Eye,
   ArrowLeft,
   FolderKanban,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +38,7 @@ import { Button } from "@/components/ui/button";
 
 const publicItems = [
   { title: "О компании", url: "/", icon: Building2 },
+  { title: "Наши преимущества", url: "/advantages", icon: Shield },
 ];
 
 function getProjectItems(basePath: string) {

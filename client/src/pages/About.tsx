@@ -15,10 +15,6 @@ import {
   Palette,
   Hammer,
   Home,
-  Shield,
-  Users,
-  Gem,
-  HeartHandshake,
   MessageCircle,
   LayoutDashboard,
 } from "lucide-react";
@@ -34,14 +30,6 @@ const services = [
   { name: "Установка бассейнов", icon: Droplets, description: "Монтаж и обслуживание бассейнов" },
   { name: "Лестницы и перила", icon: ArrowUpDown, description: "Изготовление и установка лестниц любых типов" },
   { name: "Дизайн интерьера и экстерьера", icon: Palette, description: "Разработка индивидуальных дизайн-проектов" },
-];
-
-const advantages = [
-  { title: "Качественные материалы", icon: Gem, description: "Используем только проверенные и сертифицированные материалы от надёжных поставщиков" },
-  { title: "Опытные специалисты", icon: Users, description: "Команда профессионалов с многолетним опытом в строительстве" },
-  { title: "Индивидуальный подход", icon: Palette, description: "Каждый проект разрабатывается с учётом пожеланий и потребностей клиента" },
-  { title: "Комплексный сервис", icon: HeartHandshake, description: "Полный спектр услуг — от проектирования до благоустройства территории" },
-  { title: "Доверие и гарантии", icon: Shield, description: "Прозрачные условия сотрудничества и гарантия на все виды работ" },
 ];
 
 export default function About() {
@@ -78,23 +66,6 @@ export default function About() {
           </p>
         </CardContent>
       </Card>
-
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold" data-testid="text-advantages-heading">Наши преимущества</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {advantages.map((adv, index) => (
-            <Card key={adv.title} data-testid={`card-advantage-${index}`}>
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary/10 text-foreground">
-                  <adv.icon className="w-5 h-5" />
-                </div>
-                <p className="font-medium text-sm" data-testid={`text-advantage-title-${index}`}>{adv.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">{adv.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold" data-testid="text-services-heading">Услуги</h2>

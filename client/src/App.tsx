@@ -17,6 +17,7 @@ import Photos from "@/pages/Photos";
 import Videos from "@/pages/Videos";
 import Chat from "@/pages/Chat";
 import About from "@/pages/About";
+import Advantages from "@/pages/Advantages";
 import Login from "@/pages/Login";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Loader2 } from "lucide-react";
@@ -94,6 +95,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={About} />
+      <Route path="/advantages" component={Advantages} />
 
       <Route path="/cabinet">{() => <CabinetLayout><CabinetHome /></CabinetLayout>}</Route>
 
