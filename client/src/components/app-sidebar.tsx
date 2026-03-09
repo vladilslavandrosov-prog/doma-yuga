@@ -43,7 +43,7 @@ import { Button } from "@/components/ui/button";
 
 const publicItems = [
   { title: "О компании", url: "/", icon: Building2 },
-  { title: "Наши преимущества", url: "/advantages", icon: Shield },
+  { title: "Почему выбирают нас", url: "/advantages", icon: Shield },
   { title: "Галерея", url: "/gallery", icon: ImageIcon },
 ];
 

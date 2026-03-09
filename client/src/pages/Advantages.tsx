@@ -20,7 +20,7 @@ export default function Advantages() {
     <div className="p-4 md:p-6 space-y-8">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-advantages-title">
-          Наши преимущества
+          Почему выбирают нас
         </h1>
         <p className="text-muted-foreground" data-testid="text-advantages-subtitle">
           Почему клиенты выбирают «Дома Юга»
