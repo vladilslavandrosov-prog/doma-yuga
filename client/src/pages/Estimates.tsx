@@ -241,7 +241,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/demo-uid-123"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
       setAddOpen(false);
       resetForm();
     },
@@ -253,7 +253,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/demo-uid-123"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
     },
   });
 

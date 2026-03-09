@@ -99,6 +99,11 @@ export async function registerRoutes(
     res.json({ id: user.id, username: user.username, role: user.role, clientId: user.clientId });
   });
 
+  app.get("/api/projects", async (req, res) => {
+    const projects = await storage.getAllProjects();
+    res.json(projects);
+  });
+
   app.get("/api/client/:uid", async (req, res) => {
     const client = await storage.getClientByUid(req.params.uid);
     if (!client) {
@@ -122,6 +127,15 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Project not found" });
     }
     res.json(project);
+  });
+
+  app.get("/api/project/:id/client", async (req, res) => {
+    const project = await storage.getProjectById(parseInt(req.params.id));
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    const client = await storage.getClientById(project.clientId);
+    res.json(client ?? null);
   });
 
   app.get("/api/project/:id/estimates", async (req, res) => {
@@ -187,6 +201,45 @@ export async function registerRoutes(
     const unreadSender = req.session.role === "admin" ? "client" : "admin";
     const count = await storage.getUnreadCount(projectId, unreadSender);
     res.json({ count });
+  });
+
+  app.get("/api/dashboard/project/:id", async (req, res) => {
+    const projectId = parseInt(req.params.id);
+    const project = await storage.getProjectById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    const client = await storage.getClientById(project.clientId);
+    const estimates = await storage.getEstimatesByProjectId(project.id);
+    let totalItems = 0;
+    let completedItems = 0;
+    let totalEstimateSum = 0;
+    for (const est of estimates) {
+      const items = await storage.getEstimateItemsByEstimateId(est.id);
+      totalItems += items.length;
+      completedItems += items.filter(i => i.status === "completed").length;
+      totalEstimateSum += items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
+    }
+    const payments = await storage.getPaymentsByProjectId(project.id);
+    const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    const unreadSender = req.session.role === "admin" ? "client" : "admin";
+    const unreadCount = await storage.getUnreadCount(project.id, unreadSender);
+
+    res.json({
+      client: client ?? { id: 0, name: "Неизвестный", phone: null, email: null, uid: "" },
+      project,
+      progress: {
+        total: totalItems,
+        completed: completedItems,
+        percentage: totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0,
+      },
+      financial: {
+        totalEstimate: totalEstimateSum,
+        totalPaid,
+        remaining: totalEstimateSum - totalPaid,
+      },
+      unreadMessages: unreadCount,
+    });
   });
 
   app.get("/api/dashboard/:uid", async (req, res) => {

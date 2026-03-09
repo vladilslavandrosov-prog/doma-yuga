@@ -13,6 +13,8 @@ import {
 
 export interface IStorage {
   getClientByUid(uid: string): Promise<Client | undefined>;
+  getClientById(id: number): Promise<Client | undefined>;
+  getAllProjects(): Promise<Project[]>;
   getProjectsByClientId(clientId: number): Promise<Project[]>;
   getProjectById(id: number): Promise<Project | undefined>;
   getEstimatesByProjectId(projectId: number): Promise<Estimate[]>;
@@ -65,7 +67,7 @@ export class MemStorage implements IStorage {
     const client: Client = { id: 1, name: "Иванов Сергей Петрович", phone: "+7 (918) 123-45-67", email: "ivanov@mail.ru", uid: "demo-uid-123" };
     this.clients.set(1, client);
 
-    const project: Project = { id: 1, name: "Жилой дом", address: "Борисовка, ул. Ад. Матвеева, 15", startDate: "2026-01-07", status: "active", clientId: 1 };
+    const project: Project = { id: 1, name: "Атамана Матвеева", address: "Борисовка, ул. Ад. Матвеева, 15", startDate: "2026-01-07", status: "active", clientId: 1 };
     this.projects.set(1, project);
 
     const est1: Estimate = { id: 1, projectId: 1, category: "works", title: "Ландшафтные работы" };
@@ -144,6 +146,14 @@ export class MemStorage implements IStorage {
 
   async getClientByUid(uid: string): Promise<Client | undefined> {
     return Array.from(this.clients.values()).find(c => c.uid === uid);
+  }
+
+  async getClientById(id: number): Promise<Client | undefined> {
+    return this.clients.get(id);
+  }
+
+  async getAllProjects(): Promise<Project[]> {
+    return Array.from(this.projects.values());
   }
 
   async getProjectsByClientId(clientId: number): Promise<Project[]> {

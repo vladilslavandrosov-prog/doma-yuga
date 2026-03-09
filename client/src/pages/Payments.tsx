@@ -49,7 +49,7 @@ export default function Payments({ projectId }: { projectId: number }) {
   const { data: dashboardData } = useQuery<{
     financial: { totalEstimate: number; totalPaid: number; remaining: number };
   }>({
-    queryKey: ["/api/dashboard/demo-uid-123"],
+    queryKey: ["/api/dashboard/project", projectId],
   });
 
   const createMutation = useMutation({
@@ -63,7 +63,7 @@ export default function Payments({ projectId }: { projectId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/demo-uid-123"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
       setAddOpen(false);
       setAmount("");
       setDate("");
@@ -77,7 +77,7 @@ export default function Payments({ projectId }: { projectId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/demo-uid-123"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
     },
   });
 

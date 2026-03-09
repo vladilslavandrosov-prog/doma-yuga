@@ -1,5 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import type { Project } from "@shared/schema";
 import {
   LayoutDashboard,
   FileSpreadsheet,
@@ -14,6 +15,7 @@ import {
   User,
   Eye,
   ArrowLeft,
+  FolderKanban,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,28 +39,50 @@ const publicItems = [
   { title: "О компании", url: "/", icon: Building2 },
 ];
 
-const cabinetItems = [
-  { title: "Дашборд", url: "/cabinet", icon: LayoutDashboard },
-  { title: "Сметы", url: "/cabinet/estimates", icon: FileSpreadsheet },
-  { title: "Оплата", url: "/cabinet/payments", icon: CreditCard },
-  { title: "Документы", url: "/cabinet/documents", icon: FileText },
-  { title: "Фотоотчёт", url: "/cabinet/photos", icon: Camera },
-  { title: "Видео", url: "/cabinet/videos", icon: Video },
-  { title: "Чат", url: "/cabinet/chat", icon: MessageCircle },
-];
+function getProjectItems(basePath: string) {
+  return [
+    { title: "Дашборд", url: basePath, icon: LayoutDashboard },
+    { title: "Сметы", url: `${basePath}/estimates`, icon: FileSpreadsheet },
+    { title: "Оплата", url: `${basePath}/payments`, icon: CreditCard },
+    { title: "Документы", url: `${basePath}/documents`, icon: FileText },
+    { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera },
+    { title: "Видео", url: `${basePath}/videos`, icon: Video },
+    { title: "Чат", url: `${basePath}/chat`, icon: MessageCircle },
+  ];
+}
+
+function extractProjectId(location: string): number | null {
+  const match = location.match(/^\/cabinet\/project\/(\d+)/);
+  return match ? parseInt(match[1]) : null;
+}
 
 export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout, isAdmin } = useAuth();
 
   const inCabinet = location.startsWith("/cabinet");
+  const projectIdFromUrl = extractProjectId(location);
+  const inProject = projectIdFromUrl !== null;
+  const inAdminProjectsList = isAdmin && inCabinet && !inProject && location === "/cabinet";
+
+  const activeProjectId = inProject ? projectIdFromUrl : (!isAdmin && inCabinet ? 1 : null);
+  const basePath = inProject ? `/cabinet/project/${projectIdFromUrl}` : "/cabinet";
+  const projectItems = activeProjectId !== null ? getProjectItems(basePath) : [];
+
+  const { data: project } = useQuery<Project>({
+    queryKey: ["/api/project", activeProjectId],
+    enabled: activeProjectId !== null && inProject,
+  });
 
   const { data: unreadData } = useQuery<{ count: number }>({
-    queryKey: ["/api/project", 1, "unread"],
+    queryKey: ["/api/project", activeProjectId, "unread"],
     refetchInterval: 30000,
+    enabled: activeProjectId !== null,
   });
 
   const unreadCount = unreadData?.count ?? 0;
+
+  const showProjectNav = inCabinet && activeProjectId !== null && !inAdminProjectsList;
 
   return (
     <Sidebar>
@@ -78,14 +102,26 @@ export function AppSidebar() {
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="На сайт" data-testid="link-nav-back">
-                      <Link href="/">
-                        <ArrowLeft />
-                        <span>На сайт</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  {inProject && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="К списку объектов" data-testid="link-nav-back-projects">
+                        <Link href="/cabinet">
+                          <ArrowLeft />
+                          <span>{isAdmin ? "К объектам" : "Назад"}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                  {!inProject && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="На сайт" data-testid="link-nav-back">
+                        <Link href="/">
+                          <ArrowLeft />
+                          <span>На сайт</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -93,30 +129,87 @@ export function AppSidebar() {
           </>
         )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>{inCabinet ? "Личный кабинет" : "Навигация"}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {!inCabinet && publicItems.map((item) => {
-                const isActive = location === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.title}
-                      data-testid={`link-nav-about`}
-                    >
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+        {inAdminProjectsList && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Панель администратора</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive
+                    tooltip="Объекты"
+                    data-testid="link-nav-projects"
+                  >
+                    <Link href="/cabinet">
+                      <FolderKanban />
+                      <span>Объекты</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-              {!inCabinet && (
+        {showProjectNav && (
+          <SidebarGroup>
+            <SidebarGroupLabel>
+              {inProject && project ? project.name : (isAdmin ? "Панель администратора" : "Личный кабинет")}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {projectItems.map((item) => {
+                  const isActive = location === item.url;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={item.title}
+                        data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                      >
+                        <Link href={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      {item.url.endsWith("/chat") && unreadCount > 0 && (
+                        <SidebarMenuBadge data-testid="badge-unread-messages">
+                          {unreadCount}
+                        </SidebarMenuBadge>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {!inCabinet && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Навигация</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {publicItems.map((item) => {
+                  const isActive = location === item.url;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={item.title}
+                        data-testid="link-nav-about"
+                      >
+                        <Link href={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
@@ -125,38 +218,14 @@ export function AppSidebar() {
                   >
                     <Link href="/cabinet">
                       <LayoutDashboard />
-                      <span>{user ? "Личный кабинет" : "Личный кабинет (демо)"}</span>
+                      <span>{user ? (isAdmin ? "Панель управления" : "Личный кабинет") : "Личный кабинет (демо)"}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )}
-
-              {inCabinet && cabinetItems.map((item) => {
-                const isActive = location === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.title}
-                      data-testid={`link-nav-${item.url.replace("/cabinet/", "").replace("/cabinet", "dashboard")}`}
-                    >
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                    {item.url === "/cabinet/chat" && unreadCount > 0 && (
-                      <SidebarMenuBadge data-testid="badge-unread-messages">
-                        {unreadCount}
-                      </SidebarMenuBadge>
-                    )}
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {inCabinet && !user && (
           <>

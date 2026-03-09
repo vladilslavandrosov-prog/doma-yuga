@@ -50,8 +50,6 @@ interface DashboardData {
   unreadMessages: number;
 }
 
-const UID = "demo-uid-123";
-
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("ru-RU", {
     style: "currency",
@@ -83,13 +81,15 @@ function formatDate(dateStr: string): string {
   });
 }
 
-const quickLinks = [
-  { title: "Сметы", url: "/estimates", icon: FileSpreadsheet, description: "Работы и материалы" },
-  { title: "Оплата", url: "/payments", icon: CreditCard, description: "История платежей" },
-  { title: "Документы", url: "/documents", icon: FileText, description: "Файлы проекта" },
-  { title: "Фотоотчёт", url: "/photos", icon: Camera, description: "Фото с объекта" },
-  { title: "Чат", url: "/chat", icon: MessageCircle, description: "Связь с компанией" },
-];
+function getQuickLinks(basePath: string) {
+  return [
+    { title: "Сметы", url: `${basePath}/estimates`, icon: FileSpreadsheet, description: "Работы и материалы" },
+    { title: "Оплата", url: `${basePath}/payments`, icon: CreditCard, description: "История платежей" },
+    { title: "Документы", url: `${basePath}/documents`, icon: FileText, description: "Файлы проекта" },
+    { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera, description: "Фото с объекта" },
+    { title: "Чат", url: `${basePath}/chat`, icon: MessageCircle, description: "Связь с компанией" },
+  ];
+}
 
 function DashboardSkeleton() {
   return (
@@ -126,9 +126,10 @@ function DashboardSkeleton() {
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ projectId, basePath }: { projectId: number; basePath?: string }) {
+  const linkBase = basePath ?? "/cabinet";
   const { data, isLoading, error } = useQuery<DashboardData>({
-    queryKey: ["/api/dashboard", UID],
+    queryKey: ["/api/dashboard/project", projectId],
   });
 
   if (isLoading) {
@@ -264,18 +265,18 @@ export default function Dashboard() {
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Быстрый доступ</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {quickLinks.map((link) => (
+          {getQuickLinks(linkBase).map((link) => (
             <Link key={link.url} href={link.url}>
               <Card
                 className="hover-elevate cursor-pointer h-full"
-                data-testid={`card-quick-${link.url.replace("/", "")}`}
+                data-testid={`card-quick-${link.title.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 <CardContent className="p-4 flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary/10 text-primary">
                       <link.icon className="w-5 h-5" />
                     </div>
-                    {link.url === "/chat" && unreadMessages > 0 && (
+                    {link.url.endsWith("/chat") && unreadMessages > 0 && (
                       <Badge variant="default" className="text-xs" data-testid="badge-quick-unread">
                         {unreadMessages}
                       </Badge>

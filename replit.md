@@ -11,7 +11,7 @@
 ## Структура проекта
 ```
 client/src/
-  pages/          - Login, About, Dashboard, Estimates, Payments, Documents, Photos, Videos, Chat
+  pages/          - Login, About, Dashboard, Projects, Estimates, Payments, Documents, Photos, Videos, Chat
   components/     - ThemeProvider, app-sidebar, ui/ (shadcn components)
   lib/            - queryClient, utils, auth (AuthContext + useAuth hook)
   hooks/          - use-toast, use-mobile
@@ -27,14 +27,11 @@ uploads/          - Загруженные фото (served at /uploads/*)
 
 ## Маршруты
 - `/` — О компании (публичная страница)
-- `/cabinet` — Дашборд (личный кабинет)
-- `/cabinet/estimates` — Сметы
-- `/cabinet/payments` — Оплата
-- `/cabinet/documents` — Документы
-- `/cabinet/photos` — Фотоотчёт
-- `/cabinet/videos` — Видео объекта
-- `/cabinet/chat` — Чат
 - `/login` — Страница входа
+- `/cabinet` — Для админа: список объектов; для клиента/демо: дашборд проекта
+- `/cabinet/estimates|payments|documents|photos|videos|chat` — Разделы клиентского кабинета (projectId=1)
+- `/cabinet/project/:id` — Дашборд конкретного объекта (админ)
+- `/cabinet/project/:id/estimates|payments|documents|photos|videos|chat` — Разделы объекта (админ)
 - Без авторизации кабинет работает в демо-режиме (плашка «Демо-режим»)
 
 ## Авторизация
