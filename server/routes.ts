@@ -1,5 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
+import multer from "multer";
 import { storage } from "./storage";
 import {
   insertMessageSchema,
@@ -8,6 +10,27 @@ import {
   insertDocumentSchema,
   insertPhotoSchema,
 } from "@shared/schema";
+
+const uploadStorage = multer.diskStorage({
+  destination: path.resolve("uploads"),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    cb(null, name);
+  },
+});
+
+const upload = multer({
+  storage: uploadStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Только изображения"));
+    }
+  },
+});
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
@@ -247,6 +270,24 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Document not found" });
     }
     res.json({ ok: true });
+  });
+
+  app.post("/api/admin/photos/upload", requireAdmin, upload.single("photo"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    const url = `/uploads/${req.file.filename}`;
+    const parsed = insertPhotoSchema.safeParse({
+      projectId: parseInt(req.body.projectId),
+      url,
+      caption: req.body.caption || "",
+      date: req.body.date || new Date().toISOString().slice(0, 10),
+    });
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error });
+    }
+    const photo = await storage.createPhoto(parsed.data);
+    res.json(photo);
   });
 
   app.post("/api/admin/photos", requireAdmin, async (req, res) => {

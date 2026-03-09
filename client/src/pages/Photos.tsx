@@ -7,10 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, X, Plus, Trash2, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Plus, Trash2, Loader2, Upload } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useAuth } from "@/lib/auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
@@ -32,7 +32,8 @@ function PhotosSkeleton() {
 export default function Photos({ projectId }: { projectId: number }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
 
@@ -43,22 +44,59 @@ export default function Photos({ projectId }: { projectId: number }) {
   });
 
   const addMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/admin/photos", { projectId, url, caption, date }),
+    mutationFn: async () => {
+      if (!file) throw new Error("Выберите файл");
+      const formData = new FormData();
+      formData.append("photo", file);
+      formData.append("projectId", String(projectId));
+      formData.append("caption", caption);
+      formData.append("date", date);
+      const res = await fetch("/api/admin/photos/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Ошибка загрузки");
+      }
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "photos"] });
       setAddOpen(false);
-      setUrl("");
+      setFile(null);
+      setPreview(null);
       setCaption("");
       setDate(new Date().toISOString().slice(0, 10));
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/photos/${id}`),
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/photos/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Ошибка удаления");
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "photos"] });
     },
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0] ?? null;
+    setFile(selected);
+    if (selected) {
+      const reader = new FileReader();
+      reader.onload = () => setPreview(reader.result as string);
+      reader.readAsDataURL(selected);
+    } else {
+      setPreview(null);
+    }
+  };
 
   if (isLoading) {
     return <PhotosSkeleton />;
@@ -210,7 +248,10 @@ export default function Photos({ projectId }: { projectId: number }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={addOpen} onOpenChange={(open) => {
+        setAddOpen(open);
+        if (!open) { setFile(null); setPreview(null); setCaption(""); setDate(new Date().toISOString().slice(0, 10)); }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Добавить фото</DialogTitle>
@@ -223,15 +264,22 @@ export default function Photos({ projectId }: { projectId: number }) {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="photo-url">URL</Label>
-              <Input
-                id="photo-url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com/photo.jpg"
-                required
-                data-testid="input-photo-url"
-              />
+              <Label htmlFor="photo-file">Фотография</Label>
+              <div className="relative">
+                <Input
+                  id="photo-file"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="cursor-pointer"
+                  data-testid="input-photo-file"
+                />
+              </div>
+              {preview && (
+                <div className="mt-2 rounded-md overflow-hidden border" data-testid="img-photo-preview">
+                  <img src={preview} alt="Предпросмотр" className="w-full max-h-48 object-cover" />
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="photo-caption">Описание</Label>
@@ -255,9 +303,13 @@ export default function Photos({ projectId }: { projectId: number }) {
                 data-testid="input-photo-date"
               />
             </div>
-            <Button type="submit" disabled={addMutation.isPending} data-testid="button-submit-photo">
-              {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Добавить
+            <Button type="submit" disabled={addMutation.isPending || !file} data-testid="button-submit-photo">
+              {addMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-4 w-4" />
+              )}
+              Загрузить
             </Button>
           </form>
         </DialogContent>

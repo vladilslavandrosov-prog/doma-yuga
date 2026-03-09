@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -30,6 +31,8 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+app.use("/uploads", express.static(path.resolve("uploads")));
 
 app.use(
   session({
