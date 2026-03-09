@@ -12,6 +12,7 @@ import {
   insertVideoSchema,
   insertClientSchema,
   insertUserSchema,
+  insertNonWorkingDaySchema,
 } from "@shared/schema";
 
 const uploadStorage = multer.diskStorage({
@@ -231,6 +232,11 @@ export async function registerRoutes(
   app.get("/api/project/:id/videos", async (req, res) => {
     const videos = await storage.getVideosByProjectId(parseInt(req.params.id));
     res.json(videos);
+  });
+
+  app.get("/api/project/:id/non-working-days", async (req, res) => {
+    const days = await storage.getNonWorkingDaysByProjectId(parseInt(req.params.id));
+    res.json(days);
   });
 
   app.get("/api/project/:id/messages", async (req, res) => {
@@ -490,6 +496,23 @@ export async function registerRoutes(
     const ok = await storage.deleteVideo(parseInt(req.params.id));
     if (!ok) {
       return res.status(404).json({ error: "Video not found" });
+    }
+    res.json({ ok: true });
+  });
+
+  app.post("/api/admin/non-working-days", requireAdmin, async (req, res) => {
+    const parsed = insertNonWorkingDaySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    const day = await storage.createNonWorkingDay(parsed.data);
+    res.json(day);
+  });
+
+  app.delete("/api/admin/non-working-days/:id", requireAdmin, async (req, res) => {
+    const ok = await storage.deleteNonWorkingDay(parseInt(req.params.id));
+    if (!ok) {
+      return res.status(404).json({ error: "Non-working day not found" });
     }
     res.json({ ok: true });
   });

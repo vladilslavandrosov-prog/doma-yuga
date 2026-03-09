@@ -116,6 +116,17 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+export const nonWorkingDays = pgTable("non_working_days", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  date: text("date").notNull(),
+  reason: text("reason").notNull(),
+});
+
+export const insertNonWorkingDaySchema = createInsertSchema(nonWorkingDays).omit({ id: true });
+export type InsertNonWorkingDay = z.infer<typeof insertNonWorkingDaySchema>;
+export type NonWorkingDay = typeof nonWorkingDays.$inferSelect;
+
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),

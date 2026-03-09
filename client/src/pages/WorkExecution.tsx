@@ -15,8 +15,8 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { HardHat, CalendarDays, List, ChevronDown, ChevronRight } from "lucide-react";
-import type { Estimate, EstimateItem } from "@shared/schema";
+import { HardHat, CalendarDays, List, ChevronDown, ChevronRight, CloudOff } from "lucide-react";
+import type { Estimate, EstimateItem, NonWorkingDay } from "@shared/schema";
 
 type EstimateWithItems = Estimate & { items: EstimateItem[] };
 type ViewMode = "all" | "by-day";
@@ -95,6 +95,10 @@ interface DayGroup {
   total: number;
 }
 
+type TimelineEntry =
+  | { type: "work"; group: DayGroup }
+  | { type: "off"; days: NonWorkingDay[] };
+
 function WorkExecutionSkeleton() {
   return (
     <div className="space-y-4">
@@ -104,6 +108,77 @@ function WorkExecutionSkeleton() {
         <Skeleton key={i} className="h-16 w-full" />
       ))}
     </div>
+  );
+}
+
+function NonWorkingDaysCard({ days }: { days: NonWorkingDay[] }) {
+  const [open, setOpen] = useState(false);
+
+  if (days.length === 1) {
+    const d = days[0];
+    return (
+      <Card className="border-dashed border-muted-foreground/30 bg-muted/30" data-testid={`card-off-day-${d.date}`}>
+        <CardContent className="p-4 flex items-center gap-3">
+          <div className="flex items-center justify-center w-9 h-9 rounded-md bg-muted text-muted-foreground">
+            <CloudOff className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-muted-foreground">
+              {formatDate(d.date)} <span className="capitalize">({formatDayOfWeek(d.date)})</span>
+            </p>
+            <p className="text-sm text-muted-foreground/80">{d.reason}</p>
+          </div>
+          <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate text-muted-foreground shrink-0">
+            Нерабочий день
+          </Badge>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-dashed border-muted-foreground/30 bg-muted/30" data-testid={`card-off-days-${days[0].date}`}>
+      <CardHeader
+        className="p-4 cursor-pointer"
+        onClick={() => setOpen(!open)}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-9 h-9 rounded-md bg-muted text-muted-foreground">
+              <CloudOff className="w-5 h-5" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {formatDate(days[0].date)} — {formatDate(days[days.length - 1].date)}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground/70">{days.length} нерабочих дн.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate text-muted-foreground">
+              Нерабочие дни
+            </Badge>
+            {open ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </div>
+        </div>
+      </CardHeader>
+      {open && (
+        <CardContent className="p-0 border-t border-dashed border-muted-foreground/20">
+          <div className="divide-y divide-dashed divide-muted-foreground/20">
+            {days.map((d) => (
+              <div key={d.id} className="px-4 py-3 flex items-center gap-3" data-testid={`row-off-day-${d.date}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground">
+                    {formatDate(d.date)} <span className="capitalize">({formatDayOfWeek(d.date)})</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground/70">{d.reason}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      )}
+    </Card>
   );
 }
 
@@ -195,6 +270,10 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
     queryKey: ["/api/project", projectId, "estimates"],
   });
 
+  const { data: nonWorkingDays } = useQuery<NonWorkingDay[]>({
+    queryKey: ["/api/project", projectId, "non-working-days"],
+  });
+
   const completedItems = useMemo(() => {
     if (!estimates) return [];
     return estimates
@@ -222,9 +301,51 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
     return result;
   }, [completedItems]);
 
+  const timeline = useMemo((): TimelineEntry[] => {
+    if (!nonWorkingDays || nonWorkingDays.length === 0) {
+      return dayGroups.map((g) => ({ type: "work" as const, group: g }));
+    }
+
+    const workDates = new Set(dayGroups.map((g) => g.date));
+    const sortedOffDays = [...nonWorkingDays]
+      .filter((d) => !workDates.has(d.date))
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    const allDates: { date: string; kind: "work" | "off"; index: number }[] = [];
+
+    dayGroups.forEach((g, i) => allDates.push({ date: g.date, kind: "work", index: i }));
+    sortedOffDays.forEach((d, i) => allDates.push({ date: d.date, kind: "off", index: i }));
+
+    allDates.sort((a, b) => b.date.localeCompare(a.date));
+
+    const entries: TimelineEntry[] = [];
+    let pendingOffDays: NonWorkingDay[] = [];
+
+    for (const entry of allDates) {
+      if (entry.kind === "off") {
+        pendingOffDays.push(sortedOffDays[entry.index]);
+      } else {
+        if (pendingOffDays.length > 0) {
+          pendingOffDays.sort((a, b) => b.date.localeCompare(a.date));
+          entries.push({ type: "off", days: pendingOffDays });
+          pendingOffDays = [];
+        }
+        entries.push({ type: "work", group: dayGroups[entry.index] });
+      }
+    }
+    if (pendingOffDays.length > 0) {
+      pendingOffDays.sort((a, b) => b.date.localeCompare(a.date));
+      entries.push({ type: "off", days: pendingOffDays });
+    }
+
+    return entries;
+  }, [dayGroups, nonWorkingDays]);
+
   const grandTotal = useMemo(() => {
     return completedItems.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0);
   }, [completedItems]);
+
+  const offDaysCount = nonWorkingDays?.length ?? 0;
 
   if (isLoading) {
     return (
@@ -259,7 +380,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
         </TabsList>
 
         <TabsContent value={category} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Card data-testid="card-summary-total">
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">Итого выполнено</p>
@@ -275,6 +396,17 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                 <div>
                   <p className="text-xs text-muted-foreground">Рабочих дней</p>
                   <p className="text-lg font-bold" data-testid="text-working-days">{dayGroups.length}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card data-testid="card-summary-off-days">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="flex items-center justify-center w-9 h-9 rounded-md bg-muted text-muted-foreground">
+                  <CloudOff className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Нерабочих дней</p>
+                  <p className="text-lg font-bold" data-testid="text-off-days">{offDaysCount}</p>
                 </div>
               </CardContent>
             </Card>
@@ -301,7 +433,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
             </Button>
           </div>
 
-          {completedItems.length === 0 ? (
+          {completedItems.length === 0 && offDaysCount === 0 ? (
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
                 <p data-testid="text-no-results">
@@ -311,9 +443,13 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
             </Card>
           ) : viewMode === "by-day" ? (
             <div className="space-y-3">
-              {dayGroups.map((group) => (
-                <DayCard key={group.date} group={group} isMobile={isMobile} />
-              ))}
+              {timeline.map((entry, idx) =>
+                entry.type === "work" ? (
+                  <DayCard key={`work-${entry.group.date}`} group={entry.group} isMobile={isMobile} />
+                ) : (
+                  <NonWorkingDaysCard key={`off-${idx}`} days={entry.days} />
+                )
+              )}
             </div>
           ) : isMobile ? (
             <div className="space-y-3">

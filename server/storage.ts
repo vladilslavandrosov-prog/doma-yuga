@@ -9,6 +9,7 @@ import {
   type Video, type InsertVideo,
   type Message, type InsertMessage,
   type User, type InsertUser,
+  type NonWorkingDay, type InsertNonWorkingDay,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -48,6 +49,9 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(id: number, password: string): Promise<boolean>;
   getAllUsers(): Promise<User[]>;
+  getNonWorkingDaysByProjectId(projectId: number): Promise<NonWorkingDay[]>;
+  createNonWorkingDay(day: InsertNonWorkingDay): Promise<NonWorkingDay>;
+  deleteNonWorkingDay(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -61,6 +65,7 @@ export class MemStorage implements IStorage {
   private videos: Map<number, Video> = new Map();
   private messages: Map<number, Message> = new Map();
   private users: Map<number, User> = new Map();
+  private nonWorkingDays: Map<number, NonWorkingDay> = new Map();
   private nextId = 100;
 
   constructor() {
@@ -204,6 +209,28 @@ export class MemStorage implements IStorage {
       { id: 2, projectId: 2, url: "/uploads/construction_house_demo.mp4", title: "Обзор строительной площадки", description: "Общий вид объекта с высоты — этап фундаментных работ", date: "2026-01-20" },
     ];
     videoList.forEach(v => this.videos.set(v.id, v));
+
+    const nonWorkDays: NonWorkingDay[] = [
+      { id: 1, projectId: 1, date: "2026-01-11", reason: "Воскресенье" },
+      { id: 2, projectId: 1, date: "2026-01-13", reason: "Ожидание поставки арматуры" },
+      { id: 3, projectId: 1, date: "2026-01-14", reason: "Дождь, невозможно проводить земляные работы" },
+      { id: 4, projectId: 1, date: "2026-01-16", reason: "Технологический перерыв — усадка грунта" },
+      { id: 5, projectId: 1, date: "2026-01-17", reason: "Суббота" },
+      { id: 6, projectId: 1, date: "2026-01-18", reason: "Воскресенье" },
+      { id: 7, projectId: 1, date: "2026-01-19", reason: "Ожидание бетона с завода" },
+      { id: 8, projectId: 1, date: "2026-01-21", reason: "Набор прочности бетона" },
+      { id: 9, projectId: 1, date: "2026-01-22", reason: "Набор прочности бетона" },
+      { id: 10, projectId: 1, date: "2026-01-23", reason: "Набор прочности бетона" },
+      { id: 11, projectId: 1, date: "2026-01-24", reason: "Суббота" },
+      { id: 12, projectId: 2, date: "2026-01-11", reason: "Воскресенье" },
+      { id: 13, projectId: 2, date: "2026-01-13", reason: "Ожидание поставки материалов" },
+      { id: 14, projectId: 2, date: "2026-01-14", reason: "Сильный ветер, опасные условия" },
+      { id: 15, projectId: 2, date: "2026-01-16", reason: "Технологический перерыв" },
+      { id: 16, projectId: 2, date: "2026-01-17", reason: "Суббота" },
+      { id: 17, projectId: 2, date: "2026-01-18", reason: "Воскресенье" },
+      { id: 18, projectId: 2, date: "2026-01-19", reason: "Ожидание бетона" },
+    ];
+    nonWorkDays.forEach(d => this.nonWorkingDays.set(d.id, d));
 
     const msgList: Message[] = [
       { id: 1, projectId: 1, sender: "admin", text: "Здравствуйте! Работы по фундаменту начаты по графику.", createdAt: "2026-01-10T09:00:00", isRead: true },
@@ -412,6 +439,21 @@ export class MemStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+
+  async getNonWorkingDaysByProjectId(projectId: number): Promise<NonWorkingDay[]> {
+    return Array.from(this.nonWorkingDays.values()).filter(d => d.projectId === projectId);
+  }
+
+  async createNonWorkingDay(day: InsertNonWorkingDay): Promise<NonWorkingDay> {
+    const id = this.nextId++;
+    const d: NonWorkingDay = { id, projectId: day.projectId, date: day.date, reason: day.reason };
+    this.nonWorkingDays.set(id, d);
+    return d;
+  }
+
+  async deleteNonWorkingDay(id: number): Promise<boolean> {
+    return this.nonWorkingDays.delete(id);
   }
 }
 
