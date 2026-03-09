@@ -7,6 +7,7 @@ import {
   type Document, type InsertDocument,
   type Photo, type InsertPhoto,
   type Message, type InsertMessage,
+  type User, type InsertUser,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -22,6 +23,21 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   markMessagesAsRead(projectId: number, sender: string): Promise<void>;
   getUnreadCount(projectId: number, sender: string): Promise<number>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserById(id: number): Promise<User | undefined>;
+  createEstimate(est: InsertEstimate): Promise<Estimate>;
+  createEstimateItem(item: InsertEstimateItem): Promise<EstimateItem>;
+  updateEstimateItem(id: number, data: Partial<InsertEstimateItem>): Promise<EstimateItem | undefined>;
+  deleteEstimateItem(id: number): Promise<boolean>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  deletePayment(id: number): Promise<boolean>;
+  createDocument(doc: InsertDocument): Promise<Document>;
+  deleteDocument(id: number): Promise<boolean>;
+  createPhoto(photo: InsertPhoto): Promise<Photo>;
+  deletePhoto(id: number): Promise<boolean>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: number, data: Partial<InsertProject>): Promise<Project | undefined>;
+  createClient(client: InsertClient): Promise<Client>;
 }
 
 export class MemStorage implements IStorage {
@@ -33,6 +49,7 @@ export class MemStorage implements IStorage {
   private documents: Map<number, Document> = new Map();
   private photos: Map<number, Photo> = new Map();
   private messages: Map<number, Message> = new Map();
+  private users: Map<number, User> = new Map();
   private nextId = 100;
 
   constructor() {
@@ -107,6 +124,12 @@ export class MemStorage implements IStorage {
       { id: 4, projectId: 1, sender: "admin", text: "Напоминаем об оплате следующего этапа — кладка стен.", createdAt: "2026-02-01T11:00:00", isRead: false },
     ];
     msgList.forEach(m => this.messages.set(m.id, m));
+
+    const userList: User[] = [
+      { id: 1, username: "admin", password: "admin123", role: "admin", clientId: null },
+      { id: 2, username: "client", password: "client123", role: "client", clientId: 1 },
+    ];
+    userList.forEach(u => this.users.set(u.id, u));
   }
 
   async getClientByUid(uid: string): Promise<Client | undefined> {
@@ -162,6 +185,95 @@ export class MemStorage implements IStorage {
 
   async getUnreadCount(projectId: number, sender: string): Promise<number> {
     return Array.from(this.messages.values()).filter(m => m.projectId === projectId && m.sender === sender && !m.isRead).length;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.username === username);
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async createEstimate(est: InsertEstimate): Promise<Estimate> {
+    const id = this.nextId++;
+    const estimate: Estimate = { ...est, id };
+    this.estimates.set(id, estimate);
+    return estimate;
+  }
+
+  async createEstimateItem(item: InsertEstimateItem): Promise<EstimateItem> {
+    const id = this.nextId++;
+    const estimateItem: EstimateItem = { ...item, id, status: item.status ?? "planned" };
+    this.estimateItems.set(id, estimateItem);
+    return estimateItem;
+  }
+
+  async updateEstimateItem(id: number, data: Partial<InsertEstimateItem>): Promise<EstimateItem | undefined> {
+    const existing = this.estimateItems.get(id);
+    if (!existing) return undefined;
+    const updated: EstimateItem = { ...existing, ...data };
+    this.estimateItems.set(id, updated);
+    return updated;
+  }
+
+  async deleteEstimateItem(id: number): Promise<boolean> {
+    return this.estimateItems.delete(id);
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const id = this.nextId++;
+    const p: Payment = { ...payment, id };
+    this.payments.set(id, p);
+    return p;
+  }
+
+  async deletePayment(id: number): Promise<boolean> {
+    return this.payments.delete(id);
+  }
+
+  async createDocument(doc: InsertDocument): Promise<Document> {
+    const id = this.nextId++;
+    const d: Document = { ...doc, id };
+    this.documents.set(id, d);
+    return d;
+  }
+
+  async deleteDocument(id: number): Promise<boolean> {
+    return this.documents.delete(id);
+  }
+
+  async createPhoto(photo: InsertPhoto): Promise<Photo> {
+    const id = this.nextId++;
+    const p: Photo = { ...photo, id };
+    this.photos.set(id, p);
+    return p;
+  }
+
+  async deletePhoto(id: number): Promise<boolean> {
+    return this.photos.delete(id);
+  }
+
+  async createProject(project: InsertProject): Promise<Project> {
+    const id = this.nextId++;
+    const p: Project = { ...project, id, status: project.status ?? "active" };
+    this.projects.set(id, p);
+    return p;
+  }
+
+  async updateProject(id: number, data: Partial<InsertProject>): Promise<Project | undefined> {
+    const existing = this.projects.get(id);
+    if (!existing) return undefined;
+    const updated: Project = { ...existing, ...data };
+    this.projects.set(id, updated);
+    return updated;
+  }
+
+  async createClient(client: InsertClient): Promise<Client> {
+    const id = this.nextId++;
+    const c: Client = { id, name: client.name, phone: client.phone ?? null, email: client.email ?? null, uid: client.uid };
+    this.clients.set(id, c);
+    return c;
   }
 }
 

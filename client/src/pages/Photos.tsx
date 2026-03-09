@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Photo } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ChevronLeft, ChevronRight, X, Plus, Trash2, Loader2 } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { useAuth } from "@/lib/auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
@@ -27,9 +31,33 @@ function PhotosSkeleton() {
 
 export default function Photos({ projectId }: { projectId: number }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [caption, setCaption] = useState("");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const { isAdmin } = useAuth();
 
   const { data: photos, isLoading, error } = useQuery<Photo[]>({
     queryKey: ["/api/project", projectId, "photos"],
+  });
+
+  const addMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/photos", { projectId, url, caption, date }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "photos"] });
+      setAddOpen(false);
+      setUrl("");
+      setCaption("");
+      setDate(new Date().toISOString().slice(0, 10));
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/photos/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "photos"] });
+    },
   });
 
   if (isLoading) {
@@ -70,7 +98,15 @@ export default function Photos({ projectId }: { projectId: number }) {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <h1 className="text-2xl font-semibold" data-testid="text-photos-title">Фотоотчёт</h1>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h1 className="text-2xl font-semibold" data-testid="text-photos-title">Фотоотчёт</h1>
+        {isAdmin && (
+          <Button onClick={() => setAddOpen(true)} data-testid="button-add-photo">
+            <Plus className="mr-2 h-4 w-4" />
+            Добавить фото
+          </Button>
+        )}
+      </div>
 
       {sortedPhotos.length === 0 && (
         <Card>
@@ -88,13 +124,27 @@ export default function Photos({ projectId }: { projectId: number }) {
             onClick={() => openLightbox(index)}
             data-testid={`card-photo-${photo.id}`}
           >
-            <div className="aspect-[4/3] overflow-hidden rounded-t-xl">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl">
               <img
                 src={photo.url}
                 alt={photo.caption}
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 z-10 text-white bg-black/50"
+                  data-testid={`button-delete-photo-${photo.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteMutation.mutate(photo.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
             <CardContent className="p-3 space-y-1">
               <p className="text-sm font-medium" data-testid={`text-photo-caption-${photo.id}`}>{photo.caption}</p>
@@ -157,6 +207,59 @@ export default function Photos({ projectId }: { projectId: number }) {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить фото</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              addMutation.mutate();
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="photo-url">URL</Label>
+              <Input
+                id="photo-url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://example.com/photo.jpg"
+                required
+                data-testid="input-photo-url"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="photo-caption">Описание</Label>
+              <Input
+                id="photo-caption"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Описание фотографии"
+                required
+                data-testid="input-photo-caption"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="photo-date">Дата</Label>
+              <Input
+                id="photo-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+                data-testid="input-photo-date"
+              />
+            </div>
+            <Button type="submit" disabled={addMutation.isPending} data-testid="button-submit-photo">
+              {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Добавить
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

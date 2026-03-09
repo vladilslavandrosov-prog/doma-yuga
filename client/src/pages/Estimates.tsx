@@ -1,9 +1,12 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/lib/auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -22,7 +25,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Search, ArrowUpDown, ArrowUp, ArrowDown, Plus, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Estimate, EstimateItem } from "@shared/schema";
 
@@ -101,7 +110,14 @@ function EstimatesSkeleton() {
   );
 }
 
-function MobileCard({ item, index }: { item: EstimateItem; index: number }) {
+interface MobileCardProps {
+  item: EstimateItem;
+  index: number;
+  isAdmin: boolean;
+  onDelete: (id: number) => void;
+}
+
+function MobileCard({ item, index, isAdmin, onDelete }: MobileCardProps) {
   return (
     <Card data-testid={`card-estimate-item-${item.id}`}>
       <CardContent className="p-4 space-y-2">
@@ -109,7 +125,20 @@ function MobileCard({ item, index }: { item: EstimateItem; index: number }) {
           <span className="text-sm text-muted-foreground" data-testid={`text-item-number-${item.id}`}>
             #{index + 1}
           </span>
-          <StatusBadge status={item.status} />
+          <div className="flex items-center gap-2">
+            <StatusBadge status={item.status} />
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive"
+                onClick={() => onDelete(item.id)}
+                data-testid={`button-delete-item-${item.id}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <p className="font-medium" data-testid={`text-item-name-${item.id}`}>{item.name}</p>
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -130,11 +159,20 @@ function MobileCard({ item, index }: { item: EstimateItem; index: number }) {
 }
 
 export default function Estimates({ projectId }: { projectId: number }) {
+  const { isAdmin } = useAuth();
   const [category, setCategory] = useState<string>("works");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [addOpen, setAddOpen] = useState(false);
+
+  const [formDate, setFormDate] = useState("");
+  const [formName, setFormName] = useState("");
+  const [formQuantity, setFormQuantity] = useState("");
+  const [formUnit, setFormUnit] = useState("");
+  const [formUnitPrice, setFormUnitPrice] = useState("");
+  const [formStatus, setFormStatus] = useState("planned");
 
   const isMobile = useIsMobile();
 
@@ -142,8 +180,12 @@ export default function Estimates({ projectId }: { projectId: number }) {
     queryKey: ["/api/project", projectId, "estimates"],
   });
 
-  const categoryLabel = category === "works" ? "Работы" : "Материалы";
   const categoryKey = category === "works" ? "works" : "materials";
+
+  const currentEstimate = useMemo(() => {
+    if (!estimates) return null;
+    return estimates.find((e) => e.category === categoryKey) ?? null;
+  }, [estimates, categoryKey]);
 
   const allItems = useMemo(() => {
     if (!estimates) return [];
@@ -193,6 +235,54 @@ export default function Estimates({ projectId }: { projectId: number }) {
     return filteredItems.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0);
   }, [filteredItems]);
 
+  const createMutation = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      await apiRequest("POST", "/api/admin/estimate-items", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/demo-uid-123"] });
+      setAddOpen(false);
+      resetForm();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/admin/estimate-items/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/demo-uid-123"] });
+    },
+  });
+
+  function resetForm() {
+    setFormDate("");
+    setFormName("");
+    setFormQuantity("");
+    setFormUnit("");
+    setFormUnitPrice("");
+    setFormStatus("planned");
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentEstimate) return;
+    const qty = parseFloat(formQuantity);
+    const price = parseFloat(formUnitPrice);
+    createMutation.mutate({
+      estimateId: currentEstimate.id,
+      date: formDate,
+      name: formName,
+      quantity: formQuantity,
+      unit: formUnit,
+      unitPrice: formUnitPrice,
+      totalPrice: String(qty * price),
+      status: formStatus,
+    });
+  }
+
   function handleSort(field: SortField) {
     if (sortField === field) {
       setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
@@ -225,7 +315,15 @@ export default function Estimates({ projectId }: { projectId: number }) {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <h1 className="text-2xl font-semibold" data-testid="text-page-title">Сметы</h1>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h1 className="text-2xl font-semibold" data-testid="text-page-title">Сметы</h1>
+        {isAdmin && (
+          <Button onClick={() => setAddOpen(true)} data-testid="button-add-estimate-item">
+            <Plus className="h-4 w-4 mr-2" />
+            Добавить позицию
+          </Button>
+        )}
+      </div>
 
       <Tabs value={category} onValueChange={setCategory} data-testid="tabs-category">
         <TabsList>
@@ -263,7 +361,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
               <CardContent className="p-8 text-center text-muted-foreground">
                 <p data-testid="text-no-results">
                   {allItems.length === 0
-                    ? `Нет позиций в категории "${categoryLabel}"`
+                    ? `Нет позиций в категории "${category === "works" ? "Работы" : "Материалы"}"`
                     : "Ничего не найдено по заданным фильтрам"}
                 </p>
               </CardContent>
@@ -271,7 +369,13 @@ export default function Estimates({ projectId }: { projectId: number }) {
           ) : isMobile ? (
             <div className="space-y-3">
               {filteredItems.map((item, index) => (
-                <MobileCard key={item.id} item={item} index={index} />
+                <MobileCard
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  isAdmin={isAdmin}
+                  onDelete={(id) => deleteMutation.mutate(id)}
+                />
               ))}
               <Card>
                 <CardContent className="p-4 flex items-center justify-between gap-2 flex-wrap">
@@ -351,6 +455,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
                         </Button>
                       </TableHead>
                       <TableHead>Статус</TableHead>
+                      {isAdmin && <TableHead className="w-12" />}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -370,6 +475,19 @@ export default function Estimates({ projectId }: { projectId: number }) {
                         <TableCell>
                           <StatusBadge status={item.status} />
                         </TableCell>
+                        {isAdmin && (
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => deleteMutation.mutate(item.id)}
+                              data-testid={`button-delete-item-${item.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -382,6 +500,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
                         {formatCurrency(totalSum)}
                       </TableCell>
                       <TableCell />
+                      {isAdmin && <TableCell />}
                     </TableRow>
                   </TableFooter>
                 </Table>
@@ -390,6 +509,86 @@ export default function Estimates({ projectId }: { projectId: number }) {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить позицию</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Дата</Label>
+              <Input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                required
+                data-testid="input-item-date"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Наименование</Label>
+              <Input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Название работы или материала"
+                required
+                data-testid="input-item-name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Количество</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={formQuantity}
+                  onChange={(e) => setFormQuantity(e.target.value)}
+                  required
+                  data-testid="input-item-quantity"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Ед. измерения</Label>
+                <Input
+                  value={formUnit}
+                  onChange={(e) => setFormUnit(e.target.value)}
+                  placeholder="м², шт, кг"
+                  required
+                  data-testid="input-item-unit"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Цена за единицу</Label>
+              <Input
+                type="number"
+                step="any"
+                value={formUnitPrice}
+                onChange={(e) => setFormUnitPrice(e.target.value)}
+                required
+                data-testid="input-item-unit-price"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Статус</Label>
+              <Select value={formStatus} onValueChange={setFormStatus}>
+                <SelectTrigger data-testid="select-item-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planned">Запланировано</SelectItem>
+                  <SelectItem value="in_progress">В работе</SelectItem>
+                  <SelectItem value="completed">Выполнено</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" className="w-full" disabled={createMutation.isPending} data-testid="button-submit-estimate-item">
+              {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Добавить"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

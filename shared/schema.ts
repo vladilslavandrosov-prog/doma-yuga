@@ -91,6 +91,18 @@ export const insertPhotoSchema = createInsertSchema(photos).omit({ id: true });
 export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
 export type Photo = typeof photos.$inferSelect;
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  role: text("role").notNull().default("client"),
+  clientId: integer("client_id"),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),

@@ -8,10 +8,13 @@ import {
   Camera,
   MessageCircle,
   Building2,
+  LogOut,
+  User,
 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -21,6 +24,9 @@ import {
   SidebarMenuItem,
   SidebarMenuBadge,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/lib/auth";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { title: "О компании", url: "/", icon: Building2 },
@@ -34,6 +40,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { user, logout, isAdmin } = useAuth();
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/project", 1, "unread"],
@@ -86,6 +93,27 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <User className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate text-sm font-medium" data-testid="text-user-name">
+              {user?.username}
+            </span>
+            <Badge variant="secondary" data-testid="badge-user-role">
+              {isAdmin ? "Администратор" : "Клиент"}
+            </Badge>
+          </div>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => logout()}
+            data-testid="button-logout"
+          >
+            <LogOut />
+          </Button>
+        </div>
+      </SidebarFooter>
     </Sidebar>
   );
 }
