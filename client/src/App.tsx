@@ -11,6 +11,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
 import Estimates from "@/pages/Estimates";
+import WorkExecution from "@/pages/WorkExecution";
 import Payments from "@/pages/Payments";
 import Documents from "@/pages/Documents";
 import Photos from "@/pages/Photos";
@@ -39,7 +40,7 @@ function CabinetLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProjectPage({ section }: { section: "dashboard" | "estimates" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
+function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
   const params = useParams<{ id: string }>();
   const projectId = parseInt(params.id);
   const basePath = `/cabinet/project/${params.id}`;
@@ -51,6 +52,8 @@ function ProjectPage({ section }: { section: "dashboard" | "estimates" | "paymen
       return <Dashboard projectId={projectId} basePath={basePath} />;
     case "estimates":
       return <Estimates projectId={projectId} />;
+    case "execution":
+      return <WorkExecution projectId={projectId} />;
     case "payments":
       return <Payments projectId={projectId} />;
     case "documents":
@@ -74,10 +77,12 @@ function CabinetHome() {
   return <Dashboard projectId={1} basePath="/cabinet" />;
 }
 
-function ClientPage({ section }: { section: "estimates" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
+function ClientPage({ section }: { section: "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
   switch (section) {
     case "estimates":
       return <Estimates projectId={1} />;
+    case "execution":
+      return <WorkExecution projectId={1} />;
     case "payments":
       return <Payments projectId={1} />;
     case "documents":
@@ -100,6 +105,7 @@ function Router() {
       <Route path="/cabinet">{() => <CabinetLayout><CabinetHome /></CabinetLayout>}</Route>
 
       <Route path="/cabinet/estimates">{() => <CabinetLayout><ClientPage section="estimates" /></CabinetLayout>}</Route>
+      <Route path="/cabinet/execution">{() => <CabinetLayout><ClientPage section="execution" /></CabinetLayout>}</Route>
       <Route path="/cabinet/payments">{() => <CabinetLayout><ClientPage section="payments" /></CabinetLayout>}</Route>
       <Route path="/cabinet/documents">{() => <CabinetLayout><ClientPage section="documents" /></CabinetLayout>}</Route>
       <Route path="/cabinet/photos">{() => <CabinetLayout><ClientPage section="photos" /></CabinetLayout>}</Route>
@@ -108,6 +114,7 @@ function Router() {
 
       <Route path="/cabinet/project/:id">{() => <CabinetLayout><ProjectPage section="dashboard" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/estimates">{() => <CabinetLayout><ProjectPage section="estimates" /></CabinetLayout>}</Route>
+      <Route path="/cabinet/project/:id/execution">{() => <CabinetLayout><ProjectPage section="execution" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/payments">{() => <CabinetLayout><ProjectPage section="payments" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/documents">{() => <CabinetLayout><ProjectPage section="documents" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/photos">{() => <CabinetLayout><ProjectPage section="photos" /></CabinetLayout>}</Route>

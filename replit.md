@@ -11,7 +11,7 @@
 ## Структура проекта
 ```
 client/src/
-  pages/          - Login, About, Dashboard, Projects, Estimates, Payments, Documents, Photos, Videos, Chat
+  pages/          - Login, About, Advantages, Dashboard, Projects, Estimates, WorkExecution, Payments, Documents, Photos, Videos, Chat
   components/     - ThemeProvider, app-sidebar, ui/ (shadcn components)
   lib/            - queryClient, utils, auth (AuthContext + useAuth hook)
   hooks/          - use-toast, use-mobile
@@ -29,9 +29,10 @@ uploads/          - Загруженные фото (served at /uploads/*)
 - `/` — О компании (публичная страница)
 - `/login` — Страница входа
 - `/cabinet` — Для админа: список объектов; для клиента/демо: дашборд проекта
-- `/cabinet/estimates|payments|documents|photos|videos|chat` — Разделы клиентского кабинета (projectId=1)
+- `/advantages` — Наши преимущества (публичная страница)
+- `/cabinet/estimates|execution|payments|documents|photos|videos|chat` — Разделы клиентского кабинета (projectId=1)
 - `/cabinet/project/:id` — Дашборд конкретного объекта (админ)
-- `/cabinet/project/:id/estimates|payments|documents|photos|videos|chat` — Разделы объекта (админ)
+- `/cabinet/project/:id/estimates|execution|payments|documents|photos|videos|chat` — Разделы объекта (админ)
 - Без авторизации кабинет работает в демо-режиме (плашка «Демо-режим»)
 
 ## Авторизация
@@ -63,7 +64,8 @@ uploads/          - Загруженные фото (served at /uploads/*)
 
 ## Ключевые особенности
 - Авторизация с разделением ролей (admin/client)
-- Sidebar-навигация с 7 разделами (включая «О компании»)
+- Sidebar-навигация с 9 разделами (включая «О компании», «Наши преимущества», «Плановая смета», «Выполнение работ»)
+- Сметы разделены на: «Плановая смета» (все позиции с табами Работы/Материалы/Транспорт) и «Выполнение работ» (выполненные + в работе, с видами «По дням» и «Общая», иконки рабочий/выходной день)
 - Админ-панель: добавление/удаление записей через диалоговые формы
 - Тёмная/светлая тема с переключателем
 - Адаптивный дизайн (карточки на мобильных, таблицы на десктопе)

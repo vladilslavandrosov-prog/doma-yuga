@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   FolderKanban,
   Shield,
+  HardHat,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,7 +45,8 @@ const publicItems = [
 function getProjectItems(basePath: string) {
   return [
     { title: "Дашборд", url: basePath, icon: LayoutDashboard },
-    { title: "Сметы", url: `${basePath}/estimates`, icon: FileSpreadsheet },
+    { title: "Плановая смета", url: `${basePath}/estimates`, icon: FileSpreadsheet },
+    { title: "Выполнение работ", url: `${basePath}/execution`, icon: HardHat },
     { title: "Оплата", url: `${basePath}/payments`, icon: CreditCard },
     { title: "Документы", url: `${basePath}/documents`, icon: FileText },
     { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera },

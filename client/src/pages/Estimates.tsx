@@ -180,7 +180,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
     queryKey: ["/api/project", projectId, "estimates"],
   });
 
-  const categoryKey = category === "works" ? "works" : "materials";
+  const categoryKey = category;
 
   const currentEstimate = useMemo(() => {
     if (!estimates) return null;
@@ -316,7 +316,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-2xl font-semibold" data-testid="text-page-title">Сметы</h1>
+        <h1 className="text-2xl font-semibold" data-testid="text-page-title">Плановая смета</h1>
         {isAdmin && (
           <Button onClick={() => setAddOpen(true)} data-testid="button-add-estimate-item">
             <Plus className="h-4 w-4 mr-2" />
@@ -329,6 +329,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
         <TabsList>
           <TabsTrigger value="works" data-testid="tab-works">Работы</TabsTrigger>
           <TabsTrigger value="materials" data-testid="tab-materials">Материалы</TabsTrigger>
+          <TabsTrigger value="transport" data-testid="tab-transport">Транспорт</TabsTrigger>
         </TabsList>
 
         <TabsContent value={category} className="space-y-4">
@@ -361,7 +362,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
               <CardContent className="p-8 text-center text-muted-foreground">
                 <p data-testid="text-no-results">
                   {allItems.length === 0
-                    ? `Нет позиций в категории "${category === "works" ? "Работы" : "Материалы"}"`
+                    ? `Нет позиций в категории "${category === "works" ? "Работы" : category === "materials" ? "Материалы" : "Транспорт"}"`
                     : "Ничего не найдено по заданным фильтрам"}
                 </p>
               </CardContent>

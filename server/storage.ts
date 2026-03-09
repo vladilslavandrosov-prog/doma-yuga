@@ -78,10 +78,14 @@ export class MemStorage implements IStorage {
     const est2: Estimate = { id: 2, projectId: 1, category: "materials", title: "Строительные материалы" };
     const est3: Estimate = { id: 3, projectId: 2, category: "works", title: "Ландшафтные работы" };
     const est4: Estimate = { id: 4, projectId: 2, category: "materials", title: "Строительные материалы" };
+    const est5: Estimate = { id: 5, projectId: 1, category: "transport", title: "Транспортные расходы" };
+    const est6: Estimate = { id: 6, projectId: 2, category: "transport", title: "Транспортные расходы" };
     this.estimates.set(1, est1);
     this.estimates.set(2, est2);
     this.estimates.set(3, est3);
     this.estimates.set(4, est4);
+    this.estimates.set(5, est5);
+    this.estimates.set(6, est6);
 
     const items: EstimateItem[] = [
       { id: 1, estimateId: 1, date: "2026-01-10", name: "Планировка территории", quantity: "450", unit: "м²", unitPrice: "120", totalPrice: "54000", status: "completed" },
@@ -106,6 +110,17 @@ export class MemStorage implements IStorage {
     ];
     matItems.forEach(item => this.estimateItems.set(item.id, item));
 
+    const transportItems: EstimateItem[] = [
+      { id: 31, estimateId: 5, date: "2026-01-10", name: "Доставка песка", quantity: "3", unit: "рейс", unitPrice: "8000", totalPrice: "24000", status: "completed" },
+      { id: 32, estimateId: 5, date: "2026-01-10", name: "Доставка щебня", quantity: "2", unit: "рейс", unitPrice: "9000", totalPrice: "18000", status: "completed" },
+      { id: 33, estimateId: 5, date: "2026-01-12", name: "Вывоз грунта", quantity: "5", unit: "рейс", unitPrice: "7500", totalPrice: "37500", status: "completed" },
+      { id: 34, estimateId: 5, date: "2026-01-15", name: "Доставка бетона (миксер)", quantity: "4", unit: "рейс", unitPrice: "12000", totalPrice: "48000", status: "completed" },
+      { id: 35, estimateId: 5, date: "2026-01-20", name: "Аренда автокрана", quantity: "1", unit: "смена", unitPrice: "25000", totalPrice: "25000", status: "in_progress" },
+      { id: 36, estimateId: 5, date: "2026-02-01", name: "Доставка кирпича", quantity: "4", unit: "рейс", unitPrice: "11000", totalPrice: "44000", status: "planned" },
+      { id: 37, estimateId: 5, date: "2026-02-15", name: "Доставка металлочерепицы", quantity: "2", unit: "рейс", unitPrice: "15000", totalPrice: "30000", status: "planned" },
+    ];
+    transportItems.forEach(item => this.estimateItems.set(item.id, item));
+
     const items2: EstimateItem[] = [
       { id: 16, estimateId: 3, date: "2026-01-10", name: "Планировка территории", quantity: "450", unit: "м²", unitPrice: "120", totalPrice: "54000", status: "completed" },
       { id: 17, estimateId: 3, date: "2026-01-12", name: "Выемка грунта под фундамент", quantity: "85", unit: "м³", unitPrice: "850", totalPrice: "72250", status: "completed" },
@@ -128,6 +143,17 @@ export class MemStorage implements IStorage {
       { id: 30, estimateId: 4, date: "2026-02-15", name: "Металлочерепица", quantity: "230", unit: "м²", unitPrice: "850", totalPrice: "195500", status: "planned" },
     ];
     matItems2.forEach(item => this.estimateItems.set(item.id, item));
+
+    const transportItems2: EstimateItem[] = [
+      { id: 38, estimateId: 6, date: "2026-01-10", name: "Доставка песка", quantity: "3", unit: "рейс", unitPrice: "8000", totalPrice: "24000", status: "completed" },
+      { id: 39, estimateId: 6, date: "2026-01-10", name: "Доставка щебня", quantity: "2", unit: "рейс", unitPrice: "9000", totalPrice: "18000", status: "completed" },
+      { id: 40, estimateId: 6, date: "2026-01-12", name: "Вывоз грунта", quantity: "5", unit: "рейс", unitPrice: "7500", totalPrice: "37500", status: "completed" },
+      { id: 41, estimateId: 6, date: "2026-01-15", name: "Доставка бетона (миксер)", quantity: "4", unit: "рейс", unitPrice: "12000", totalPrice: "48000", status: "completed" },
+      { id: 42, estimateId: 6, date: "2026-01-20", name: "Аренда автокрана", quantity: "1", unit: "смена", unitPrice: "25000", totalPrice: "25000", status: "in_progress" },
+      { id: 43, estimateId: 6, date: "2026-02-01", name: "Доставка кирпича", quantity: "4", unit: "рейс", unitPrice: "11000", totalPrice: "44000", status: "planned" },
+      { id: 44, estimateId: 6, date: "2026-02-15", name: "Доставка металлочерепицы", quantity: "2", unit: "рейс", unitPrice: "15000", totalPrice: "30000", status: "planned" },
+    ];
+    transportItems2.forEach(item => this.estimateItems.set(item.id, item));
 
     const paymentList: Payment[] = [
       { id: 1, projectId: 1, amount: "500000", date: "2026-01-05", description: "Аванс на начало работ" },
