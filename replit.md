@@ -5,7 +5,7 @@
 ## Стек технологий
 - **Frontend**: React 18, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query v5, wouter
 - **Backend**: Express 5, TypeScript, express-session
-- **БД**: PostgreSQL (Drizzle ORM), currently using MemStorage with demo data
+- **БД**: PostgreSQL (Drizzle ORM), connect-pg-simple для сессий
 - **Формы**: React Hook Form + Zod
 
 ## Структура проекта
@@ -79,7 +79,7 @@ uploads/          - Загруженные фото (served at /uploads/*)
 - Админ-панель: добавление/удаление записей через диалоговые формы
 - Тёмная/светлая тема с переключателем
 - Адаптивный дизайн (карточки на мобильных, таблицы на десктопе)
-- Демо-данные в MemStorage (uid: demo-uid-123, projectId: 1)
+- Демо-данные seed в PostgreSQL при первом запуске (server/seed.ts); сессии хранятся в БД (connect-pg-simple)
 - Чат с отправкой сообщений и пометкой прочитанных
 - Sidebar footer: имя пользователя, роль, кнопка выхода
 

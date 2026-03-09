@@ -1,9 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import path from "path";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { pool } from "./db";
 
 declare module "express-session" {
   interface SessionData {
@@ -34,8 +36,13 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use("/uploads", express.static(path.resolve("uploads")));
 
+const PgSession = connectPgSimple(session);
 app.use(
   session({
+    store: new PgSession({
+      pool,
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET || "doma-yuga-session-secret",
     resave: false,
     saveUninitialized: false,
@@ -81,6 +88,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  const { seedDatabase } = await import("./seed");
+  await seedDatabase();
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
