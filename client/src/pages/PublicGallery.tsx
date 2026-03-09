@@ -171,7 +171,7 @@ export default function PublicGallery() {
             className="text-2xl font-semibold tracking-tight"
             data-testid="text-public-gallery-title"
           >
-            Галерея работ
+            Фото наших работ
           </h1>
           <p className="text-muted-foreground" data-testid="text-public-gallery-subtitle">
             Фотографии наших строительных объектов

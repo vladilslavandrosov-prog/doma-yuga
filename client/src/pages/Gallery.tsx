@@ -200,7 +200,7 @@ export default function Gallery({ projectId }: { projectId: number }) {
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-gallery-title">Галерея</h1>
+          <h1 className="text-2xl font-semibold" data-testid="text-gallery-title">Фото наших работ</h1>
           <p className="text-sm text-muted-foreground">{totalPhotos} фото в {galleryGroups.length} группах</p>
         </div>
         {isAdmin && (
