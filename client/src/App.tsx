@@ -18,8 +18,8 @@ import About from "@/pages/About";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/about" component={About} />
+      <Route path="/" component={About} />
+      <Route path="/dashboard" component={Dashboard} />
       <Route path="/estimates">{() => <Estimates projectId={1} />}</Route>
       <Route path="/payments">{() => <Payments projectId={1} />}</Route>
       <Route path="/documents">{() => <Documents projectId={1} />}</Route>

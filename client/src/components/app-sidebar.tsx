@@ -23,8 +23,8 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Дашборд", url: "/", icon: LayoutDashboard },
-  { title: "О компании", url: "/about", icon: Building2 },
+  { title: "О компании", url: "/", icon: Building2 },
+  { title: "Дашборд", url: "/dashboard", icon: LayoutDashboard },
   { title: "Сметы", url: "/estimates", icon: FileSpreadsheet },
   { title: "Оплата", url: "/payments", icon: CreditCard },
   { title: "Документы", url: "/documents", icon: FileText },
