@@ -64,16 +64,24 @@ export class MemStorage implements IStorage {
   }
 
   private seedData() {
-    const client: Client = { id: 1, name: "Иванов Сергей Петрович", phone: "+7 (918) 123-45-67", email: "ivanov@mail.ru", uid: "demo-uid-123" };
-    this.clients.set(1, client);
+    const client1: Client = { id: 1, name: "Иванов Сергей Петрович", phone: "+7 (918) 123-45-67", email: "ivanov@mail.ru", uid: "demo-uid-123" };
+    const client2: Client = { id: 2, name: "Петров Алексей Николаевич", phone: "+7 (918) 987-65-43", email: "petrov@mail.ru", uid: "client-uid-456" };
+    this.clients.set(1, client1);
+    this.clients.set(2, client2);
 
-    const project: Project = { id: 1, name: "Атамана Матвеева", address: "Борисовка, ул. Ад. Матвеева, 15", startDate: "2026-01-07", status: "active", clientId: 1 };
-    this.projects.set(1, project);
+    const project1: Project = { id: 1, name: "Демо", address: "г. Краснодар, ул. Демонстрационная, 1", startDate: "2026-01-07", status: "active", clientId: 1 };
+    const project2: Project = { id: 2, name: "Атамана Матвеева", address: "Борисовка, ул. Ад. Матвеева, 15", startDate: "2026-01-07", status: "active", clientId: 2 };
+    this.projects.set(1, project1);
+    this.projects.set(2, project2);
 
     const est1: Estimate = { id: 1, projectId: 1, category: "works", title: "Ландшафтные работы" };
     const est2: Estimate = { id: 2, projectId: 1, category: "materials", title: "Строительные материалы" };
+    const est3: Estimate = { id: 3, projectId: 2, category: "works", title: "Ландшафтные работы" };
+    const est4: Estimate = { id: 4, projectId: 2, category: "materials", title: "Строительные материалы" };
     this.estimates.set(1, est1);
     this.estimates.set(2, est2);
+    this.estimates.set(3, est3);
+    this.estimates.set(4, est4);
 
     const items: EstimateItem[] = [
       { id: 1, estimateId: 1, date: "2026-01-10", name: "Планировка территории", quantity: "450", unit: "м²", unitPrice: "120", totalPrice: "54000", status: "completed" },
@@ -98,10 +106,36 @@ export class MemStorage implements IStorage {
     ];
     matItems.forEach(item => this.estimateItems.set(item.id, item));
 
+    const items2: EstimateItem[] = [
+      { id: 16, estimateId: 3, date: "2026-01-10", name: "Планировка территории", quantity: "450", unit: "м²", unitPrice: "120", totalPrice: "54000", status: "completed" },
+      { id: 17, estimateId: 3, date: "2026-01-12", name: "Выемка грунта под фундамент", quantity: "85", unit: "м³", unitPrice: "850", totalPrice: "72250", status: "completed" },
+      { id: 18, estimateId: 3, date: "2026-01-15", name: "Устройство песчаной подушки", quantity: "45", unit: "м³", unitPrice: "600", totalPrice: "27000", status: "completed" },
+      { id: 19, estimateId: 3, date: "2026-01-20", name: "Заливка фундамента", quantity: "38", unit: "м³", unitPrice: "4500", totalPrice: "171000", status: "in_progress" },
+      { id: 20, estimateId: 3, date: "2026-01-25", name: "Гидроизоляция фундамента", quantity: "120", unit: "м²", unitPrice: "350", totalPrice: "42000", status: "in_progress" },
+      { id: 21, estimateId: 3, date: "2026-02-01", name: "Кладка стен первого этажа", quantity: "180", unit: "м²", unitPrice: "2200", totalPrice: "396000", status: "planned" },
+      { id: 22, estimateId: 3, date: "2026-02-10", name: "Кладка стен второго этажа", quantity: "160", unit: "м²", unitPrice: "2200", totalPrice: "352000", status: "planned" },
+      { id: 23, estimateId: 3, date: "2026-02-20", name: "Монтаж кровли", quantity: "210", unit: "м²", unitPrice: "1800", totalPrice: "378000", status: "planned" },
+      { id: 24, estimateId: 3, date: "2026-03-01", name: "Установка окон", quantity: "14", unit: "шт", unitPrice: "18000", totalPrice: "252000", status: "planned" },
+      { id: 25, estimateId: 3, date: "2026-03-10", name: "Штукатурка фасада", quantity: "340", unit: "м²", unitPrice: "650", totalPrice: "221000", status: "planned" },
+    ];
+    items2.forEach(item => this.estimateItems.set(item.id, item));
+
+    const matItems2: EstimateItem[] = [
+      { id: 26, estimateId: 4, date: "2026-01-08", name: "Бетон М300", quantity: "85", unit: "м³", unitPrice: "5200", totalPrice: "442000", status: "completed" },
+      { id: 27, estimateId: 4, date: "2026-01-08", name: "Арматура А500 d12", quantity: "3200", unit: "кг", unitPrice: "75", totalPrice: "240000", status: "completed" },
+      { id: 28, estimateId: 4, date: "2026-01-20", name: "Кирпич керамический", quantity: "28000", unit: "шт", unitPrice: "18", totalPrice: "504000", status: "in_progress" },
+      { id: 29, estimateId: 4, date: "2026-02-01", name: "Утеплитель минвата 100мм", quantity: "320", unit: "м²", unitPrice: "420", totalPrice: "134400", status: "planned" },
+      { id: 30, estimateId: 4, date: "2026-02-15", name: "Металлочерепица", quantity: "230", unit: "м²", unitPrice: "850", totalPrice: "195500", status: "planned" },
+    ];
+    matItems2.forEach(item => this.estimateItems.set(item.id, item));
+
     const paymentList: Payment[] = [
       { id: 1, projectId: 1, amount: "500000", date: "2026-01-05", description: "Аванс на начало работ" },
       { id: 2, projectId: 1, amount: "350000", date: "2026-01-20", description: "Оплата фундаментных работ" },
       { id: 3, projectId: 1, amount: "200000", date: "2026-02-01", description: "Оплата материалов (кирпич)" },
+      { id: 4, projectId: 2, amount: "500000", date: "2026-01-05", description: "Аванс на начало работ" },
+      { id: 5, projectId: 2, amount: "350000", date: "2026-01-20", description: "Оплата фундаментных работ" },
+      { id: 6, projectId: 2, amount: "200000", date: "2026-02-01", description: "Оплата материалов (кирпич)" },
     ];
     paymentList.forEach(p => this.payments.set(p.id, p));
 
@@ -111,6 +145,11 @@ export class MemStorage implements IStorage {
       { id: 3, projectId: 1, name: "Смета на фундаментные работы", url: "/docs/estimate-fund.pdf", type: "estimate" },
       { id: 4, projectId: 1, name: "Акт выполненных работ №1", url: "/docs/act-1.pdf", type: "act" },
       { id: 5, projectId: 1, name: "Разрешение на строительство", url: "/docs/permit.pdf", type: "permit" },
+      { id: 6, projectId: 2, name: "Договор подряда №128", url: "/docs/contract-2.pdf", type: "contract" },
+      { id: 7, projectId: 2, name: "Проектная документация", url: "/docs/project-2.pdf", type: "project" },
+      { id: 8, projectId: 2, name: "Смета на фундаментные работы", url: "/docs/estimate-fund-2.pdf", type: "estimate" },
+      { id: 9, projectId: 2, name: "Акт выполненных работ №1", url: "/docs/act-2.pdf", type: "act" },
+      { id: 10, projectId: 2, name: "Разрешение на строительство", url: "/docs/permit-2.pdf", type: "permit" },
     ];
     docList.forEach(d => this.documents.set(d.id, d));
 
@@ -121,11 +160,18 @@ export class MemStorage implements IStorage {
       { id: 4, projectId: 1, url: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800", caption: "Заливка бетона", date: "2026-01-20" },
       { id: 5, projectId: 1, url: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800", caption: "Фундамент готов", date: "2026-01-25" },
       { id: 6, projectId: 1, url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800", caption: "Начало кладки стен", date: "2026-02-01" },
+      { id: 7, projectId: 2, url: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800", caption: "Подготовка площадки", date: "2026-01-10" },
+      { id: 8, projectId: 2, url: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800", caption: "Земляные работы", date: "2026-01-12" },
+      { id: 9, projectId: 2, url: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800", caption: "Армирование фундамента", date: "2026-01-15" },
+      { id: 10, projectId: 2, url: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800", caption: "Заливка бетона", date: "2026-01-20" },
+      { id: 11, projectId: 2, url: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800", caption: "Фундамент готов", date: "2026-01-25" },
+      { id: 12, projectId: 2, url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800", caption: "Начало кладки стен", date: "2026-02-01" },
     ];
     photoList.forEach(p => this.photos.set(p.id, p));
 
     const videoList: Video[] = [
       { id: 1, projectId: 1, url: "/uploads/construction_house_demo.mp4", title: "Обзор строительной площадки", description: "Общий вид объекта с высоты — этап фундаментных работ", date: "2026-01-20" },
+      { id: 2, projectId: 2, url: "/uploads/construction_house_demo.mp4", title: "Обзор строительной площадки", description: "Общий вид объекта с высоты — этап фундаментных работ", date: "2026-01-20" },
     ];
     videoList.forEach(v => this.videos.set(v.id, v));
 
@@ -134,6 +180,10 @@ export class MemStorage implements IStorage {
       { id: 2, projectId: 1, sender: "client", text: "Отлично, спасибо за информацию!", createdAt: "2026-01-10T10:30:00", isRead: true },
       { id: 3, projectId: 1, sender: "admin", text: "Заливка фундамента завершена на 60%. Фото прилагаем.", createdAt: "2026-01-22T14:00:00", isRead: true },
       { id: 4, projectId: 1, sender: "admin", text: "Напоминаем об оплате следующего этапа — кладка стен.", createdAt: "2026-02-01T11:00:00", isRead: false },
+      { id: 5, projectId: 2, sender: "admin", text: "Здравствуйте! Работы по фундаменту начаты по графику.", createdAt: "2026-01-10T09:00:00", isRead: true },
+      { id: 6, projectId: 2, sender: "client", text: "Отлично, спасибо за информацию!", createdAt: "2026-01-10T10:30:00", isRead: true },
+      { id: 7, projectId: 2, sender: "admin", text: "Заливка фундамента завершена на 60%. Фото прилагаем.", createdAt: "2026-01-22T14:00:00", isRead: true },
+      { id: 8, projectId: 2, sender: "admin", text: "Напоминаем об оплате следующего этапа — кладка стен.", createdAt: "2026-02-01T11:00:00", isRead: false },
     ];
     msgList.forEach(m => this.messages.set(m.id, m));
 
