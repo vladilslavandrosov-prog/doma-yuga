@@ -92,5 +92,8 @@ uploads/          - Загруженные фото (served at /uploads/*)
 - Модуль: server/telegram.ts (функция sendTelegramNotification)
 - Интеграция в POST /api/project/:id/messages — только для sender="client"
 
+## Production URL
+https://hello-world-vladilslav.replit.app
+
 ## GitHub
-Repository: vladilslavandrosov-prog/website (main branch)
+Repository: vladilslavandrosov-prog/doma-yuga (main branch)
