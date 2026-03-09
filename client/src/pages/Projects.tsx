@@ -195,6 +195,7 @@ export default function Projects() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/project", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", variables.id] });
       toast({ title: "Готово", description: "Объект обновлён" });
       if (editingProject && variables.data.status !== editingProject.status) {
         setStatusFilter("all");
