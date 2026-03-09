@@ -75,14 +75,18 @@ export function AppSidebar() {
   const isClient = !!user && user.role === "client";
   const { data: clientProjects } = useQuery<{ id: number }[]>({
     queryKey: ["/api/client-projects"],
-    enabled: isClient && inCabinet && !inProject,
+    enabled: isClient && inCabinet,
   });
-  const clientProjectId = isClient
-    ? (clientProjects && clientProjects.length > 0 ? clientProjects[0].id : null)
+  const hasMultipleProjects = isClient && clientProjects && clientProjects.length > 1;
+  const singleClientProjectId = isClient
+    ? (clientProjects && clientProjects.length === 1 ? clientProjects[0].id : null)
     : 1;
-  const activeProjectId = inProject ? projectIdFromUrl : (!isAdmin && inCabinet ? clientProjectId : null);
+  const activeProjectId = inProject
+    ? projectIdFromUrl
+    : (!isAdmin && inCabinet && !hasMultipleProjects ? singleClientProjectId : null);
   const basePath = inProject ? `/cabinet/project/${projectIdFromUrl}` : "/cabinet";
   const projectItems = activeProjectId !== null ? getProjectItems(basePath) : [];
+  const clientOnProjectsList = isClient && hasMultipleProjects && !inProject && location === "/cabinet";
 
   const { data: project } = useQuery<Project>({
     queryKey: ["/api/project", activeProjectId],
@@ -122,7 +126,7 @@ export function AppSidebar() {
                       <SidebarMenuButton asChild tooltip="К списку объектов" data-testid="link-nav-back-projects">
                         <Link href="/cabinet">
                           <ArrowLeft />
-                          <span>{isAdmin ? "К объектам" : "Назад"}</span>
+                          <span>{isAdmin ? "К объектам" : hasMultipleProjects ? "К моим объектам" : "Назад"}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -142,6 +146,29 @@ export function AppSidebar() {
             </SidebarGroup>
             <SidebarSeparator />
           </>
+        )}
+
+        {clientOnProjectsList && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Мои объекты</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive
+                    tooltip="Мои объекты"
+                    data-testid="link-nav-my-projects"
+                  >
+                    <Link href="/cabinet">
+                      <FolderKanban />
+                      <span>Список объектов</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
         {inAdminPanel && (

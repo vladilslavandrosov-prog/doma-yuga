@@ -1,4 +1,4 @@
-import { Switch, Route, useParams } from "wouter";
+import { Switch, Route, useParams, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,7 +23,9 @@ import About from "@/pages/About";
 import Advantages from "@/pages/Advantages";
 import Login from "@/pages/Login";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, Loader2 } from "lucide-react";
+import type { Project } from "@shared/schema";
 
 function CabinetLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -69,25 +71,23 @@ function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execut
   }
 }
 
-function useClientProjectId(): { projectId: number | null; isLoading: boolean } {
+function useClientProjects() {
   const { user } = useAuth();
   const isClient = !!user && user.role === "client";
-  const { data: projects, isLoading } = useQuery<{ id: number }[]>({
+  const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["/api/client-projects"],
     enabled: isClient,
   });
-  if (isClient && projects && projects.length > 0) {
-    return { projectId: projects[0].id, isLoading: false };
-  }
-  if (isClient) {
-    return { projectId: null, isLoading };
-  }
-  return { projectId: 1, isLoading: false };
+  return { projects: isClient ? projects : undefined, isLoading: isLoading && isClient, isClient };
 }
 
 function ClientProjectLoader({ children }: { children: (projectId: number) => React.ReactNode }) {
   const { user } = useAuth();
-  const { projectId, isLoading } = useClientProjectId();
+  const { projects, isLoading, isClient } = useClientProjects();
+
+  if (!isClient) {
+    return <>{children(1)}</>;
+  }
 
   if (isLoading) {
     return (
@@ -97,7 +97,7 @@ function ClientProjectLoader({ children }: { children: (projectId: number) => Re
     );
   }
 
-  if (projectId === null) {
+  if (!projects || projects.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
         {user ? "Проект не назначен. Обратитесь к администратору." : "Проект не найден."}
@@ -105,7 +105,7 @@ function ClientProjectLoader({ children }: { children: (projectId: number) => Re
     );
   }
 
-  return <>{children(projectId)}</>;
+  return <>{children(projects[0].id)}</>;
 }
 
 function AdminOnly({ children }: { children: React.ReactNode }) {
@@ -120,18 +120,84 @@ function AdminOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ClientProjectsList() {
+  const { projects, isLoading } = useClientProjects();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!projects || projects.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        Проект не назначен. Обратитесь к администратору.
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-my-projects-title">
+          Мои объекты
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Выберите объект для просмотра
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {projects.map((project) => (
+          <Link key={project.id} href={`/cabinet/project/${project.id}`}>
+            <Card className="hover-elevate cursor-pointer h-full" data-testid={`card-client-project-${project.id}`}>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-base font-medium truncate">{project.name}</CardTitle>
+                <Badge variant="default" className="no-default-hover-elevate">
+                  {project.status === "active" ? "Активен" : project.status === "completed" ? "Завершён" : "Приостановлен"}
+                </Badge>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span>{project.address}</span>
+                </div>
+                <div className="flex items-center justify-end pt-1">
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CabinetHome() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const { projects, isLoading, isClient } = useClientProjects();
 
   if (isAdmin) {
     return <Projects />;
   }
 
-  return (
-    <ClientProjectLoader>
-      {(projectId) => <Dashboard projectId={projectId} basePath="/cabinet" />}
-    </ClientProjectLoader>
-  );
+  if (isClient) {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+    if (projects && projects.length === 1) {
+      return <Dashboard projectId={projects[0].id} basePath="/cabinet" />;
+    }
+    return <ClientProjectsList />;
+  }
+
+  return <Dashboard projectId={1} basePath="/cabinet" />;
 }
 
 function ClientPage({ section }: { section: "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
