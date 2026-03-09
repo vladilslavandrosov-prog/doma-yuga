@@ -6,6 +6,7 @@ import {
   type Payment, type InsertPayment,
   type Document, type InsertDocument,
   type Photo, type InsertPhoto,
+  type Video, type InsertVideo,
   type Message, type InsertMessage,
   type User, type InsertUser,
 } from "@shared/schema";
@@ -35,6 +36,9 @@ export interface IStorage {
   deleteDocument(id: number): Promise<boolean>;
   createPhoto(photo: InsertPhoto): Promise<Photo>;
   deletePhoto(id: number): Promise<boolean>;
+  getVideosByProjectId(projectId: number): Promise<Video[]>;
+  createVideo(video: InsertVideo): Promise<Video>;
+  deleteVideo(id: number): Promise<boolean>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, data: Partial<InsertProject>): Promise<Project | undefined>;
   createClient(client: InsertClient): Promise<Client>;
@@ -48,6 +52,7 @@ export class MemStorage implements IStorage {
   private payments: Map<number, Payment> = new Map();
   private documents: Map<number, Document> = new Map();
   private photos: Map<number, Photo> = new Map();
+  private videos: Map<number, Video> = new Map();
   private messages: Map<number, Message> = new Map();
   private users: Map<number, User> = new Map();
   private nextId = 100;
@@ -116,6 +121,11 @@ export class MemStorage implements IStorage {
       { id: 6, projectId: 1, url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800", caption: "Начало кладки стен", date: "2026-02-01" },
     ];
     photoList.forEach(p => this.photos.set(p.id, p));
+
+    const videoList: Video[] = [
+      { id: 1, projectId: 1, url: "/uploads/construction_house_demo.mp4", title: "Обзор строительной площадки", description: "Общий вид объекта с высоты — этап фундаментных работ", date: "2026-01-20" },
+    ];
+    videoList.forEach(v => this.videos.set(v.id, v));
 
     const msgList: Message[] = [
       { id: 1, projectId: 1, sender: "admin", text: "Здравствуйте! Работы по фундаменту начаты по графику.", createdAt: "2026-01-10T09:00:00", isRead: true },
@@ -252,6 +262,21 @@ export class MemStorage implements IStorage {
 
   async deletePhoto(id: number): Promise<boolean> {
     return this.photos.delete(id);
+  }
+
+  async getVideosByProjectId(projectId: number): Promise<Video[]> {
+    return Array.from(this.videos.values()).filter(v => v.projectId === projectId);
+  }
+
+  async createVideo(video: InsertVideo): Promise<Video> {
+    const id = this.nextId++;
+    const v: Video = { ...video, id, description: video.description ?? null };
+    this.videos.set(id, v);
+    return v;
+  }
+
+  async deleteVideo(id: number): Promise<boolean> {
+    return this.videos.delete(id);
   }
 
   async createProject(project: InsertProject): Promise<Project> {

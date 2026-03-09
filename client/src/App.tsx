@@ -13,6 +13,7 @@ import Estimates from "@/pages/Estimates";
 import Payments from "@/pages/Payments";
 import Documents from "@/pages/Documents";
 import Photos from "@/pages/Photos";
+import Videos from "@/pages/Videos";
 import Chat from "@/pages/Chat";
 import About from "@/pages/About";
 import Login from "@/pages/Login";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/cabinet/payments">{() => <CabinetLayout><Payments projectId={1} /></CabinetLayout>}</Route>
       <Route path="/cabinet/documents">{() => <CabinetLayout><Documents projectId={1} /></CabinetLayout>}</Route>
       <Route path="/cabinet/photos">{() => <CabinetLayout><Photos projectId={1} /></CabinetLayout>}</Route>
+      <Route path="/cabinet/videos">{() => <CabinetLayout><Videos projectId={1} /></CabinetLayout>}</Route>
       <Route path="/cabinet/chat">{() => <CabinetLayout><Chat projectId={1} /></CabinetLayout>}</Route>
       <Route path="/login" component={Login} />
       <Route component={NotFound} />

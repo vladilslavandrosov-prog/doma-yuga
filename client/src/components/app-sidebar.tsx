@@ -6,6 +6,7 @@ import {
   CreditCard,
   FileText,
   Camera,
+  Video,
   MessageCircle,
   Building2,
   LogOut,
@@ -42,6 +43,7 @@ const cabinetItems = [
   { title: "Оплата", url: "/cabinet/payments", icon: CreditCard },
   { title: "Документы", url: "/cabinet/documents", icon: FileText },
   { title: "Фотоотчёт", url: "/cabinet/photos", icon: Camera },
+  { title: "Видео", url: "/cabinet/videos", icon: Video },
   { title: "Чат", url: "/cabinet/chat", icon: MessageCircle },
 ];
 

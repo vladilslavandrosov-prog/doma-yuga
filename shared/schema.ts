@@ -91,6 +91,19 @@ export const insertPhotoSchema = createInsertSchema(photos).omit({ id: true });
 export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
 export type Photo = typeof photos.$inferSelect;
 
+export const videos = pgTable("videos", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  url: text("url").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  date: text("date").notNull(),
+});
+
+export const insertVideoSchema = createInsertSchema(videos).omit({ id: true });
+export type InsertVideo = z.infer<typeof insertVideoSchema>;
+export type Video = typeof videos.$inferSelect;
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),

@@ -9,6 +9,7 @@ import {
   insertPaymentSchema,
   insertDocumentSchema,
   insertPhotoSchema,
+  insertVideoSchema,
 } from "@shared/schema";
 
 const uploadStorage = multer.diskStorage({
@@ -20,7 +21,7 @@ const uploadStorage = multer.diskStorage({
   },
 });
 
-const upload = multer({
+const uploadImage = multer({
   storage: uploadStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
@@ -28,6 +29,18 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error("Только изображения"));
+    }
+  },
+});
+
+const uploadVideo = multer({
+  storage: uploadStorage,
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("video/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Только видео"));
     }
   },
 });
@@ -135,6 +148,11 @@ export async function registerRoutes(
   app.get("/api/project/:id/photos", async (req, res) => {
     const photos = await storage.getPhotosByProjectId(parseInt(req.params.id));
     res.json(photos);
+  });
+
+  app.get("/api/project/:id/videos", async (req, res) => {
+    const videos = await storage.getVideosByProjectId(parseInt(req.params.id));
+    res.json(videos);
   });
 
   app.get("/api/project/:id/messages", async (req, res) => {
@@ -272,7 +290,7 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
-  app.post("/api/admin/photos/upload", requireAdmin, upload.single("photo"), async (req, res) => {
+  app.post("/api/admin/photos/upload", requireAdmin, uploadImage.single("photo"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
@@ -303,6 +321,42 @@ export async function registerRoutes(
     const ok = await storage.deletePhoto(parseInt(req.params.id));
     if (!ok) {
       return res.status(404).json({ error: "Photo not found" });
+    }
+    res.json({ ok: true });
+  });
+
+  app.post("/api/admin/videos/upload", requireAdmin, uploadVideo.single("video"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    const url = `/uploads/${req.file.filename}`;
+    const parsed = insertVideoSchema.safeParse({
+      projectId: parseInt(req.body.projectId),
+      url,
+      title: req.body.title || "",
+      description: req.body.description || "",
+      date: req.body.date || new Date().toISOString().slice(0, 10),
+    });
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error });
+    }
+    const video = await storage.createVideo(parsed.data);
+    res.json(video);
+  });
+
+  app.post("/api/admin/videos", requireAdmin, async (req, res) => {
+    const parsed = insertVideoSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error });
+    }
+    const video = await storage.createVideo(parsed.data);
+    res.json(video);
+  });
+
+  app.delete("/api/admin/videos/:id", requireAdmin, async (req, res) => {
+    const ok = await storage.deleteVideo(parseInt(req.params.id));
+    if (!ok) {
+      return res.status(404).json({ error: "Video not found" });
     }
     res.json({ ok: true });
   });

@@ -11,7 +11,7 @@
 ## Структура проекта
 ```
 client/src/
-  pages/          - Login, About, Dashboard, Estimates, Payments, Documents, Photos, Chat
+  pages/          - Login, About, Dashboard, Estimates, Payments, Documents, Photos, Videos, Chat
   components/     - ThemeProvider, app-sidebar, ui/ (shadcn components)
   lib/            - queryClient, utils, auth (AuthContext + useAuth hook)
   hooks/          - use-toast, use-mobile
@@ -32,6 +32,7 @@ uploads/          - Загруженные фото (served at /uploads/*)
 - `/cabinet/payments` — Оплата
 - `/cabinet/documents` — Документы
 - `/cabinet/photos` — Фотоотчёт
+- `/cabinet/videos` — Видео объекта
 - `/cabinet/chat` — Чат
 - `/login` — Страница входа
 - Без авторизации кабинет работает в демо-режиме (плашка «Демо-режим»)
@@ -51,15 +52,17 @@ uploads/          - Загруженные фото (served at /uploads/*)
 - POST/DELETE /api/admin/payments — создание/удаление платежей
 - POST/DELETE /api/admin/documents — создание/удаление документов
 - POST/DELETE /api/admin/photos — создание/удаление фото
+- POST /api/admin/videos/upload — загрузка видеофайла
+- POST/DELETE /api/admin/videos — создание/удаление видео (по URL)
 
 ## Цветовая схема
 «Тёплый камень и терракота» — Primary: терракотовый оранжевый (hsl 25 90% 55%), Sidebar: тёмно-синий графит (hsl 220 18% 18%), Dark mode: графитово-синий фон.
 
-## Загрузка фото
-- Загрузка файлов с устройства через multipart/form-data (multer)
+## Загрузка файлов
+- Загрузка фото и видео через multipart/form-data (multer)
 - Файлы сохраняются в папку `uploads/`, доступны по `/uploads/<filename>`
-- Ограничение: только изображения, максимум 10 МБ
-- Endpoint: POST /api/admin/photos/upload (требует роль admin)
+- Ограничение: изображения и видео, максимум 100 МБ
+- Endpoints: POST /api/admin/photos/upload, POST /api/admin/videos/upload (требуют роль admin)
 
 ## Ключевые особенности
 - Авторизация с разделением ролей (admin/client)
