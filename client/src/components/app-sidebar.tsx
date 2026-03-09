@@ -72,11 +72,14 @@ export function AppSidebar() {
   const adminPages = ["/cabinet", "/cabinet/clients", "/cabinet/settings"];
   const inAdminPanel = isAdmin && inCabinet && !inProject && adminPages.includes(location);
 
+  const isClient = !!user && user.role === "client";
   const { data: clientProjects } = useQuery<{ id: number }[]>({
     queryKey: ["/api/client-projects"],
-    enabled: !isAdmin && inCabinet && !inProject,
+    enabled: isClient && inCabinet && !inProject,
   });
-  const clientProjectId = clientProjects && clientProjects.length > 0 ? clientProjects[0].id : null;
+  const clientProjectId = isClient
+    ? (clientProjects && clientProjects.length > 0 ? clientProjects[0].id : null)
+    : 1;
   const activeProjectId = inProject ? projectIdFromUrl : (!isAdmin && inCabinet ? clientProjectId : null);
   const basePath = inProject ? `/cabinet/project/${projectIdFromUrl}` : "/cabinet";
   const projectItems = activeProjectId !== null ? getProjectItems(basePath) : [];

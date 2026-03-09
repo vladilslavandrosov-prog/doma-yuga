@@ -71,17 +71,22 @@ function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execut
 
 function useClientProjectId(): { projectId: number | null; isLoading: boolean } {
   const { user } = useAuth();
+  const isClient = !!user && user.role === "client";
   const { data: projects, isLoading } = useQuery<{ id: number }[]>({
     queryKey: ["/api/client-projects"],
-    enabled: !!user && user.role === "client",
+    enabled: isClient,
   });
-  if (user?.role === "client" && projects && projects.length > 0) {
+  if (isClient && projects && projects.length > 0) {
     return { projectId: projects[0].id, isLoading: false };
   }
-  return { projectId: null, isLoading: isLoading && user?.role === "client" };
+  if (isClient) {
+    return { projectId: null, isLoading };
+  }
+  return { projectId: 1, isLoading: false };
 }
 
 function ClientProjectLoader({ children }: { children: (projectId: number) => React.ReactNode }) {
+  const { user } = useAuth();
   const { projectId, isLoading } = useClientProjectId();
 
   if (isLoading) {
@@ -95,7 +100,7 @@ function ClientProjectLoader({ children }: { children: (projectId: number) => Re
   if (projectId === null) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
-        Проект не назначен. Обратитесь к администратору.
+        {user ? "Проект не назначен. Обратитесь к администратору." : "Проект не найден."}
       </div>
     );
   }
