@@ -340,7 +340,7 @@ export function AppSidebar() {
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => logout()}
+                onClick={async () => { await logout(); window.location.href = "/"; }}
                 data-testid="button-logout"
               >
                 <LogOut />
