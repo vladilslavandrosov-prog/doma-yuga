@@ -23,6 +23,7 @@ import {
   ImageIcon,
 } from "lucide-react";
 import {
+  useSidebar,
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -68,6 +69,8 @@ function extractProjectId(location: string): number | null {
 export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout, isAdmin } = useAuth();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const closeMobile = () => { if (isMobile) setOpenMobile(false); };
 
   const inCabinet = location.startsWith("/cabinet");
   const projectIdFromUrl = extractProjectId(location);
@@ -127,7 +130,7 @@ export function AppSidebar() {
                   {inProject && (
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild tooltip="К списку объектов" data-testid="link-nav-back-projects">
-                        <Link href="/cabinet">
+                        <Link href="/cabinet" onClick={closeMobile}>
                           <ArrowLeft />
                           <span>{isAdmin ? "К объектам" : hasMultipleProjects ? "К моим объектам" : "Назад"}</span>
                         </Link>
@@ -137,7 +140,7 @@ export function AppSidebar() {
                   {!inProject && (
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild tooltip="На сайт" data-testid="link-nav-back">
-                        <Link href="/">
+                        <Link href="/" onClick={closeMobile}>
                           <ArrowLeft />
                           <span>На сайт</span>
                         </Link>
@@ -163,7 +166,7 @@ export function AppSidebar() {
                     tooltip="Мои объекты"
                     data-testid="link-nav-my-projects"
                   >
-                    <Link href="/cabinet">
+                    <Link href="/cabinet" onClick={closeMobile}>
                       <FolderKanban />
                       <span>Список объектов</span>
                     </Link>
@@ -186,7 +189,7 @@ export function AppSidebar() {
                     tooltip="Объекты"
                     data-testid="link-nav-projects"
                   >
-                    <Link href="/cabinet">
+                    <Link href="/cabinet" onClick={closeMobile}>
                       <FolderKanban />
                       <span>Объекты</span>
                     </Link>
@@ -199,7 +202,7 @@ export function AppSidebar() {
                     tooltip="Клиенты"
                     data-testid="link-nav-clients"
                   >
-                    <Link href="/cabinet/clients">
+                    <Link href="/cabinet/clients" onClick={closeMobile}>
                       <Users />
                       <span>Клиенты</span>
                     </Link>
@@ -212,7 +215,7 @@ export function AppSidebar() {
                     tooltip="Настройки"
                     data-testid="link-nav-settings"
                   >
-                    <Link href="/cabinet/settings">
+                    <Link href="/cabinet/settings" onClick={closeMobile}>
                       <Settings />
                       <span>Настройки</span>
                     </Link>
@@ -240,7 +243,7 @@ export function AppSidebar() {
                         tooltip={item.title}
                         data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                       >
-                        <Link href={item.url}>
+                        <Link href={item.url} onClick={closeMobile}>
                           <item.icon />
                           <span>{item.title}</span>
                         </Link>
@@ -273,7 +276,7 @@ export function AppSidebar() {
                         tooltip={item.title}
                         data-testid="link-nav-about"
                       >
-                        <Link href={item.url}>
+                        <Link href={item.url} onClick={closeMobile}>
                           <item.icon />
                           <span>{item.title}</span>
                         </Link>
@@ -287,7 +290,7 @@ export function AppSidebar() {
                     tooltip="Личный кабинет"
                     data-testid="link-nav-cabinet"
                   >
-                    <Link href="/cabinet">
+                    <Link href="/cabinet" onClick={closeMobile}>
                       <LayoutDashboard />
                       <span>{user ? (isAdmin ? "Панель управления" : "Личный кабинет") : "Личный кабинет (демо)"}</span>
                     </Link>
@@ -336,7 +339,7 @@ export function AppSidebar() {
                 asChild
                 data-testid="button-settings"
               >
-                <Link href="/cabinet/settings">
+                <Link href="/cabinet/settings" onClick={closeMobile}>
                   <Settings className="h-4 w-4" />
                 </Link>
               </Button>
@@ -352,7 +355,7 @@ export function AppSidebar() {
           </div>
         ) : (
           <Button variant="outline" className="w-full" asChild data-testid="button-login-link">
-            <Link href="/login">
+            <Link href="/login" onClick={closeMobile}>
               <LogIn className="h-4 w-4 mr-2" />
               Войти
             </Link>
