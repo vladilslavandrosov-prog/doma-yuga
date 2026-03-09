@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Building2,
   LogOut,
+  LogIn,
   User,
 } from "lucide-react";
 import {
@@ -94,25 +95,34 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <User className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="truncate text-sm font-medium" data-testid="text-user-name">
-              {user?.username}
-            </span>
-            <Badge variant="secondary" data-testid="badge-user-role">
-              {isAdmin ? "Администратор" : "Клиент"}
-            </Badge>
+        {user ? (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <User className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="truncate text-sm font-medium" data-testid="text-user-name">
+                {user.username}
+              </span>
+              <Badge variant="secondary" data-testid="badge-user-role">
+                {isAdmin ? "Администратор" : "Клиент"}
+              </Badge>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => logout()}
+              data-testid="button-logout"
+            >
+              <LogOut />
+            </Button>
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => logout()}
-            data-testid="button-logout"
-          >
-            <LogOut />
+        ) : (
+          <Button variant="outline" className="w-full" asChild data-testid="button-login-link">
+            <Link href="/login">
+              <LogIn className="h-4 w-4 mr-2" />
+              Войти
+            </Link>
           </Button>
-        </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   );

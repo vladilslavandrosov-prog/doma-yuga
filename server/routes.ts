@@ -26,13 +26,6 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-async function canAccessProject(req: Request, projectId: number): Promise<boolean> {
-  if (req.session.role === "admin") return true;
-  const project = await storage.getProjectById(projectId);
-  if (!project) return false;
-  return project.clientId === req.session.clientId;
-}
-
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -70,46 +63,33 @@ export async function registerRoutes(
     res.json({ id: user.id, username: user.username, role: user.role, clientId: user.clientId });
   });
 
-  app.get("/api/client/:uid", requireAuth, async (req, res) => {
+  app.get("/api/client/:uid", async (req, res) => {
     const client = await storage.getClientByUid(req.params.uid);
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
-    }
-    if (req.session.role !== "admin" && client.id !== req.session.clientId) {
-      return res.status(403).json({ error: "Forbidden" });
     }
     res.json(client);
   });
 
-  app.get("/api/client/:uid/projects", requireAuth, async (req, res) => {
+  app.get("/api/client/:uid/projects", async (req, res) => {
     const client = await storage.getClientByUid(req.params.uid);
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
-    }
-    if (req.session.role !== "admin" && client.id !== req.session.clientId) {
-      return res.status(403).json({ error: "Forbidden" });
     }
     const projects = await storage.getProjectsByClientId(client.id);
     res.json(projects);
   });
 
-  app.get("/api/project/:id", requireAuth, async (req, res) => {
-    const projectId = parseInt(req.params.id);
-    if (!(await canAccessProject(req, projectId))) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    const project = await storage.getProjectById(projectId);
+  app.get("/api/project/:id", async (req, res) => {
+    const project = await storage.getProjectById(parseInt(req.params.id));
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
     res.json(project);
   });
 
-  app.get("/api/project/:id/estimates", requireAuth, async (req, res) => {
+  app.get("/api/project/:id/estimates", async (req, res) => {
     const projectId = parseInt(req.params.id);
-    if (!(await canAccessProject(req, projectId))) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
     const estimates = await storage.getEstimatesByProjectId(projectId);
     const result = [];
     for (const est of estimates) {
@@ -119,47 +99,28 @@ export async function registerRoutes(
     res.json(result);
   });
 
-  app.get("/api/project/:id/payments", requireAuth, async (req, res) => {
-    const projectId = parseInt(req.params.id);
-    if (!(await canAccessProject(req, projectId))) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    const payments = await storage.getPaymentsByProjectId(projectId);
+  app.get("/api/project/:id/payments", async (req, res) => {
+    const payments = await storage.getPaymentsByProjectId(parseInt(req.params.id));
     res.json(payments);
   });
 
-  app.get("/api/project/:id/documents", requireAuth, async (req, res) => {
-    const projectId = parseInt(req.params.id);
-    if (!(await canAccessProject(req, projectId))) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    const documents = await storage.getDocumentsByProjectId(projectId);
+  app.get("/api/project/:id/documents", async (req, res) => {
+    const documents = await storage.getDocumentsByProjectId(parseInt(req.params.id));
     res.json(documents);
   });
 
-  app.get("/api/project/:id/photos", requireAuth, async (req, res) => {
-    const projectId = parseInt(req.params.id);
-    if (!(await canAccessProject(req, projectId))) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    const photos = await storage.getPhotosByProjectId(projectId);
+  app.get("/api/project/:id/photos", async (req, res) => {
+    const photos = await storage.getPhotosByProjectId(parseInt(req.params.id));
     res.json(photos);
   });
 
-  app.get("/api/project/:id/messages", requireAuth, async (req, res) => {
-    const projectId = parseInt(req.params.id);
-    if (!(await canAccessProject(req, projectId))) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    const messages = await storage.getMessagesByProjectId(projectId);
+  app.get("/api/project/:id/messages", async (req, res) => {
+    const messages = await storage.getMessagesByProjectId(parseInt(req.params.id));
     res.json(messages);
   });
 
   app.post("/api/project/:id/messages", requireAuth, async (req, res) => {
     const projectId = parseInt(req.params.id);
-    if (!(await canAccessProject(req, projectId))) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
     const sender = req.session.role === "admin" ? "admin" : "client";
     const parsed = insertMessageSchema.safeParse({
       ...req.body,
@@ -175,31 +136,22 @@ export async function registerRoutes(
 
   app.post("/api/project/:id/messages/read", requireAuth, async (req, res) => {
     const projectId = parseInt(req.params.id);
-    if (!(await canAccessProject(req, projectId))) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
     const senderToMark = req.session.role === "admin" ? "client" : "admin";
     await storage.markMessagesAsRead(projectId, senderToMark);
     res.json({ ok: true });
   });
 
-  app.get("/api/project/:id/unread", requireAuth, async (req, res) => {
+  app.get("/api/project/:id/unread", async (req, res) => {
     const projectId = parseInt(req.params.id);
-    if (!(await canAccessProject(req, projectId))) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
     const unreadSender = req.session.role === "admin" ? "client" : "admin";
     const count = await storage.getUnreadCount(projectId, unreadSender);
     res.json({ count });
   });
 
-  app.get("/api/dashboard/:uid", requireAuth, async (req, res) => {
+  app.get("/api/dashboard/:uid", async (req, res) => {
     const client = await storage.getClientByUid(req.params.uid);
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
-    }
-    if (req.session.role !== "admin" && client.id !== req.session.clientId) {
-      return res.status(403).json({ error: "Forbidden" });
     }
     const projects = await storage.getProjectsByClientId(client.id);
     if (projects.length === 0) {

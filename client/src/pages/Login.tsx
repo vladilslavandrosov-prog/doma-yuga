@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Loader2 } from "lucide-react";
 
 export default function Login() {
   const { login } = useAuth();
+  const [, navigate] = useLocation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,6 +22,7 @@ export default function Login() {
 
     try {
       await login(username, password);
+      navigate("/");
     } catch (err: any) {
       setError(err.message || "Неверное имя пользователя или пароль");
     } finally {
@@ -28,7 +31,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+    <div className="p-4 md:p-6 flex items-center justify-center min-h-[80vh]">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-2 pb-4">
           <h1 className="text-2xl font-bold tracking-tight">Дома Юга</h1>

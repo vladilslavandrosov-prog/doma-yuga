@@ -25,11 +25,13 @@ shared/
 ```
 
 ## Авторизация
+- Авторизация **необязательна** — сайт полностью доступен без входа (только просмотр)
 - express-session для серверных сессий
 - Роли: `admin` (полный доступ + CRUD) и `client` (только чтение + чат)
 - Демо-пользователи: admin/admin123 (админ), client/client123 (клиент)
-- Middleware: requireAuth (проверка сессии), requireAdmin (проверка роли)
-- Публичные маршруты: /api/auth/login, /api/auth/logout, /api/auth/me
+- Вход через страницу /login (кнопка «Войти» в футере сайдбара)
+- Middleware: requireAuth (только для отправки сообщений), requireAdmin (для CRUD операций)
+- Все GET-маршруты данных — публичные (не требуют авторизации)
 
 ## Admin CRUD маршруты
 - POST/DELETE /api/admin/estimate-items — создание/удаление позиций сметы

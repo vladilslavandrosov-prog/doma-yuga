@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send } from "lucide-react";
+import { Send, LogIn } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 function formatTime(dateStr: string) {
@@ -34,6 +35,7 @@ export default function Chat({ projectId }: { projectId: number }) {
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { data: messages, isLoading, error } = useQuery<Message[]>({
     queryKey: ["/api/project", projectId, "messages"],
@@ -65,12 +67,12 @@ export default function Chat({ projectId }: { projectId: number }) {
   }, [messages]);
 
   useEffect(() => {
-    if (messages && messages.length > 0) {
-      apiRequest("POST", `/api/project/${projectId}/messages/read`, { sender: "admin" }).then(() => {
+    if (user && messages && messages.length > 0) {
+      apiRequest("POST", `/api/project/${projectId}/messages/read`, {}).then(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "unread"] });
       });
     }
-  }, [messages]);
+  }, [messages, user]);
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -151,25 +153,32 @@ export default function Chat({ projectId }: { projectId: number }) {
             </div>
           </ScrollArea>
 
-          <div className="flex gap-2 pt-3 border-t mt-2 shrink-0">
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Напишите сообщение..."
-              className="resize-none text-sm flex-1"
-              rows={2}
-              data-testid="input-message"
-            />
-            <Button
-              onClick={handleSend}
-              disabled={!text.trim() || sendMutation.isPending}
-              size="icon"
-              data-testid="button-send-message"
-            >
-              <Send />
-            </Button>
-          </div>
+          {user ? (
+            <div className="flex gap-2 pt-3 border-t mt-2 shrink-0">
+              <Textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Напишите сообщение..."
+                className="resize-none text-sm flex-1"
+                rows={2}
+                data-testid="input-message"
+              />
+              <Button
+                onClick={handleSend}
+                disabled={!text.trim() || sendMutation.isPending}
+                size="icon"
+                data-testid="button-send-message"
+              >
+                <Send />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 pt-3 border-t mt-2 shrink-0 text-sm text-muted-foreground" data-testid="text-chat-login-hint">
+              <LogIn className="h-4 w-4" />
+              <span>Войдите, чтобы отправлять сообщения</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

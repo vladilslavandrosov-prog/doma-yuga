@@ -28,13 +28,14 @@ function Router() {
       <Route path="/documents">{() => <Documents projectId={1} />}</Route>
       <Route path="/photos">{() => <Photos projectId={1} />}</Route>
       <Route path="/chat">{() => <Chat projectId={1} />}</Route>
+      <Route path="/login" component={Login} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function AppContent() {
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -42,10 +43,6 @@ function AppContent() {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (!user) {
-    return <Login />;
   }
 
   const style = {
