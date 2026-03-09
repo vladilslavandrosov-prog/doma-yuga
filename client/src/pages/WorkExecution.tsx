@@ -400,6 +400,107 @@ function ItemPhotos({
   );
 }
 
+function SingleComment({
+  comment,
+  projectId,
+  canManage,
+}: {
+  comment: DayComment;
+  projectId: number;
+  canManage: boolean;
+}) {
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(comment.text);
+
+  const updateMut = useMutation({
+    mutationFn: async (commentText: string) => {
+      const res = await apiRequest("PATCH", `/api/project/${projectId}/day-comments/${comment.id}`, { text: commentText });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "day-comments"] });
+      toast({ title: "Сообщение обновлено" });
+      setEditing(false);
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/project/${projectId}/day-comments/${comment.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "day-comments"] });
+      toast({ title: "Сообщение удалено" });
+    },
+  });
+
+  const senderLabel = comment.sender === "admin" ? "Администратор" : "Клиент";
+  const bgClass = comment.sender === "admin"
+    ? "bg-blue-50/50 dark:bg-blue-950/20"
+    : "bg-amber-50/50 dark:bg-amber-950/20";
+  const iconColor = comment.sender === "admin" ? "text-blue-500" : "text-amber-500";
+
+  if (editing) {
+    return (
+      <div className={`border-t ${bgClass} p-3`} data-testid={`day-comment-edit-${comment.date}-${comment.sender}`}>
+        <div className="space-y-2">
+          <Textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Сообщение..."
+            rows={2}
+            className="text-sm"
+            data-testid={`textarea-day-comment-${comment.date}-${comment.sender}`}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditing(false); }}>
+              Отмена
+            </Button>
+            <Button
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); if (text.trim()) updateMut.mutate(text.trim()); }}
+              disabled={updateMut.isPending || !text.trim()}
+            >
+              {updateMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+              Сохранить
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`border-t ${bgClass} p-3`} data-testid={`day-comment-${comment.date}-${comment.sender}`}>
+      <div className="flex items-start gap-2">
+        <MessageSquare className={`w-4 h-4 ${iconColor} mt-0.5 shrink-0`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-medium text-muted-foreground mb-0.5">{senderLabel}</p>
+          <p className="text-sm whitespace-pre-wrap">{comment.text}</p>
+        </div>
+        {canManage && (
+          <div className="flex gap-1 shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); setText(comment.text); setEditing(true); }}
+              data-testid={`button-edit-day-comment-${comment.date}-${comment.sender}`}
+            >
+              <Pencil className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); if (confirm("Удалить сообщение?")) deleteMut.mutate(); }}
+              data-testid={`button-delete-day-comment-${comment.date}-${comment.sender}`}
+            >
+              <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DayCommentSection({
   date,
   projectId,
@@ -414,11 +515,11 @@ function DayCommentSection({
   isAuthenticated: boolean;
 }) {
   const { toast } = useToast();
-  const dayComment = comments.find(c => c.date === date);
+  const dayComments = comments.filter(c => c.date === date);
+  const mySender = isAdmin ? "admin" : "client";
+  const myComment = dayComments.find(c => c.sender === mySender);
   const [editing, setEditing] = useState(false);
-  const [text, setText] = useState(dayComment?.text ?? "");
-  const canEdit = isAuthenticated;
-  const canManage = isAdmin || (dayComment?.sender !== "admin");
+  const [text, setText] = useState("");
 
   const createMut = useMutation({
     mutationFn: async (commentText: string) => {
@@ -432,134 +533,67 @@ function DayCommentSection({
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "day-comments"] });
       toast({ title: "Сообщение добавлено" });
       setEditing(false);
-    },
-  });
-
-  const updateMut = useMutation({
-    mutationFn: async (commentText: string) => {
-      const res = await apiRequest("PATCH", `/api/project/${projectId}/day-comments/${dayComment!.id}`, { text: commentText });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "day-comments"] });
-      toast({ title: "Сообщение обновлено" });
-      setEditing(false);
-    },
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: async () => {
-      await apiRequest("DELETE", `/api/project/${projectId}/day-comments/${dayComment!.id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "day-comments"] });
-      toast({ title: "Сообщение удалено" });
       setText("");
     },
   });
 
-  const handleSave = () => {
-    if (!text.trim()) return;
-    if (dayComment) {
-      updateMut.mutate(text.trim());
-    } else {
-      createMut.mutate(text.trim());
-    }
-  };
+  const hasNoComments = dayComments.length === 0;
 
-  const isPending = createMut.isPending || updateMut.isPending || deleteMut.isPending;
+  if (!isAuthenticated && hasNoComments) return null;
 
-  if (!canEdit && !dayComment) return null;
-
-  if (dayComment && !editing) {
-    const senderLabel = dayComment.sender === "admin" ? "Администратор" : "Клиент";
-    const bgClass = dayComment.sender === "admin"
-      ? "bg-blue-50/50 dark:bg-blue-950/20"
-      : "bg-amber-50/50 dark:bg-amber-950/20";
-    const iconColor = dayComment.sender === "admin" ? "text-blue-500" : "text-amber-500";
-
-    return (
-      <div className={`border-t ${bgClass} p-3`} data-testid={`day-comment-${date}`}>
-        <div className="flex items-start gap-2">
-          <MessageSquare className={`w-4 h-4 ${iconColor} mt-0.5 shrink-0`} />
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">{senderLabel}</p>
-            <p className="text-sm whitespace-pre-wrap">{dayComment.text}</p>
-          </div>
-          {canManage && (
-            <div className="flex gap-1 shrink-0">
-              <button
-                onClick={(e) => { e.stopPropagation(); setText(dayComment.text); setEditing(true); }}
-                data-testid={`button-edit-day-comment-${date}`}
+  return (
+    <>
+      {dayComments.map((c) => (
+        <SingleComment
+          key={c.id}
+          comment={c}
+          projectId={projectId}
+          canManage={isAdmin || c.sender === mySender}
+        />
+      ))}
+      {isAuthenticated && !myComment && !editing && (
+        <div className="border-t">
+          <button
+            className="w-full p-2 text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors"
+            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+            data-testid={`button-add-day-comment-${date}`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            Добавить сообщение
+          </button>
+        </div>
+      )}
+      {isAuthenticated && editing && (
+        <div className="border-t bg-blue-50/50 dark:bg-blue-950/20 p-3" data-testid={`day-comment-edit-${date}`}>
+          <div className="space-y-2">
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Сообщение дня..."
+              rows={2}
+              className="text-sm"
+              data-testid={`textarea-day-comment-${date}`}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditing(false); setText(""); }}>
+                Отмена
+              </Button>
+              <Button
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); if (text.trim()) createMut.mutate(text.trim()); }}
+                disabled={createMut.isPending || !text.trim()}
+                data-testid={`button-save-day-comment-${date}`}
               >
-                <Pencil className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); if (confirm("Удалить сообщение?")) deleteMut.mutate(); }}
-                data-testid={`button-delete-day-comment-${date}`}
-              >
-                <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
-              </button>
+                {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+                Отправить
+              </Button>
             </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (canEdit && editing) {
-    return (
-      <div className="border-t bg-blue-50/50 dark:bg-blue-950/20 p-3" data-testid={`day-comment-edit-${date}`}>
-        <div className="space-y-2">
-          <Textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Сообщение дня..."
-            rows={2}
-            className="text-sm"
-            data-testid={`textarea-day-comment-${date}`}
-            onClick={(e) => e.stopPropagation()}
-          />
-          <div className="flex gap-2 justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); setEditing(false); }}
-              data-testid={`button-cancel-day-comment-${date}`}
-            >
-              Отмена
-            </Button>
-            <Button
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); handleSave(); }}
-              disabled={isPending || !text.trim()}
-              data-testid={`button-save-day-comment-${date}`}
-            >
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
-              Отправить
-            </Button>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  if (canEdit && !dayComment) {
-    return (
-      <div className="border-t">
-        <button
-          className="w-full p-2 text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors"
-          onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-          data-testid={`button-add-day-comment-${date}`}
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          Добавить сообщение
-        </button>
-      </div>
-    );
-  }
-
-  return null;
+      )}
+    </>
+  );
 }
 
 interface ItemFormData {

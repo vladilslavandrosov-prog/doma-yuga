@@ -632,11 +632,11 @@ export async function registerRoutes(
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
+    const sender = req.session.role === "admin" ? "admin" : "client";
     const existing = await storage.getDayCommentsByProjectId(projectId);
-    if (existing.find(c => c.date === date)) {
+    if (existing.find(c => c.date === date && c.sender === sender)) {
       return res.status(409).json({ error: "Comment for this date already exists" });
     }
-    const sender = req.session.role === "admin" ? "admin" : "client";
     const comment = await storage.createDayComment({
       projectId,
       date,
@@ -650,10 +650,14 @@ export async function registerRoutes(
       let clientName = "Клиент";
       const client = await storage.getClientById(project.clientId);
       if (client) clientName = client.name;
+      const appUrl = process.env.REPLIT_DEPLOYMENT_URL
+        ? `https://${process.env.REPLIT_DEPLOYMENT_URL}`
+        : `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      const link = `${appUrl}/cabinet/project/${projectId}?tab=work`;
       sendTelegramNotification(
         project.name,
         clientName,
-        `📅 ${comment.date}\n${comment.text}`,
+        `📅 ${comment.date}\n${comment.text}\n\n🔗 ${link}`,
       );
     }
 
@@ -680,10 +684,14 @@ export async function registerRoutes(
         const client = await storage.getClientById(project.clientId);
         if (client) clientName = client.name;
       }
+      const appUrl = process.env.REPLIT_DEPLOYMENT_URL
+        ? `https://${process.env.REPLIT_DEPLOYMENT_URL}`
+        : `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      const link = `${appUrl}/cabinet/project/${projectId}?tab=work`;
       sendTelegramNotification(
         project?.name ?? `Проект #${projectId}`,
         clientName,
-        `📅 ${updated.date} (изменено)\n${updated.text}`,
+        `📅 ${updated.date} (изменено)\n${updated.text}\n\n🔗 ${link}`,
       );
     }
 
