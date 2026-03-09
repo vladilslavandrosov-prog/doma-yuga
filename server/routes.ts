@@ -103,7 +103,7 @@ export async function registerRoutes(
     res.json({ id: user.id, username: user.username, role: user.role, clientId: user.clientId });
   });
 
-  app.post("/api/auth/change-password", requireAdmin, async (req, res) => {
+  app.post("/api/auth/change-password", requireAuth, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ error: "Current and new passwords required" });
