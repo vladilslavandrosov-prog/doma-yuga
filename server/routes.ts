@@ -10,6 +10,8 @@ import {
   insertDocumentSchema,
   insertPhotoSchema,
   insertVideoSchema,
+  insertClientSchema,
+  insertUserSchema,
 } from "@shared/schema";
 
 const uploadStorage = multer.diskStorage({
@@ -97,6 +99,68 @@ export async function registerRoutes(
       return res.status(401).json({ error: "User not found" });
     }
     res.json({ id: user.id, username: user.username, role: user.role, clientId: user.clientId });
+  });
+
+  app.post("/api/auth/change-password", requireAdmin, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Current and new passwords required" });
+    }
+    if (newPassword.length < 4) {
+      return res.status(400).json({ error: "Password must be at least 4 characters" });
+    }
+    const user = await storage.getUserById(req.session.userId!);
+    if (!user || user.password !== currentPassword) {
+      return res.status(401).json({ error: "Неверный текущий пароль" });
+    }
+    await storage.updateUserPassword(user.id, newPassword);
+    res.json({ ok: true });
+  });
+
+  app.get("/api/admin/clients", requireAdmin, async (req, res) => {
+    const clients = await storage.getAllClients();
+    const users = await storage.getAllUsers();
+    const projects = await storage.getAllProjects();
+    const result = clients.map(client => {
+      const user = users.find(u => u.clientId === client.id);
+      const clientProjects = projects.filter(p => p.clientId === client.id);
+      return {
+        ...client,
+        username: user?.username ?? null,
+        hasAccount: !!user,
+        projects: clientProjects.map(p => ({ id: p.id, name: p.name })),
+      };
+    });
+    res.json(result);
+  });
+
+  app.post("/api/admin/clients", requireAdmin, async (req, res) => {
+    const { name, phone, email, username, password, projectId } = req.body;
+    if (!name || !username || !password) {
+      return res.status(400).json({ error: "Имя, логин и пароль обязательны" });
+    }
+    const existing = await storage.getUserByUsername(username);
+    if (existing) {
+      return res.status(400).json({ error: "Пользователь с таким логином уже существует" });
+    }
+    const uid = `client-uid-${Date.now()}`;
+    const client = await storage.createClient({ name, phone: phone || null, email: email || null, uid });
+    const user = await storage.createUser({ username, password, role: "client", clientId: client.id });
+    if (projectId) {
+      const project = await storage.getProjectById(parseInt(projectId));
+      if (project) {
+        await storage.updateProject(project.id, { ...project, clientId: client.id });
+      }
+    }
+    res.json({ client, userId: user.id });
+  });
+
+  app.get("/api/client-projects", requireAuth, async (req, res) => {
+    if (!req.session.clientId) {
+      return res.json([]);
+    }
+    const projects = await storage.getProjectsByClientId(req.session.clientId);
+    res.json(projects);
   });
 
   app.get("/api/projects", async (req, res) => {

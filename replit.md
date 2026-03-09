@@ -11,7 +11,7 @@
 ## Структура проекта
 ```
 client/src/
-  pages/          - Login, About, Advantages, Dashboard, Projects, Estimates, WorkExecution, Payments, Documents, Photos, Videos, Chat
+  pages/          - Login, About, Advantages, Dashboard, Projects, Estimates, WorkExecution, Payments, Documents, Photos, Videos, Chat, Settings, Clients
   components/     - ThemeProvider, app-sidebar, ui/ (shadcn components)
   lib/            - queryClient, utils, auth (AuthContext + useAuth hook)
   hooks/          - use-toast, use-mobile
@@ -30,7 +30,9 @@ uploads/          - Загруженные фото (served at /uploads/*)
 - `/login` — Страница входа
 - `/cabinet` — Для админа: список объектов; для клиента/демо: дашборд проекта
 - `/advantages` — Наши преимущества (публичная страница)
-- `/cabinet/estimates|execution|payments|documents|photos|videos|chat` — Разделы клиентского кабинета (projectId=1)
+- `/cabinet/estimates|execution|payments|documents|photos|videos|chat` — Разделы клиентского кабинета (projectId из /api/client-projects)
+- `/cabinet/settings` — Настройки (смена пароля, доступна для всех авторизованных)
+- `/cabinet/clients` — Управление клиентами (только для админа)
 - `/cabinet/project/:id` — Дашборд конкретного объекта (админ)
 - `/cabinet/project/:id/estimates|execution|payments|documents|photos|videos|chat` — Разделы объекта (админ)
 - Без авторизации кабинет работает в демо-режиме (плашка «Демо-режим»)
@@ -52,6 +54,9 @@ uploads/          - Загруженные фото (served at /uploads/*)
 - POST/DELETE /api/admin/photos — создание/удаление фото
 - POST /api/admin/videos/upload — загрузка видеофайла
 - POST/DELETE /api/admin/videos — создание/удаление видео (по URL)
+- POST /api/auth/change-password — смена пароля (для любого авторизованного пользователя)
+- GET/POST /api/admin/clients — список клиентов / создание клиента с аккаунтом
+- GET /api/client-projects — проекты текущего клиента (по clientId из сессии)
 
 ## Цветовая схема
 «Тёплый камень и терракота» — Primary: терракотовый оранжевый (hsl 25 90% 55%), Sidebar: тёмно-синий графит (hsl 220 18% 18%), Dark mode: графитово-синий фон.

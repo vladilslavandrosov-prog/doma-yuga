@@ -18,6 +18,8 @@ import {
   FolderKanban,
   Shield,
   HardHat,
+  Users,
+  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -67,9 +69,15 @@ export function AppSidebar() {
   const inCabinet = location.startsWith("/cabinet");
   const projectIdFromUrl = extractProjectId(location);
   const inProject = projectIdFromUrl !== null;
-  const inAdminProjectsList = isAdmin && inCabinet && !inProject && location === "/cabinet";
+  const adminPages = ["/cabinet", "/cabinet/clients", "/cabinet/settings"];
+  const inAdminPanel = isAdmin && inCabinet && !inProject && adminPages.includes(location);
 
-  const activeProjectId = inProject ? projectIdFromUrl : (!isAdmin && inCabinet ? 1 : null);
+  const { data: clientProjects } = useQuery<{ id: number }[]>({
+    queryKey: ["/api/client-projects"],
+    enabled: !isAdmin && inCabinet && !inProject,
+  });
+  const clientProjectId = clientProjects && clientProjects.length > 0 ? clientProjects[0].id : null;
+  const activeProjectId = inProject ? projectIdFromUrl : (!isAdmin && inCabinet ? clientProjectId : null);
   const basePath = inProject ? `/cabinet/project/${projectIdFromUrl}` : "/cabinet";
   const projectItems = activeProjectId !== null ? getProjectItems(basePath) : [];
 
@@ -86,7 +94,7 @@ export function AppSidebar() {
 
   const unreadCount = unreadData?.count ?? 0;
 
-  const showProjectNav = inCabinet && activeProjectId !== null && !inAdminProjectsList;
+  const showProjectNav = inCabinet && activeProjectId !== null && !inAdminPanel;
 
   return (
     <Sidebar>
@@ -133,7 +141,7 @@ export function AppSidebar() {
           </>
         )}
 
-        {inAdminProjectsList && (
+        {inAdminPanel && (
           <SidebarGroup>
             <SidebarGroupLabel>Панель администратора</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -141,13 +149,39 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive
+                    isActive={location === "/cabinet"}
                     tooltip="Объекты"
                     data-testid="link-nav-projects"
                   >
                     <Link href="/cabinet">
                       <FolderKanban />
                       <span>Объекты</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/cabinet/clients"}
+                    tooltip="Клиенты"
+                    data-testid="link-nav-clients"
+                  >
+                    <Link href="/cabinet/clients">
+                      <Users />
+                      <span>Клиенты</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/cabinet/settings"}
+                    tooltip="Настройки"
+                    data-testid="link-nav-settings"
+                  >
+                    <Link href="/cabinet/settings">
+                      <Settings />
+                      <span>Настройки</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -262,14 +296,26 @@ export function AppSidebar() {
                 {isAdmin ? "Администратор" : "Клиент"}
               </Badge>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => logout()}
-              data-testid="button-logout"
-            >
-              <LogOut />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                asChild
+                data-testid="button-settings"
+              >
+                <Link href="/cabinet/settings">
+                  <Settings className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => logout()}
+                data-testid="button-logout"
+              >
+                <LogOut />
+              </Button>
+            </div>
           </div>
         ) : (
           <Button variant="outline" className="w-full" asChild data-testid="button-login-link">

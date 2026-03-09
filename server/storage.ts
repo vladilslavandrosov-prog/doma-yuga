@@ -44,6 +44,10 @@ export interface IStorage {
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, data: Partial<InsertProject>): Promise<Project | undefined>;
   createClient(client: InsertClient): Promise<Client>;
+  getAllClients(): Promise<Client[]>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUserPassword(id: number, password: string): Promise<boolean>;
+  getAllUsers(): Promise<User[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -385,6 +389,29 @@ export class MemStorage implements IStorage {
     const c: Client = { id, name: client.name, phone: client.phone ?? null, email: client.email ?? null, uid: client.uid };
     this.clients.set(id, c);
     return c;
+  }
+
+  async getAllClients(): Promise<Client[]> {
+    return Array.from(this.clients.values());
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const id = this.nextId++;
+    const u: User = { id, username: user.username, password: user.password, role: user.role ?? "client", clientId: user.clientId ?? null };
+    this.users.set(id, u);
+    return u;
+  }
+
+  async updateUserPassword(id: number, password: string): Promise<boolean> {
+    const user = this.users.get(id);
+    if (!user) return false;
+    user.password = password;
+    this.users.set(id, user);
+    return true;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
   }
 }
 

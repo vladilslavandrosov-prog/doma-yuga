@@ -1,6 +1,6 @@
 import { Switch, Route, useParams } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -17,6 +17,8 @@ import Documents from "@/pages/Documents";
 import Photos from "@/pages/Photos";
 import Videos from "@/pages/Videos";
 import Chat from "@/pages/Chat";
+import Settings from "@/pages/Settings";
+import Clients from "@/pages/Clients";
 import About from "@/pages/About";
 import Advantages from "@/pages/Advantages";
 import Login from "@/pages/Login";
@@ -67,33 +69,89 @@ function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execut
   }
 }
 
+function useClientProjectId(): { projectId: number | null; isLoading: boolean } {
+  const { user } = useAuth();
+  const { data: projects, isLoading } = useQuery<{ id: number }[]>({
+    queryKey: ["/api/client-projects"],
+    enabled: !!user && user.role === "client",
+  });
+  if (user?.role === "client" && projects && projects.length > 0) {
+    return { projectId: projects[0].id, isLoading: false };
+  }
+  return { projectId: null, isLoading: isLoading && user?.role === "client" };
+}
+
+function ClientProjectLoader({ children }: { children: (projectId: number) => React.ReactNode }) {
+  const { projectId, isLoading } = useClientProjectId();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (projectId === null) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        Проект не назначен. Обратитесь к администратору.
+      </div>
+    );
+  }
+
+  return <>{children(projectId)}</>;
+}
+
+function AdminOnly({ children }: { children: React.ReactNode }) {
+  const { isAdmin } = useAuth();
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        Доступ запрещён
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 function CabinetHome() {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
 
   if (isAdmin) {
     return <Projects />;
   }
 
-  return <Dashboard projectId={1} basePath="/cabinet" />;
+  return (
+    <ClientProjectLoader>
+      {(projectId) => <Dashboard projectId={projectId} basePath="/cabinet" />}
+    </ClientProjectLoader>
+  );
 }
 
 function ClientPage({ section }: { section: "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
-  switch (section) {
-    case "estimates":
-      return <Estimates projectId={1} />;
-    case "execution":
-      return <WorkExecution projectId={1} />;
-    case "payments":
-      return <Payments projectId={1} />;
-    case "documents":
-      return <Documents projectId={1} />;
-    case "photos":
-      return <Photos projectId={1} />;
-    case "videos":
-      return <Videos projectId={1} />;
-    case "chat":
-      return <Chat projectId={1} />;
-  }
+  return (
+    <ClientProjectLoader>
+      {(projectId) => {
+        switch (section) {
+          case "estimates":
+            return <Estimates projectId={projectId} />;
+          case "execution":
+            return <WorkExecution projectId={projectId} />;
+          case "payments":
+            return <Payments projectId={projectId} />;
+          case "documents":
+            return <Documents projectId={projectId} />;
+          case "photos":
+            return <Photos projectId={projectId} />;
+          case "videos":
+            return <Videos projectId={projectId} />;
+          case "chat":
+            return <Chat projectId={projectId} />;
+        }
+      }}
+    </ClientProjectLoader>
+  );
 }
 
 function Router() {
@@ -111,6 +169,8 @@ function Router() {
       <Route path="/cabinet/photos">{() => <CabinetLayout><ClientPage section="photos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/videos">{() => <CabinetLayout><ClientPage section="videos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/chat">{() => <CabinetLayout><ClientPage section="chat" /></CabinetLayout>}</Route>
+      <Route path="/cabinet/settings">{() => <CabinetLayout><Settings /></CabinetLayout>}</Route>
+      <Route path="/cabinet/clients">{() => <CabinetLayout><AdminOnly><Clients /></AdminOnly></CabinetLayout>}</Route>
 
       <Route path="/cabinet/project/:id">{() => <CabinetLayout><ProjectPage section="dashboard" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/estimates">{() => <CabinetLayout><ProjectPage section="estimates" /></CabinetLayout>}</Route>
