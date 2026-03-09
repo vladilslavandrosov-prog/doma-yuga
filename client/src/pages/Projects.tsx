@@ -192,9 +192,13 @@ export default function Projects() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/project", variables.id] });
       toast({ title: "Готово", description: "Объект обновлён" });
+      if (editingProject && variables.data.status !== editingProject.status) {
+        setStatusFilter("all");
+      }
       setEditOpen(false);
       setEditingProject(null);
     },
