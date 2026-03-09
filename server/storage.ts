@@ -10,6 +10,7 @@ import {
   type Message, type InsertMessage,
   type User, type InsertUser,
   type NonWorkingDay, type InsertNonWorkingDay,
+  type EstimateItemPhoto, type InsertEstimateItemPhoto,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -53,6 +54,10 @@ export interface IStorage {
   getNonWorkingDaysByProjectId(projectId: number): Promise<NonWorkingDay[]>;
   createNonWorkingDay(day: InsertNonWorkingDay): Promise<NonWorkingDay>;
   deleteNonWorkingDay(id: number): Promise<boolean>;
+  getPhotosByEstimateItemId(estimateItemId: number): Promise<EstimateItemPhoto[]>;
+  getPhotosByEstimateItemIds(ids: number[]): Promise<EstimateItemPhoto[]>;
+  createEstimateItemPhoto(photo: InsertEstimateItemPhoto): Promise<EstimateItemPhoto>;
+  deleteEstimateItemPhoto(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -63,6 +68,7 @@ export class MemStorage implements IStorage {
   private payments: Map<number, Payment> = new Map();
   private documents: Map<number, Document> = new Map();
   private photos: Map<number, Photo> = new Map();
+  private estimateItemPhotos: Map<number, EstimateItemPhoto> = new Map();
   private videos: Map<number, Video> = new Map();
   private messages: Map<number, Message> = new Map();
   private users: Map<number, User> = new Map();
@@ -466,6 +472,26 @@ export class MemStorage implements IStorage {
 
   async deleteNonWorkingDay(id: number): Promise<boolean> {
     return this.nonWorkingDays.delete(id);
+  }
+
+  async getPhotosByEstimateItemId(estimateItemId: number): Promise<EstimateItemPhoto[]> {
+    return Array.from(this.estimateItemPhotos.values()).filter(p => p.estimateItemId === estimateItemId);
+  }
+
+  async getPhotosByEstimateItemIds(ids: number[]): Promise<EstimateItemPhoto[]> {
+    const idSet = new Set(ids);
+    return Array.from(this.estimateItemPhotos.values()).filter(p => idSet.has(p.estimateItemId));
+  }
+
+  async createEstimateItemPhoto(photo: InsertEstimateItemPhoto): Promise<EstimateItemPhoto> {
+    const id = this.nextId++;
+    const p: EstimateItemPhoto = { id, estimateItemId: photo.estimateItemId, url: photo.url };
+    this.estimateItemPhotos.set(id, p);
+    return p;
+  }
+
+  async deleteEstimateItemPhoto(id: number): Promise<boolean> {
+    return this.estimateItemPhotos.delete(id);
   }
 }
 

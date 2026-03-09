@@ -233,7 +233,13 @@ export async function registerRoutes(
     const result = [];
     for (const est of estimates) {
       const items = await storage.getEstimateItemsByEstimateId(est.id);
-      result.push({ ...est, items });
+      const itemIds = items.map(i => i.id);
+      const photos = itemIds.length > 0 ? await storage.getPhotosByEstimateItemIds(itemIds) : [];
+      const itemsWithPhotos = items.map(item => ({
+        ...item,
+        photos: photos.filter(p => p.estimateItemId === item.id),
+      }));
+      result.push({ ...est, items: itemsWithPhotos });
     }
     res.json(result);
   });
@@ -394,6 +400,15 @@ export async function registerRoutes(
     });
   });
 
+  app.post("/api/admin/estimates", requireAdmin, async (req, res) => {
+    const { projectId, category, title } = req.body;
+    if (!projectId || !category || !title) {
+      return res.status(400).json({ error: "projectId, category, title required" });
+    }
+    const estimate = await storage.createEstimate({ projectId, category, title });
+    res.json(estimate);
+  });
+
   app.post("/api/admin/estimate-items", requireAdmin, async (req, res) => {
     const parsed = insertEstimateItemSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -404,7 +419,12 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/estimate-items/:id", requireAdmin, async (req, res) => {
-    const item = await storage.updateEstimateItem(parseInt(req.params.id), req.body);
+    const allowed = ["estimateId", "name", "date", "quantity", "unit", "unitPrice", "totalPrice", "status"];
+    const filtered: Record<string, any> = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) filtered[key] = req.body[key];
+    }
+    const item = await storage.updateEstimateItem(parseInt(req.params.id), filtered);
     if (!item) {
       return res.status(404).json({ error: "Item not found" });
     }
@@ -412,9 +432,39 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/estimate-items/:id", requireAdmin, async (req, res) => {
-    const ok = await storage.deleteEstimateItem(parseInt(req.params.id));
+    const id = parseInt(req.params.id);
+    const photos = await storage.getPhotosByEstimateItemId(id);
+    for (const photo of photos) {
+      await storage.deleteEstimateItemPhoto(photo.id);
+    }
+    const ok = await storage.deleteEstimateItem(id);
     if (!ok) {
       return res.status(404).json({ error: "Item not found" });
+    }
+    res.json({ ok: true });
+  });
+
+  app.post("/api/admin/estimate-item-photos/upload", requireAdmin, uploadImage.single("photo"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    const estimateItemId = parseInt(req.body.estimateItemId);
+    if (!estimateItemId || isNaN(estimateItemId)) {
+      return res.status(400).json({ error: "estimateItemId required" });
+    }
+    const existing = await storage.updateEstimateItem(estimateItemId, {});
+    if (!existing) {
+      return res.status(404).json({ error: "Estimate item not found" });
+    }
+    const url = `/uploads/${req.file.filename}`;
+    const photo = await storage.createEstimateItemPhoto({ estimateItemId, url });
+    res.json(photo);
+  });
+
+  app.delete("/api/admin/estimate-item-photos/:id", requireAdmin, async (req, res) => {
+    const ok = await storage.deleteEstimateItemPhoto(parseInt(req.params.id));
+    if (!ok) {
+      return res.status(404).json({ error: "Photo not found" });
     }
     res.json({ ok: true });
   });

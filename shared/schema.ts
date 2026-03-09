@@ -127,6 +127,16 @@ export const insertNonWorkingDaySchema = createInsertSchema(nonWorkingDays).omit
 export type InsertNonWorkingDay = z.infer<typeof insertNonWorkingDaySchema>;
 export type NonWorkingDay = typeof nonWorkingDays.$inferSelect;
 
+export const estimateItemPhotos = pgTable("estimate_item_photos", {
+  id: serial("id").primaryKey(),
+  estimateItemId: integer("estimate_item_id").notNull(),
+  url: text("url").notNull(),
+});
+
+export const insertEstimateItemPhotoSchema = createInsertSchema(estimateItemPhotos).omit({ id: true });
+export type InsertEstimateItemPhoto = z.infer<typeof insertEstimateItemPhotoSchema>;
+export type EstimateItemPhoto = typeof estimateItemPhotos.$inferSelect;
+
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),
