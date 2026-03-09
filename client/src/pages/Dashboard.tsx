@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Clock,
   CircleDot,
+  HardHat,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -84,6 +85,7 @@ function formatDate(dateStr: string): string {
 function getQuickLinks(basePath: string) {
   return [
     { title: "Сметы", url: `${basePath}/estimates`, icon: FileSpreadsheet, description: "Работы и материалы" },
+    { title: "Выполнение работ", url: `${basePath}/execution`, icon: HardHat, description: "Ход строительства" },
     { title: "Оплата", url: `${basePath}/payments`, icon: CreditCard, description: "История платежей" },
     { title: "Документы", url: `${basePath}/documents`, icon: FileText, description: "Файлы проекта" },
     { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera, description: "Фото с объекта" },
