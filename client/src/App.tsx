@@ -15,7 +15,6 @@ import WorkExecution from "@/pages/WorkExecution";
 import Payments from "@/pages/Payments";
 import Documents from "@/pages/Documents";
 import Photos from "@/pages/Photos";
-import Gallery from "@/pages/Gallery";
 import Videos from "@/pages/Videos";
 import Chat from "@/pages/Chat";
 import Settings from "@/pages/Settings";
@@ -46,7 +45,7 @@ function CabinetLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execution" | "payments" | "documents" | "photos" | "gallery" | "videos" | "chat" }) {
+function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
   const params = useParams<{ id: string }>();
   const projectId = parseInt(params.id);
   const basePath = `/cabinet/project/${params.id}`;
@@ -66,8 +65,6 @@ function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execut
       return <Documents projectId={projectId} />;
     case "photos":
       return <Photos projectId={projectId} />;
-    case "gallery":
-      return <Gallery projectId={projectId} />;
     case "videos":
       return <Videos projectId={projectId} />;
     case "chat":
@@ -204,7 +201,7 @@ function CabinetHome() {
   return <Dashboard projectId={1} basePath="/cabinet" />;
 }
 
-function ClientPage({ section }: { section: "estimates" | "execution" | "payments" | "documents" | "photos" | "gallery" | "videos" | "chat" }) {
+function ClientPage({ section }: { section: "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
   return (
     <ClientProjectLoader>
       {(projectId) => {
@@ -219,8 +216,6 @@ function ClientPage({ section }: { section: "estimates" | "execution" | "payment
             return <Documents projectId={projectId} />;
           case "photos":
             return <Photos projectId={projectId} />;
-          case "gallery":
-            return <Gallery projectId={projectId} />;
           case "videos":
             return <Videos projectId={projectId} />;
           case "chat":
@@ -245,7 +240,6 @@ function Router() {
       <Route path="/cabinet/payments">{() => <CabinetLayout><ClientPage section="payments" /></CabinetLayout>}</Route>
       <Route path="/cabinet/documents">{() => <CabinetLayout><ClientPage section="documents" /></CabinetLayout>}</Route>
       <Route path="/cabinet/photos">{() => <CabinetLayout><ClientPage section="photos" /></CabinetLayout>}</Route>
-      <Route path="/cabinet/gallery">{() => <CabinetLayout><ClientPage section="gallery" /></CabinetLayout>}</Route>
       <Route path="/cabinet/videos">{() => <CabinetLayout><ClientPage section="videos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/chat">{() => <CabinetLayout><ClientPage section="chat" /></CabinetLayout>}</Route>
       <Route path="/cabinet/settings">{() => <CabinetLayout><Settings /></CabinetLayout>}</Route>
@@ -257,7 +251,6 @@ function Router() {
       <Route path="/cabinet/project/:id/payments">{() => <CabinetLayout><ProjectPage section="payments" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/documents">{() => <CabinetLayout><ProjectPage section="documents" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/photos">{() => <CabinetLayout><ProjectPage section="photos" /></CabinetLayout>}</Route>
-      <Route path="/cabinet/project/:id/gallery">{() => <CabinetLayout><ProjectPage section="gallery" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/videos">{() => <CabinetLayout><ProjectPage section="videos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/chat">{() => <CabinetLayout><ProjectPage section="chat" /></CabinetLayout>}</Route>
 

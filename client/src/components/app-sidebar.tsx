@@ -55,7 +55,6 @@ function getProjectItems(basePath: string) {
     { title: "Оплата", url: `${basePath}/payments`, icon: CreditCard },
     { title: "Документы", url: `${basePath}/documents`, icon: FileText },
     { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera },
-    { title: "Галерея", url: `${basePath}/gallery`, icon: ImageIcon },
     { title: "Видео", url: `${basePath}/videos`, icon: Video },
     { title: "Чат", url: `${basePath}/chat`, icon: MessageCircle },
   ];
