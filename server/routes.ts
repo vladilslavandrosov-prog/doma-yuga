@@ -419,7 +419,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/estimate-items/:id", requireAdmin, async (req, res) => {
-    const allowed = ["estimateId", "name", "date", "quantity", "unit", "unitPrice", "totalPrice", "status"];
+    const allowed = ["estimateId", "name", "date", "quantity", "unit", "unitPrice", "totalPrice", "status", "workGroup"];
     const filtered: Record<string, any> = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) filtered[key] = req.body[key];

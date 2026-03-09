@@ -12,7 +12,6 @@ import {
   Table,
   TableHeader,
   TableBody,
-  TableFooter,
   TableHead,
   TableRow,
   TableCell,
@@ -37,22 +36,23 @@ import {
   HardHat,
   CalendarDays,
   List,
+  Layers,
   ChevronDown,
   ChevronRight,
   CloudOff,
   Plus,
   Pencil,
   Trash2,
-  Image,
   Upload,
   X,
   Loader2,
 } from "lucide-react";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import type { Estimate, EstimateItem, NonWorkingDay, EstimateItemPhoto } from "@shared/schema";
 
 type EstimateItemWithPhotos = EstimateItem & { photos?: EstimateItemPhoto[] };
 type EstimateWithItems = Estimate & { items: EstimateItemWithPhotos[] };
-type ViewMode = "all" | "by-day";
+type ViewMode = "all" | "by-day" | "by-group";
 
 function statusLabel(status: string) {
   switch (status) {
@@ -124,6 +124,12 @@ function categoryLabel(cat: string) {
 
 interface DayGroup {
   date: string;
+  items: EstimateItemWithPhotos[];
+  total: number;
+}
+
+interface WorkGroupData {
+  groupName: string;
   items: EstimateItemWithPhotos[];
   total: number;
 }
@@ -215,6 +221,75 @@ function NonWorkingDaysCard({ days }: { days: NonWorkingDay[] }) {
   );
 }
 
+function PhotoLightbox({
+  photos,
+  index,
+  onClose,
+  onPrev,
+  onNext,
+}: {
+  photos: { url: string }[];
+  index: number;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  const photo = photos[index];
+  if (!photo) return null;
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-4xl p-0 gap-0 bg-black/95 border-none">
+        <VisuallyHidden>
+          <DialogTitle>Фото</DialogTitle>
+        </VisuallyHidden>
+        <div className="relative">
+          <img
+            src={photo.url}
+            alt=""
+            className="w-full max-h-[80vh] object-contain"
+            data-testid="img-lightbox"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 text-white hover:bg-white/20"
+            onClick={onClose}
+            data-testid="button-lightbox-close"
+          >
+            <X />
+          </Button>
+          {photos.length > 1 && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                onClick={(e) => { e.stopPropagation(); onPrev(); }}
+                data-testid="button-lightbox-prev"
+              >
+                <ChevronRight className="rotate-180" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                onClick={(e) => { e.stopPropagation(); onNext(); }}
+                data-testid="button-lightbox-next"
+              >
+                <ChevronRight />
+              </Button>
+            </>
+          )}
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white/70 text-xs">
+            {index + 1} / {photos.length}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ItemPhotos({
   item,
   projectId,
@@ -227,6 +302,7 @@ function ItemPhotos({
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photos = item.photos ?? [];
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const uploadMut = useMutation({
     mutationFn: async (file: File) => {
@@ -259,53 +335,65 @@ function ItemPhotos({
   if (photos.length === 0 && !isAdmin) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 mt-2">
-      {photos.map((photo) => (
-        <div key={photo.id} className="relative group" data-testid={`item-photo-${photo.id}`}>
-          <img
-            src={photo.url}
-            alt=""
-            className="w-16 h-16 object-cover rounded-md border"
-          />
-          {isAdmin && (
-            <button
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => deleteMut.mutate(photo.id)}
-              data-testid={`button-delete-item-photo-${photo.id}`}
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-      ))}
-      {isAdmin && (
-        <>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) uploadMut.mutate(file);
-              e.target.value = "";
-            }}
-          />
-          <button
-            className="w-16 h-16 rounded-md border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadMut.isPending}
-            data-testid={`button-upload-item-photo-${item.id}`}
-          >
-            {uploadMut.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
+    <>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {photos.map((photo, idx) => (
+          <div key={photo.id} className="relative group" data-testid={`item-photo-${photo.id}`}>
+            <img
+              src={photo.url}
+              alt=""
+              className="w-16 h-16 object-cover rounded-md border cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
+            />
+            {isAdmin && (
+              <button
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => { e.stopPropagation(); deleteMut.mutate(photo.id); }}
+                data-testid={`button-delete-item-photo-${photo.id}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
             )}
-          </button>
-        </>
+          </div>
+        ))}
+        {isAdmin && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadMut.mutate(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              className="w-16 h-16 rounded-md border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+              disabled={uploadMut.isPending}
+              data-testid={`button-upload-item-photo-${item.id}`}
+            >
+              {uploadMut.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+            </button>
+          </>
+        )}
+      </div>
+      {lightboxIndex !== null && (
+        <PhotoLightbox
+          photos={photos}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onPrev={() => setLightboxIndex((lightboxIndex - 1 + photos.length) % photos.length)}
+          onNext={() => setLightboxIndex((lightboxIndex + 1) % photos.length)}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -316,6 +404,7 @@ interface ItemFormData {
   unit: string;
   unitPrice: string;
   status: string;
+  workGroup: string;
 }
 
 function ItemFormDialog({
@@ -325,6 +414,7 @@ function ItemFormDialog({
   estimateId,
   editItem,
   category,
+  existingGroups,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -332,6 +422,7 @@ function ItemFormDialog({
   estimateId: number | null;
   editItem?: EstimateItemWithPhotos | null;
   category: string;
+  existingGroups: string[];
 }) {
   const { toast } = useToast();
   const isEdit = !!editItem;
@@ -343,6 +434,7 @@ function ItemFormDialog({
     unit: editItem?.unit ?? "шт",
     unitPrice: editItem?.unitPrice ?? "0",
     status: editItem?.status ?? "completed",
+    workGroup: editItem?.workGroup ?? "",
   });
 
   const totalPrice = (parseFloat(form.quantity || "0") * parseFloat(form.unitPrice || "0")).toFixed(2);
@@ -398,6 +490,7 @@ function ItemFormDialog({
       unitPrice: form.unitPrice,
       totalPrice,
       status: form.status,
+      workGroup: form.workGroup || null,
     };
     if (isEdit) {
       updateMut.mutate(payload);
@@ -423,6 +516,23 @@ function ItemFormDialog({
               required
               data-testid="input-item-name"
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Группа работ</Label>
+            <Input
+              value={form.workGroup}
+              onChange={(e) => setForm({ ...form, workGroup: e.target.value })}
+              placeholder="Например: Земляные работы, Фундамент..."
+              list="work-groups-list"
+              data-testid="input-item-work-group"
+            />
+            {existingGroups.length > 0 && (
+              <datalist id="work-groups-list">
+                {existingGroups.map((g) => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
@@ -621,6 +731,132 @@ function DayCard({
   );
 }
 
+function WorkGroupCard({
+  group,
+  isMobile,
+  isAdmin,
+  projectId,
+  onEdit,
+  onDelete,
+}: {
+  group: WorkGroupData;
+  isMobile: boolean;
+  isAdmin: boolean;
+  projectId: number;
+  onEdit: (item: EstimateItemWithPhotos) => void;
+  onDelete: (id: number) => void;
+}) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <Card data-testid={`card-group-${group.groupName}`}>
+      <CardHeader
+        className="p-4 cursor-pointer"
+        onClick={() => setOpen(!open)}
+      >
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary/10 text-primary">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-semibold">{group.groupName}</CardTitle>
+              <p className="text-xs text-muted-foreground">{group.items.length} позиций</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-semibold" data-testid={`text-group-total-${group.groupName}`}>{formatCurrency(group.total)}</span>
+            {open ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </div>
+        </div>
+      </CardHeader>
+      {open && (
+        <CardContent className="p-0 border-t">
+          {isMobile ? (
+            <div className="divide-y">
+              {group.items.map((item) => (
+                <div key={item.id} className="p-3 space-y-1" data-testid={`card-group-item-${item.id}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(item.date)}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <StatusBadge status={item.status} />
+                      {isAdmin && (
+                        <div className="flex gap-1">
+                          <button onClick={() => onEdit(item)} data-testid={`button-edit-group-item-${item.id}`}>
+                            <Pencil className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+                          </button>
+                          <button onClick={() => onDelete(item.id)} data-testid={`button-delete-group-item-${item.id}`}>
+                            <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                    <span>{item.quantity} {item.unit} × {formatCurrency(item.unitPrice)}</span>
+                    <span className="font-semibold text-foreground">{formatCurrency(item.totalPrice)}</span>
+                  </div>
+                  <ItemPhotos item={item} projectId={projectId} isAdmin={isAdmin} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">#</TableHead>
+                  <TableHead>Наименование</TableHead>
+                  <TableHead>Дата</TableHead>
+                  <TableHead className="text-right">Кол-во</TableHead>
+                  <TableHead>Ед.</TableHead>
+                  <TableHead className="text-right">Цена</TableHead>
+                  <TableHead className="text-right">Сумма</TableHead>
+                  <TableHead>Статус</TableHead>
+                  {isAdmin && <TableHead className="w-20" />}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {group.items.map((item, idx) => (
+                  <TableRow key={item.id} data-testid={`row-group-item-${item.id}`}>
+                    <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
+                    <TableCell>
+                      <div>
+                        {item.name}
+                        <ItemPhotos item={item} projectId={projectId} isAdmin={isAdmin} />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(item.date)}</TableCell>
+                    <TableCell className="text-right">{item.quantity}</TableCell>
+                    <TableCell>{item.unit}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(item.totalPrice)}</TableCell>
+                    <TableCell><StatusBadge status={item.status} /></TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)} data-testid={`button-edit-group-item-${item.id}`}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(item.id)} data-testid={`button-delete-group-item-${item.id}`}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 export default function WorkExecution({ projectId }: { projectId: number }) {
   const [category, setCategory] = useState<string>("works");
   const [viewMode, setViewMode] = useState<ViewMode>("by-day");
@@ -658,6 +894,15 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
       .flatMap((e) => e.items);
   }, [estimates, category]);
 
+  const existingGroups = useMemo(() => {
+    if (!estimates) return [];
+    const groups = new Set<string>();
+    estimates.flatMap((e) => e.items).forEach((item) => {
+      if (item.workGroup) groups.add(item.workGroup);
+    });
+    return Array.from(groups).sort();
+  }, [estimates]);
+
   const dayGroups = useMemo(() => {
     const groups = new Map<string, EstimateItemWithPhotos[]>();
     for (const item of completedItems) {
@@ -693,6 +938,31 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
       });
     }
     result.sort((a, b) => b.date.localeCompare(a.date));
+    return result;
+  }, [allItems]);
+
+  const workGroups = useMemo((): WorkGroupData[] => {
+    const groups = new Map<string, EstimateItemWithPhotos[]>();
+    for (const item of allItems) {
+      const groupName = item.workGroup || "Без группы";
+      const existing = groups.get(groupName) || [];
+      existing.push(item);
+      groups.set(groupName, existing);
+    }
+    const result: WorkGroupData[] = [];
+    for (const [groupName, items] of groups) {
+      items.sort((a, b) => a.date.localeCompare(b.date));
+      result.push({
+        groupName,
+        items,
+        total: items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0),
+      });
+    }
+    result.sort((a, b) => {
+      if (a.groupName === "Без группы") return 1;
+      if (b.groupName === "Без группы") return -1;
+      return a.groupName.localeCompare(b.groupName);
+    });
     return result;
   }, [allItems]);
 
@@ -845,7 +1115,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
             </Card>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant={viewMode === "by-day" ? "default" : "outline"}
               size="sm"
@@ -863,6 +1133,15 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
             >
               <List className="w-4 h-4 mr-1" />
               Общая
+            </Button>
+            <Button
+              variant={viewMode === "by-group" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("by-group")}
+              data-testid="button-view-by-group"
+            >
+              <Layers className="w-4 h-4 mr-1" />
+              По видам работ
             </Button>
           </div>
 
@@ -892,6 +1171,36 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                     <NonWorkingDaysCard key={`off-${idx}`} days={entry.days} />
                   )
                 )}
+              </div>
+            )
+          ) : viewMode === "by-group" ? (
+            workGroups.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  <p data-testid="text-no-results">
+                    Нет позиций в категории «{categoryLabel(category)}»
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {workGroups.map((group) => (
+                  <WorkGroupCard
+                    key={group.groupName}
+                    group={group}
+                    isMobile={isMobile}
+                    isAdmin={isAdmin}
+                    projectId={projectId}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+                <Card>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <span className="font-semibold">Итого ({allItems.length} позиций)</span>
+                    <span className="font-bold text-lg" data-testid="text-group-total-all">{formatCurrency(allTotal)}</span>
+                  </CardContent>
+                </Card>
               </div>
             )
           ) : (
@@ -1022,6 +1331,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
           estimateId={currentEstimate?.id ?? null}
           editItem={editingItem}
           category={category}
+          existingGroups={existingGroups}
         />
       )}
     </div>

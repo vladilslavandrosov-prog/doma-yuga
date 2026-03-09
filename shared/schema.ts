@@ -49,6 +49,7 @@ export const estimateItems = pgTable("estimate_items", {
   unitPrice: numeric("unit_price").notNull(),
   totalPrice: numeric("total_price").notNull(),
   status: text("status").notNull().default("planned"),
+  workGroup: text("work_group"),
 });
 
 export const insertEstimateItemSchema = createInsertSchema(estimateItems).omit({ id: true });
