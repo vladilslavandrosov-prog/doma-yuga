@@ -405,21 +405,24 @@ function DayCommentSection({
   projectId,
   comments,
   isAdmin,
+  isAuthenticated,
 }: {
   date: string;
   projectId: number;
   comments: DayComment[];
   isAdmin: boolean;
+  isAuthenticated: boolean;
 }) {
   const { toast } = useToast();
   const dayComment = comments.find(c => c.date === date);
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(dayComment?.text ?? "");
+  const canEdit = isAuthenticated;
+  const canManage = isAdmin || (dayComment?.sender !== "admin");
 
   const createMut = useMutation({
     mutationFn: async (commentText: string) => {
-      const res = await apiRequest("POST", "/api/admin/day-comments", {
-        projectId,
+      const res = await apiRequest("POST", `/api/project/${projectId}/day-comments`, {
         date,
         text: commentText,
       });
@@ -434,7 +437,7 @@ function DayCommentSection({
 
   const updateMut = useMutation({
     mutationFn: async (commentText: string) => {
-      const res = await apiRequest("PATCH", `/api/admin/day-comments/${dayComment!.id}`, { text: commentText });
+      const res = await apiRequest("PATCH", `/api/project/${projectId}/day-comments/${dayComment!.id}`, { text: commentText });
       return res.json();
     },
     onSuccess: () => {
@@ -446,7 +449,7 @@ function DayCommentSection({
 
   const deleteMut = useMutation({
     mutationFn: async () => {
-      await apiRequest("DELETE", `/api/admin/day-comments/${dayComment!.id}`);
+      await apiRequest("DELETE", `/api/project/${projectId}/day-comments/${dayComment!.id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "day-comments"] });
@@ -466,17 +469,24 @@ function DayCommentSection({
 
   const isPending = createMut.isPending || updateMut.isPending || deleteMut.isPending;
 
-  if (!isAdmin && !dayComment) return null;
+  if (!canEdit && !dayComment) return null;
 
   if (dayComment && !editing) {
+    const senderLabel = dayComment.sender === "admin" ? "Администратор" : "Клиент";
+    const bgClass = dayComment.sender === "admin"
+      ? "bg-blue-50/50 dark:bg-blue-950/20"
+      : "bg-amber-50/50 dark:bg-amber-950/20";
+    const iconColor = dayComment.sender === "admin" ? "text-blue-500" : "text-amber-500";
+
     return (
-      <div className="border-t bg-blue-50/50 dark:bg-blue-950/20 p-3" data-testid={`day-comment-${date}`}>
+      <div className={`border-t ${bgClass} p-3`} data-testid={`day-comment-${date}`}>
         <div className="flex items-start gap-2">
-          <MessageSquare className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+          <MessageSquare className={`w-4 h-4 ${iconColor} mt-0.5 shrink-0`} />
           <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">{senderLabel}</p>
             <p className="text-sm whitespace-pre-wrap">{dayComment.text}</p>
           </div>
-          {isAdmin && (
+          {canManage && (
             <div className="flex gap-1 shrink-0">
               <button
                 onClick={(e) => { e.stopPropagation(); setText(dayComment.text); setEditing(true); }}
@@ -497,7 +507,7 @@ function DayCommentSection({
     );
   }
 
-  if (isAdmin && editing) {
+  if (canEdit && editing) {
     return (
       <div className="border-t bg-blue-50/50 dark:bg-blue-950/20 p-3" data-testid={`day-comment-edit-${date}`}>
         <div className="space-y-2">
@@ -534,7 +544,7 @@ function DayCommentSection({
     );
   }
 
-  if (isAdmin && !dayComment) {
+  if (canEdit && !dayComment) {
     return (
       <div className="border-t">
         <button
@@ -763,6 +773,7 @@ function DayCard({
   group,
   isMobile,
   isAdmin,
+  isAuthenticated,
   projectId,
   onEdit,
   onDelete,
@@ -771,6 +782,7 @@ function DayCard({
   group: DayGroup;
   isMobile: boolean;
   isAdmin: boolean;
+  isAuthenticated: boolean;
   projectId: number;
   onEdit: (item: EstimateItemWithPhotos) => void;
   onDelete: (id: number) => void;
@@ -887,6 +899,7 @@ function DayCard({
             projectId={projectId}
             comments={dayComments}
             isAdmin={isAdmin}
+            isAuthenticated={isAuthenticated}
           />
         </CardContent>
       )}
@@ -1330,6 +1343,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                       group={entry.group}
                       isMobile={isMobile}
                       isAdmin={isAdmin}
+                      isAuthenticated={!!user}
                       projectId={projectId}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
@@ -1481,6 +1495,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                         projectId={projectId}
                         comments={dayCommentsData ?? []}
                         isAdmin={isAdmin}
+                        isAuthenticated={!!user}
                       />
                     </CardContent>
                   </Card>

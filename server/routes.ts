@@ -622,10 +622,11 @@ export async function registerRoutes(
     res.json(comments);
   });
 
-  app.post("/api/admin/day-comments", requireAdmin, async (req, res) => {
-    const { projectId, date, text } = req.body;
-    if (!projectId || !date || !text?.trim()) {
-      return res.status(400).json({ error: "projectId, date and text required" });
+  app.post("/api/project/:projectId/day-comments", requireAuth, async (req, res) => {
+    const projectId = parseInt(req.params.projectId);
+    const { date, text } = req.body;
+    if (!date || !text?.trim()) {
+      return res.status(400).json({ error: "date and text required" });
     }
     const project = await storage.getProjectById(projectId);
     if (!project) {
@@ -635,18 +636,33 @@ export async function registerRoutes(
     if (existing.find(c => c.date === date)) {
       return res.status(409).json({ error: "Comment for this date already exists" });
     }
+    const sender = req.session.role === "admin" ? "admin" : "client";
     const comment = await storage.createDayComment({
       projectId,
       date,
       text: text.trim(),
+      sender,
       createdAt: new Date().toISOString(),
     });
+
+    if (sender === "client") {
+      const { sendTelegramNotification } = await import("./telegram");
+      let clientName = "Клиент";
+      const client = await storage.getClientById(project.clientId);
+      if (client) clientName = client.name;
+      sendTelegramNotification(
+        project.name,
+        clientName,
+        `📅 ${comment.date}\n${comment.text}`,
+      );
+    }
 
     res.json(comment);
   });
 
-  app.patch("/api/admin/day-comments/:id", requireAdmin, async (req, res) => {
+  app.patch("/api/project/:projectId/day-comments/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id);
+    const projectId = parseInt(req.params.projectId);
     const { text } = req.body;
     if (!text?.trim()) {
       return res.status(400).json({ error: "text required" });
@@ -656,10 +672,25 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Comment not found" });
     }
 
+    if (req.session.role !== "admin") {
+      const { sendTelegramNotification } = await import("./telegram");
+      const project = await storage.getProjectById(projectId);
+      let clientName = "Клиент";
+      if (project) {
+        const client = await storage.getClientById(project.clientId);
+        if (client) clientName = client.name;
+      }
+      sendTelegramNotification(
+        project?.name ?? `Проект #${projectId}`,
+        clientName,
+        `📅 ${updated.date} (изменено)\n${updated.text}`,
+      );
+    }
+
     res.json(updated);
   });
 
-  app.delete("/api/admin/day-comments/:id", requireAdmin, async (req, res) => {
+  app.delete("/api/project/:projectId/day-comments/:id", requireAuth, async (req, res) => {
     const ok = await storage.deleteDayComment(parseInt(req.params.id));
     if (!ok) {
       return res.status(404).json({ error: "Comment not found" });

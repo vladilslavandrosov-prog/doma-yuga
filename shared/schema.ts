@@ -154,6 +154,7 @@ export const dayComments = pgTable("day_comments", {
   projectId: integer("project_id").notNull(),
   date: text("date").notNull(),
   text: text("text").notNull(),
+  sender: text("sender").notNull().default("admin"),
   createdAt: text("created_at").notNull(),
 });
 

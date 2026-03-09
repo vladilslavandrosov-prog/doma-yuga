@@ -526,7 +526,7 @@ export class MemStorage implements IStorage {
 
   async createDayComment(comment: InsertDayComment): Promise<DayComment> {
     const id = this.nextId++;
-    const c: DayComment = { id, projectId: comment.projectId, date: comment.date, text: comment.text, createdAt: comment.createdAt };
+    const c: DayComment = { id, projectId: comment.projectId, date: comment.date, text: comment.text, sender: comment.sender ?? "admin", createdAt: comment.createdAt };
     this.dayCommentsMap.set(id, c);
     return c;
   }
