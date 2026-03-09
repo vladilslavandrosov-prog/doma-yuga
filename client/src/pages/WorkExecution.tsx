@@ -15,7 +15,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { HardHat, Coffee, CalendarDays, List, ChevronDown, ChevronRight } from "lucide-react";
+import { HardHat, CalendarDays, List, ChevronDown, ChevronRight } from "lucide-react";
 import type { Estimate, EstimateItem } from "@shared/schema";
 
 type EstimateWithItems = Estimate & { items: EstimateItem[] };
@@ -80,12 +80,6 @@ function formatDayOfWeek(dateStr: string) {
   return date.toLocaleDateString("ru-RU", { weekday: "long" });
 }
 
-function isWeekend(dateStr: string) {
-  const date = new Date(dateStr + "T00:00:00");
-  const day = date.getDay();
-  return day === 0 || day === 6;
-}
-
 function categoryLabel(cat: string) {
   switch (cat) {
     case "works": return "Работы";
@@ -99,7 +93,6 @@ interface DayGroup {
   date: string;
   items: EstimateItem[];
   total: number;
-  weekend: boolean;
 }
 
 function WorkExecutionSkeleton() {
@@ -125,17 +118,12 @@ function DayCard({ group, isMobile }: { group: DayGroup; isMobile: boolean }) {
       >
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className={`flex items-center justify-center w-9 h-9 rounded-md ${group.weekend ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600" : "bg-primary/10 text-primary"}`}>
-              {group.weekend ? <Coffee className="w-5 h-5" /> : <HardHat className="w-5 h-5" />}
+            <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary/10 text-primary">
+              <HardHat className="w-5 h-5" />
             </div>
             <div>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold">
                 {formatDate(group.date)}
-                {group.weekend && (
-                  <Badge variant="outline" className="text-xs text-orange-600 border-orange-300 dark:border-orange-700">
-                    Выходной
-                  </Badge>
-                )}
               </CardTitle>
               <p className="text-xs text-muted-foreground capitalize">{formatDayOfWeek(group.date)}</p>
             </div>
@@ -228,7 +216,6 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
         date,
         items,
         total: items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0),
-        weekend: isWeekend(date),
       });
     }
     result.sort((a, b) => b.date.localeCompare(a.date));
@@ -238,9 +225,6 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
   const grandTotal = useMemo(() => {
     return completedItems.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0);
   }, [completedItems]);
-
-  const workingDays = dayGroups.filter(d => !d.weekend).length;
-  const weekendDays = dayGroups.filter(d => d.weekend).length;
 
   if (isLoading) {
     return (
@@ -275,7 +259,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
         </TabsList>
 
         <TabsContent value={category} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Card data-testid="card-summary-total">
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">Итого выполнено</p>
@@ -283,25 +267,14 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                 <p className="text-xs text-muted-foreground">{completedItems.length} позиций</p>
               </CardContent>
             </Card>
-            <Card data-testid="card-summary-working">
+            <Card data-testid="card-summary-days">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary/10 text-primary">
                   <HardHat className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Рабочих дней</p>
-                  <p className="text-lg font-bold" data-testid="text-working-days">{workingDays}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card data-testid="card-summary-weekend">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="flex items-center justify-center w-9 h-9 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-600">
-                  <Coffee className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Выходных дней</p>
-                  <p className="text-lg font-bold" data-testid="text-weekend-days">{weekendDays}</p>
+                  <p className="text-lg font-bold" data-testid="text-working-days">{dayGroups.length}</p>
                 </div>
               </CardContent>
             </Card>
@@ -388,11 +361,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                         <TableCell className="text-muted-foreground">{index + 1}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {isWeekend(item.date) ? (
-                              <Coffee className="w-3.5 h-3.5 text-orange-500" />
-                            ) : (
-                              <HardHat className="w-3.5 h-3.5 text-primary" />
-                            )}
+                            <HardHat className="w-3.5 h-3.5 text-primary" />
                             {item.date}
                           </div>
                         </TableCell>
