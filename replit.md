@@ -56,6 +56,9 @@ uploads/          - Загруженные фото (served at /uploads/*)
 - POST/DELETE /api/admin/videos — создание/удаление видео (по URL)
 - POST /api/auth/change-password — смена пароля (для любого авторизованного пользователя)
 - GET/POST /api/admin/clients — список клиентов / создание клиента с аккаунтом
+- PATCH /api/admin/clients/:id — редактирование данных клиента
+- POST /api/admin/projects — создание нового объекта
+- GET/POST/DELETE /api/admin/non-working-days — управление нерабочими днями
 - GET /api/client-projects — проекты текущего клиента (по clientId из сессии)
 
 ## Цветовая схема

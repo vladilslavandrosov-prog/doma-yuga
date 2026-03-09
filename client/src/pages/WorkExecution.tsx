@@ -216,10 +216,7 @@ function DayCard({ group, isMobile }: { group: DayGroup; isMobile: boolean }) {
             <div className="divide-y">
               {group.items.map((item) => (
                 <div key={item.id} className="p-3 space-y-1" data-testid={`card-exec-item-${item.id}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium">{item.name}</p>
-                    <StatusBadge status={item.status} />
-                  </div>
+                  <p className="text-sm font-medium">{item.name}</p>
                   <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
                     <span>{item.quantity} {item.unit} × {formatCurrency(item.unitPrice)}</span>
                     <span className="font-semibold text-foreground">{formatCurrency(item.totalPrice)}</span>
@@ -237,7 +234,6 @@ function DayCard({ group, isMobile }: { group: DayGroup; isMobile: boolean }) {
                   <TableHead>Ед.</TableHead>
                   <TableHead className="text-right">Цена</TableHead>
                   <TableHead className="text-right">Сумма</TableHead>
-                  <TableHead>Статус</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -249,7 +245,6 @@ function DayCard({ group, isMobile }: { group: DayGroup; isMobile: boolean }) {
                     <TableCell>{item.unit}</TableCell>
                     <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(item.totalPrice)}</TableCell>
-                    <TableCell><StatusBadge status={item.status} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

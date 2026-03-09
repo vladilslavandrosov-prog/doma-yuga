@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban } from "lucide-react";
+import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil } from "lucide-react";
 import type { Project } from "@shared/schema";
 
 interface ClientWithAccount {
@@ -38,6 +38,8 @@ interface ClientWithAccount {
 export default function Clients() {
   const { toast } = useToast();
   const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<ClientWithAccount | null>(null);
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
@@ -73,6 +75,26 @@ export default function Clients() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) => {
+      const res = await apiRequest("PATCH", `/api/admin/clients/${id}`, data);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Ошибка обновления");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/clients"] });
+      toast({ title: "Готово", description: "Данные клиента обновлены" });
+      setEditOpen(false);
+      setEditingClient(null);
+    },
+    onError: (err: Error) => {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    },
+  });
+
   function resetForm() {
     setFormName("");
     setFormPhone("");
@@ -82,7 +104,15 @@ export default function Clients() {
     setFormProjectId("");
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function openEdit(client: ClientWithAccount) {
+    setEditingClient(client);
+    setFormName(client.name);
+    setFormPhone(client.phone || "");
+    setFormEmail(client.email || "");
+    setEditOpen(true);
+  }
+
+  function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     createMutation.mutate({
       name: formName,
@@ -91,6 +121,15 @@ export default function Clients() {
       username: formUsername,
       password: formPassword,
       projectId: formProjectId || undefined,
+    });
+  }
+
+  function handleUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingClient) return;
+    updateMutation.mutate({
+      id: editingClient.id,
+      data: { name: formName, phone: formPhone, email: formEmail },
     });
   }
 
@@ -109,7 +148,7 @@ export default function Clients() {
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Клиенты</h1>
-        <Button onClick={() => setAddOpen(true)} data-testid="button-add-client">
+        <Button onClick={() => { resetForm(); setAddOpen(true); }} data-testid="button-add-client">
           <UserPlus className="h-4 w-4 mr-2" />
           Добавить клиента
         </Button>
@@ -131,11 +170,22 @@ export default function Clients() {
                     <Users className="h-4 w-4 text-muted-foreground" />
                     {client.name}
                   </span>
-                  {client.hasAccount ? (
-                    <Badge className="bg-emerald-600 text-white">Есть аккаунт</Badge>
-                  ) : (
-                    <Badge variant="outline">Нет аккаунта</Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {client.hasAccount ? (
+                      <Badge className="bg-emerald-600 text-white no-default-hover-elevate">Есть аккаунт</Badge>
+                    ) : (
+                      <Badge variant="outline">Нет аккаунта</Badge>
+                    )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => openEdit(client)}
+                      data-testid={`button-edit-client-${client.id}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
@@ -174,7 +224,7 @@ export default function Clients() {
           <DialogHeader>
             <DialogTitle>Новый клиент</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleCreate} className="space-y-4">
             <div className="space-y-2">
               <Label>ФИО клиента *</Label>
               <Input
@@ -250,6 +300,50 @@ export default function Clients() {
             )}
             <Button type="submit" className="w-full" disabled={createMutation.isPending} data-testid="button-submit-client">
               {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Создать клиента"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) setEditingClient(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать клиента</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="space-y-2">
+              <Label>ФИО клиента *</Label>
+              <Input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Иванов Иван Иванович"
+                required
+                data-testid="input-edit-client-name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Телефон</Label>
+                <Input
+                  value={formPhone}
+                  onChange={(e) => setFormPhone(e.target.value)}
+                  placeholder="+7 (900) 000-00-00"
+                  data-testid="input-edit-client-phone"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  placeholder="email@mail.ru"
+                  data-testid="input-edit-client-email"
+                />
+              </div>
+            </div>
+            <Button type="submit" className="w-full" disabled={updateMutation.isPending} data-testid="button-submit-edit-client">
+              {updateMutation.isPending ? <Loader2 className="animate-spin" /> : "Сохранить"}
             </Button>
           </form>
         </DialogContent>

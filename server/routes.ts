@@ -13,6 +13,7 @@ import {
   insertClientSchema,
   insertUserSchema,
   insertNonWorkingDaySchema,
+  insertProjectSchema,
 } from "@shared/schema";
 
 const uploadStorage = multer.diskStorage({
@@ -154,6 +155,29 @@ export async function registerRoutes(
       }
     }
     res.json({ client, userId: user.id });
+  });
+
+  app.patch("/api/admin/clients/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { name, phone, email } = req.body;
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone || null;
+    if (email !== undefined) updateData.email = email || null;
+    const updated = await storage.updateClient(id, updateData as any);
+    if (!updated) {
+      return res.status(404).json({ error: "Клиент не найден" });
+    }
+    res.json(updated);
+  });
+
+  app.post("/api/admin/projects", requireAdmin, async (req, res) => {
+    const parsed = insertProjectSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    const project = await storage.createProject(parsed.data);
+    res.json(project);
   });
 
   app.get("/api/client-projects", requireAuth, async (req, res) => {
