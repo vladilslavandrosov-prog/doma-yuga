@@ -12,6 +12,7 @@ import {
   type NonWorkingDay, type InsertNonWorkingDay,
   type EstimateItemPhoto, type InsertEstimateItemPhoto,
   type GalleryPhoto, type InsertGalleryPhoto,
+  type DayComment, type InsertDayComment,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -62,6 +63,10 @@ export interface IStorage {
   getAllGalleryPhotos(): Promise<GalleryPhoto[]>;
   createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto>;
   deleteGalleryPhoto(id: number): Promise<boolean>;
+  getDayCommentsByProjectId(projectId: number): Promise<DayComment[]>;
+  createDayComment(comment: InsertDayComment): Promise<DayComment>;
+  updateDayComment(id: number, data: Partial<InsertDayComment>): Promise<DayComment | undefined>;
+  deleteDayComment(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -78,6 +83,7 @@ export class MemStorage implements IStorage {
   private users: Map<number, User> = new Map();
   private nonWorkingDays: Map<number, NonWorkingDay> = new Map();
   private galleryPhotosMap: Map<number, GalleryPhoto> = new Map();
+  private dayCommentsMap: Map<number, DayComment> = new Map();
   private nextId = 100;
 
   constructor() {
@@ -512,6 +518,29 @@ export class MemStorage implements IStorage {
 
   async deleteGalleryPhoto(id: number): Promise<boolean> {
     return this.galleryPhotosMap.delete(id);
+  }
+
+  async getDayCommentsByProjectId(projectId: number): Promise<DayComment[]> {
+    return Array.from(this.dayCommentsMap.values()).filter(c => c.projectId === projectId);
+  }
+
+  async createDayComment(comment: InsertDayComment): Promise<DayComment> {
+    const id = this.nextId++;
+    const c: DayComment = { id, projectId: comment.projectId, date: comment.date, text: comment.text, createdAt: comment.createdAt };
+    this.dayCommentsMap.set(id, c);
+    return c;
+  }
+
+  async updateDayComment(id: number, data: Partial<InsertDayComment>): Promise<DayComment | undefined> {
+    const existing = this.dayCommentsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...data };
+    this.dayCommentsMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteDayComment(id: number): Promise<boolean> {
+    return this.dayCommentsMap.delete(id);
   }
 }
 

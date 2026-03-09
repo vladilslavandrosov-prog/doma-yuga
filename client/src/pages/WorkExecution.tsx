@@ -46,9 +46,12 @@ import {
   Upload,
   X,
   Loader2,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import type { Estimate, EstimateItem, NonWorkingDay, EstimateItemPhoto } from "@shared/schema";
+import { Textarea } from "@/components/ui/textarea";
+import type { Estimate, EstimateItem, NonWorkingDay, EstimateItemPhoto, DayComment } from "@shared/schema";
 
 type EstimateItemWithPhotos = EstimateItem & { photos?: EstimateItemPhoto[] };
 type EstimateWithItems = Estimate & { items: EstimateItemWithPhotos[] };
@@ -397,6 +400,158 @@ function ItemPhotos({
   );
 }
 
+function DayCommentSection({
+  date,
+  projectId,
+  comments,
+  isAdmin,
+}: {
+  date: string;
+  projectId: number;
+  comments: DayComment[];
+  isAdmin: boolean;
+}) {
+  const { toast } = useToast();
+  const dayComment = comments.find(c => c.date === date);
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(dayComment?.text ?? "");
+
+  const createMut = useMutation({
+    mutationFn: async (commentText: string) => {
+      const res = await apiRequest("POST", "/api/admin/day-comments", {
+        projectId,
+        date,
+        text: commentText,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "day-comments"] });
+      toast({ title: "Сообщение добавлено" });
+      setEditing(false);
+    },
+  });
+
+  const updateMut = useMutation({
+    mutationFn: async (commentText: string) => {
+      const res = await apiRequest("PATCH", `/api/admin/day-comments/${dayComment!.id}`, { text: commentText });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "day-comments"] });
+      toast({ title: "Сообщение обновлено" });
+      setEditing(false);
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/admin/day-comments/${dayComment!.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "day-comments"] });
+      toast({ title: "Сообщение удалено" });
+      setText("");
+    },
+  });
+
+  const handleSave = () => {
+    if (!text.trim()) return;
+    if (dayComment) {
+      updateMut.mutate(text.trim());
+    } else {
+      createMut.mutate(text.trim());
+    }
+  };
+
+  const isPending = createMut.isPending || updateMut.isPending || deleteMut.isPending;
+
+  if (!isAdmin && !dayComment) return null;
+
+  if (dayComment && !editing) {
+    return (
+      <div className="border-t bg-blue-50/50 dark:bg-blue-950/20 p-3" data-testid={`day-comment-${date}`}>
+        <div className="flex items-start gap-2">
+          <MessageSquare className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm whitespace-pre-wrap">{dayComment.text}</p>
+          </div>
+          {isAdmin && (
+            <div className="flex gap-1 shrink-0">
+              <button
+                onClick={(e) => { e.stopPropagation(); setText(dayComment.text); setEditing(true); }}
+                data-testid={`button-edit-day-comment-${date}`}
+              >
+                <Pencil className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (confirm("Удалить сообщение?")) deleteMut.mutate(); }}
+                data-testid={`button-delete-day-comment-${date}`}
+              >
+                <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isAdmin && editing) {
+    return (
+      <div className="border-t bg-blue-50/50 dark:bg-blue-950/20 p-3" data-testid={`day-comment-edit-${date}`}>
+        <div className="space-y-2">
+          <Textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Сообщение дня..."
+            rows={2}
+            className="text-sm"
+            data-testid={`textarea-day-comment-${date}`}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); setEditing(false); }}
+              data-testid={`button-cancel-day-comment-${date}`}
+            >
+              Отмена
+            </Button>
+            <Button
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); handleSave(); }}
+              disabled={isPending || !text.trim()}
+              data-testid={`button-save-day-comment-${date}`}
+            >
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+              Отправить
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAdmin && !dayComment) {
+    return (
+      <div className="border-t">
+        <button
+          className="w-full p-2 text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors"
+          onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+          data-testid={`button-add-day-comment-${date}`}
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          Добавить сообщение
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 interface ItemFormData {
   name: string;
   date: string;
@@ -611,6 +766,7 @@ function DayCard({
   projectId,
   onEdit,
   onDelete,
+  dayComments,
 }: {
   group: DayGroup;
   isMobile: boolean;
@@ -618,6 +774,7 @@ function DayCard({
   projectId: number;
   onEdit: (item: EstimateItemWithPhotos) => void;
   onDelete: (id: number) => void;
+  dayComments: DayComment[];
 }) {
   const [open, setOpen] = useState(true);
 
@@ -725,6 +882,12 @@ function DayCard({
               </Table>
             </div>
           )}
+          <DayCommentSection
+            date={group.date}
+            projectId={projectId}
+            comments={dayComments}
+            isAdmin={isAdmin}
+          />
         </CardContent>
       )}
     </Card>
@@ -872,6 +1035,10 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
 
   const { data: nonWorkingDays } = useQuery<NonWorkingDay[]>({
     queryKey: ["/api/project", projectId, "non-working-days"],
+  });
+
+  const { data: dayCommentsData } = useQuery<DayComment[]>({
+    queryKey: ["/api/project", projectId, "day-comments"],
   });
 
   const currentEstimate = useMemo(() => {
@@ -1166,6 +1333,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                       projectId={projectId}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
+                      dayComments={dayCommentsData ?? []}
                     />
                   ) : (
                     <NonWorkingDaysCard key={`off-${idx}`} days={entry.days} />
@@ -1308,6 +1476,12 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                           </TableBody>
                         </Table>
                       )}
+                      <DayCommentSection
+                        date={group.date}
+                        projectId={projectId}
+                        comments={dayCommentsData ?? []}
+                        isAdmin={isAdmin}
+                      />
                     </CardContent>
                   </Card>
                 ))}

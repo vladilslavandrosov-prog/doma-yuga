@@ -149,6 +149,18 @@ export const insertGalleryPhotoSchema = createInsertSchema(galleryPhotos).omit({
 export type InsertGalleryPhoto = z.infer<typeof insertGalleryPhotoSchema>;
 export type GalleryPhoto = typeof galleryPhotos.$inferSelect;
 
+export const dayComments = pgTable("day_comments", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  date: text("date").notNull(),
+  text: text("text").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const insertDayCommentSchema = createInsertSchema(dayComments).omit({ id: true });
+export type InsertDayComment = z.infer<typeof insertDayCommentSchema>;
+export type DayComment = typeof dayComments.$inferSelect;
+
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),

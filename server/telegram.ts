@@ -3,7 +3,7 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 export async function sendTelegramNotification(
   projectName: string,
-  clientName: string,
+  senderName: string,
   messageText: string,
 ) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
@@ -11,9 +11,9 @@ export async function sendTelegramNotification(
     return;
   }
 
-  const text = `💬 Новое сообщение от клиента\n\n` +
+  const text = `💬 Сообщение\n\n` +
     `📋 Объект: ${projectName}\n` +
-    `👤 Клиент: ${clientName}\n\n` +
+    `👤 От: ${senderName}\n\n` +
     `${messageText}`;
 
   try {
@@ -24,7 +24,6 @@ export async function sendTelegramNotification(
       body: JSON.stringify({
         chat_id: TELEGRAM_CHAT_ID,
         text,
-        parse_mode: "HTML",
       }),
     });
 

@@ -15,6 +15,7 @@ import {
   insertNonWorkingDaySchema,
   insertProjectSchema,
   insertGalleryPhotoSchema,
+  insertDayCommentSchema,
 } from "@shared/schema";
 
 const uploadStorage = multer.diskStorage({
@@ -612,6 +613,71 @@ export async function registerRoutes(
     const ok = await storage.deleteGalleryPhoto(parseInt(req.params.id));
     if (!ok) {
       return res.status(404).json({ error: "Gallery photo not found" });
+    }
+    res.json({ ok: true });
+  });
+
+  app.get("/api/project/:id/day-comments", async (req, res) => {
+    const comments = await storage.getDayCommentsByProjectId(parseInt(req.params.id));
+    res.json(comments);
+  });
+
+  app.post("/api/admin/day-comments", requireAdmin, async (req, res) => {
+    const { projectId, date, text } = req.body;
+    if (!projectId || !date || !text?.trim()) {
+      return res.status(400).json({ error: "projectId, date and text required" });
+    }
+    const project = await storage.getProjectById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    const existing = await storage.getDayCommentsByProjectId(projectId);
+    if (existing.find(c => c.date === date)) {
+      return res.status(409).json({ error: "Comment for this date already exists" });
+    }
+    const comment = await storage.createDayComment({
+      projectId,
+      date,
+      text: text.trim(),
+      createdAt: new Date().toISOString(),
+    });
+
+    const { sendTelegramNotification } = await import("./telegram");
+    sendTelegramNotification(
+      project.name,
+      "Администратор",
+      `📅 ${comment.date}\n${comment.text}`,
+    );
+
+    res.json(comment);
+  });
+
+  app.patch("/api/admin/day-comments/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { text } = req.body;
+    if (!text?.trim()) {
+      return res.status(400).json({ error: "text required" });
+    }
+    const updated = await storage.updateDayComment(id, { text: text.trim() });
+    if (!updated) {
+      return res.status(404).json({ error: "Comment not found" });
+    }
+
+    const { sendTelegramNotification } = await import("./telegram");
+    const project = await storage.getProjectById(updated.projectId);
+    sendTelegramNotification(
+      project?.name ?? `Проект #${updated.projectId}`,
+      "Администратор",
+      `📅 ${updated.date} (изменено)\n${updated.text}`,
+    );
+
+    res.json(updated);
+  });
+
+  app.delete("/api/admin/day-comments/:id", requireAdmin, async (req, res) => {
+    const ok = await storage.deleteDayComment(parseInt(req.params.id));
+    if (!ok) {
+      return res.status(404).json({ error: "Comment not found" });
     }
     res.json({ ok: true });
   });

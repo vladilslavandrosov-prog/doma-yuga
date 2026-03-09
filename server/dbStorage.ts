@@ -3,7 +3,7 @@ import { db } from "./db";
 import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
-  estimateItemPhotos, galleryPhotos,
+  estimateItemPhotos, galleryPhotos, dayComments,
 } from "@shared/schema";
 import type {
   Client, InsertClient,
@@ -19,6 +19,7 @@ import type {
   NonWorkingDay, InsertNonWorkingDay,
   EstimateItemPhoto, InsertEstimateItemPhoto,
   GalleryPhoto, InsertGalleryPhoto,
+  DayComment, InsertDayComment,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -248,6 +249,25 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGalleryPhoto(id: number): Promise<boolean> {
     const result = await db.delete(galleryPhotos).where(eq(galleryPhotos.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getDayCommentsByProjectId(projectId: number): Promise<DayComment[]> {
+    return db.select().from(dayComments).where(eq(dayComments.projectId, projectId));
+  }
+
+  async createDayComment(comment: InsertDayComment): Promise<DayComment> {
+    const [row] = await db.insert(dayComments).values(comment).returning();
+    return row;
+  }
+
+  async updateDayComment(id: number, data: Partial<InsertDayComment>): Promise<DayComment | undefined> {
+    const [row] = await db.update(dayComments).set(data).where(eq(dayComments.id, id)).returning();
+    return row;
+  }
+
+  async deleteDayComment(id: number): Promise<boolean> {
+    const result = await db.delete(dayComments).where(eq(dayComments.id, id)).returning();
     return result.length > 0;
   }
 }
