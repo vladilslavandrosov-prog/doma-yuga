@@ -49,7 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(text || "Ошибка входа");
+      let message = "Неверное имя пользователя или пароль";
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed.error) message = parsed.error === "Invalid credentials" ? "Неверное имя пользователя или пароль" : parsed.error;
+      } catch {}
+      throw new Error(message);
     }
 
     const data = await res.json();
