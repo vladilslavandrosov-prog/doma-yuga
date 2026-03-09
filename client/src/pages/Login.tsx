@@ -22,7 +22,7 @@ export default function Login() {
 
     try {
       await login(username, password);
-      navigate("/");
+      navigate("/cabinet");
     } catch (err: any) {
       setError(err.message || "Неверное имя пользователя или пароль");
     } finally {

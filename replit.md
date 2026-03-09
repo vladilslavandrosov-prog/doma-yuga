@@ -16,13 +16,25 @@ client/src/
   lib/            - queryClient, utils, auth (AuthContext + useAuth hook)
   hooks/          - use-toast, use-mobile
 server/
-  index.ts        - Express entry point + express-session setup
-  routes.ts       - API routes: auth (/api/auth/*), data (/api/project/:id/*), admin CRUD (/api/admin/*)
+  index.ts        - Express entry point + express-session + static /uploads
+  routes.ts       - API routes: auth, data, admin CRUD, photo upload
   storage.ts      - IStorage interface + MemStorage with demo data
   vite.ts         - Vite dev server middleware
 shared/
-  schema.ts       - Drizzle schema: clients, projects, estimates, estimateItems, payments, documents, photos, messages, users
+  schema.ts       - Drizzle schema
+uploads/          - Загруженные фото (served at /uploads/*)
 ```
+
+## Маршруты
+- `/` — О компании (публичная страница)
+- `/cabinet` — Дашборд (личный кабинет)
+- `/cabinet/estimates` — Сметы
+- `/cabinet/payments` — Оплата
+- `/cabinet/documents` — Документы
+- `/cabinet/photos` — Фотоотчёт
+- `/cabinet/chat` — Чат
+- `/login` — Страница входа
+- Без авторизации кабинет работает в демо-режиме (плашка «Демо-режим»)
 
 ## Авторизация
 - Авторизация **необязательна** — сайт полностью доступен без входа (только просмотр)

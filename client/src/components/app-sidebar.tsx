@@ -11,6 +11,8 @@ import {
   LogOut,
   LogIn,
   User,
+  Eye,
+  ArrowLeft,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,24 +26,30 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuBadge,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const menuItems = [
+const publicItems = [
   { title: "О компании", url: "/", icon: Building2 },
-  { title: "Дашборд", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Сметы", url: "/estimates", icon: FileSpreadsheet },
-  { title: "Оплата", url: "/payments", icon: CreditCard },
-  { title: "Документы", url: "/documents", icon: FileText },
-  { title: "Фотоотчёт", url: "/photos", icon: Camera },
-  { title: "Чат", url: "/chat", icon: MessageCircle },
+];
+
+const cabinetItems = [
+  { title: "Дашборд", url: "/cabinet", icon: LayoutDashboard },
+  { title: "Сметы", url: "/cabinet/estimates", icon: FileSpreadsheet },
+  { title: "Оплата", url: "/cabinet/payments", icon: CreditCard },
+  { title: "Документы", url: "/cabinet/documents", icon: FileText },
+  { title: "Фотоотчёт", url: "/cabinet/photos", icon: Camera },
+  { title: "Чат", url: "/cabinet/chat", icon: MessageCircle },
 ];
 
 export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout, isAdmin } = useAuth();
+
+  const inCabinet = location.startsWith("/cabinet");
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/project", 1, "unread"],
@@ -63,26 +71,80 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
+        {inCabinet && (
+          <>
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="На сайт" data-testid="link-nav-back">
+                      <Link href="/">
+                        <ArrowLeft />
+                        <span>На сайт</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            <SidebarSeparator />
+          </>
+        )}
+
         <SidebarGroup>
-          <SidebarGroupLabel>Навигация</SidebarGroupLabel>
+          <SidebarGroupLabel>{inCabinet ? "Личный кабинет" : "Навигация"}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => {
-                const isActive = location === item.url || (item.url !== "/" && location.startsWith(item.url));
+              {!inCabinet && publicItems.map((item) => {
+                const isActive = location === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      data-testid={`link-nav-${item.url.replace("/", "") || "dashboard"}`}
+                      data-testid={`link-nav-about`}
                     >
                       <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
-                    {item.url === "/chat" && unreadCount > 0 && (
+                  </SidebarMenuItem>
+                );
+              })}
+
+              {!inCabinet && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Личный кабинет"
+                    data-testid="link-nav-cabinet"
+                  >
+                    <Link href="/cabinet">
+                      <LayoutDashboard />
+                      <span>{user ? "Личный кабинет" : "Личный кабинет (демо)"}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {inCabinet && cabinetItems.map((item) => {
+                const isActive = location === item.url;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                      data-testid={`link-nav-${item.url.replace("/cabinet/", "").replace("/cabinet", "dashboard")}`}
+                    >
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    {item.url === "/cabinet/chat" && unreadCount > 0 && (
                       <SidebarMenuBadge data-testid="badge-unread-messages">
                         {unreadCount}
                       </SidebarMenuBadge>
@@ -93,6 +155,25 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {inCabinet && !user && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <div className="px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>Демо-режим</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Вы просматриваете демонстрационный кабинет. Войдите для доступа к своему проекту.
+                  </p>
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
       <SidebarFooter className="p-4">
         {user ? (

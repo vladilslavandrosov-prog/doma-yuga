@@ -1,4 +1,6 @@
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Building2,
   Phone,
@@ -18,6 +20,7 @@ import {
   Gem,
   HeartHandshake,
   MessageCircle,
+  LayoutDashboard,
 } from "lucide-react";
 import { SiWhatsapp, SiYoutube } from "react-icons/si";
 
@@ -196,6 +199,25 @@ export default function About() {
               <SiYoutube className="w-5 h-5" />
             </a>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-primary/5 border-primary/20" data-testid="card-cabinet-cta">
+        <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 shrink-0">
+            <LayoutDashboard className="w-6 h-6 text-primary" />
+          </div>
+          <div className="flex-1 text-center sm:text-left space-y-1">
+            <p className="font-semibold" data-testid="text-cabinet-cta-title">Личный кабинет клиента</p>
+            <p className="text-sm text-muted-foreground">
+              Отслеживайте ход строительства, сметы, оплаты и общайтесь с компанией в одном месте
+            </p>
+          </div>
+          <Button asChild data-testid="button-cabinet-demo">
+            <Link href="/cabinet">
+              Смотреть демо
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 
