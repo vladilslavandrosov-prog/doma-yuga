@@ -171,16 +171,19 @@ export default function Photos({ projectId }: { projectId: number }) {
               />
               {isAdmin && (
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 z-10 text-white bg-black/50"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2 z-10 opacity-90 hover:opacity-100"
                   data-testid={`button-delete-photo-${photo.id}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    deleteMutation.mutate(photo.id);
+                    if (confirm("Удалить фото?")) {
+                      deleteMutation.mutate(photo.id);
+                    }
                   }}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Удалить
                 </Button>
               )}
             </div>
