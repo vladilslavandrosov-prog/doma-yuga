@@ -535,6 +535,9 @@ function DayCommentSection({
       setEditing(false);
       setText("");
     },
+    onError: (err: Error) => {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    },
   });
 
   const hasNoComments = dayComments.length === 0;
