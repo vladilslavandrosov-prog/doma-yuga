@@ -15,8 +15,5 @@ run:
   scriptArguments: null
   nodeArguments: null
   command: null
-  containerPort: 80
+  containerPort: 5000
   servicePort: 80
-  environment:
-    PORT: "80"
-    NODE_ENV: "production"
