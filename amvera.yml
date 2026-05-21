@@ -1,0 +1,14 @@
+meta:
+  environment: node
+  toolchain:
+    name: nodejs
+    version: 20
+build:
+  image: node:20
+  script:
+    - npm ci
+    - npm run build
+run:
+  persistenceMount: /data
+  containerPort: 5000
+  command: npm start
