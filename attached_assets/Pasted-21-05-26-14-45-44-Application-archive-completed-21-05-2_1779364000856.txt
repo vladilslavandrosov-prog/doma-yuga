@@ -1,0 +1,137 @@
+21/05/26 14:45:44
+Application archive completed
+
+21/05/26 14:45:44
+File /tmp/1779363875.tar.gz uploaded successfully to S3 bucket amvera-artifacts as vladis-1972/app-housessouth/1779363880968.tar.gz.
+
+21/05/26 14:45:41
+Archive size of selected files: 76 MB
+
+21/05/26 14:45:41
+Source size of selected files: 370 MB
+
+21/05/26 14:45:41
+Total size of selected files: 370.00 MB
+
+21/05/26 14:45:41
+Selected files archived to /tmp/1779363875.tar.gz
+
+21/05/26 14:45:41
+Added /source/server as /server to the archive.
+
+21/05/26 14:45:41
+Added /source/.git as /.git to the archive.
+
+21/05/26 14:45:41
+Added /source/vite.config.ts as /vite.config.ts to the archive.
+
+21/05/26 14:45:41
+Added /source/replit.md as /replit.md to the archive.
+
+21/05/26 14:45:41
+Added /source/.gitignore as /.gitignore to the archive.
+
+21/05/26 14:45:41
+Added /source/dist as /dist to the archive.
+
+21/05/26 14:45:41
+Added /source/package-lock.json as /package-lock.json to the archive.
+
+21/05/26 14:45:41
+Added /source/tsconfig.json as /tsconfig.json to the archive.
+
+21/05/26 14:45:41
+Added /source/uploads as /uploads to the archive.
+
+21/05/26 14:45:41
+Added /source/package.json as /package.json to the archive.
+
+21/05/26 14:45:41
+Added /source/.replit as /.replit to the archive.
+
+21/05/26 14:45:41
+Added /source/amvera.yml as /amvera.yml to the archive.
+
+21/05/26 14:45:41
+Added /source/script as /script to the archive.
+
+21/05/26 14:45:41
+Added /source/shared as /shared to the archive.
+
+21/05/26 14:45:41
+Added /source/components.json as /components.json to the archive.
+
+21/05/26 14:45:41
+Added /source/postcss.config.js as /postcss.config.js to the archive.
+
+21/05/26 14:45:41
+Added /source/tailwind.config.ts as /tailwind.config.ts to the archive.
+
+21/05/26 14:45:41
+Added /source/drizzle.config.ts as /drizzle.config.ts to the archive.
+
+21/05/26 14:45:41
+Added /source/node_modules as /node_modules to the archive.
+
+21/05/26 14:45:25
+Added /source/client as /client to the archive.
+
+21/05/26 14:45:25
+Container builder has completed with exit code: 0
+
+21/05/26 14:45:17
+Container builder is still running.
+
+21/05/26 14:45:11
+ensuring uploads directory...
+
+21/05/26 14:45:11
+⚡ Done in 92ms
+
+21/05/26 14:45:11
+  dist/index.cjs  1.3mb ⚠️
+
+21/05/26 14:45:11
+building server...
+
+21/05/26 14:45:11
+✓ built in 3.88s
+
+21/05/26 14:45:11
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+21/05/26 14:45:11
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+
+21/05/26 14:45:11
+- Using dynamic import() to code-split the application
+
+21/05/26 14:45:11
+(!) Some chunks are larger than 500 kB after minification. Consider:
+
+21/05/26 14:45:11
+../dist/public/assets/index-BmOxAtUA.js   500.06 kB │ gzip: 146.11 kB
+
+21/05/26 14:45:11
+../dist/public/assets/index-DCmlnrcA.css   76.53 kB │ gzip:  12.45 kB
+
+21/05/26 14:45:11
+../dist/public/index.html                   2.01 kB │ gzip:   0.77 kB
+
+21/05/26 14:45:11
+computing gzip size...
+
+21/05/26 14:45:11
+rendering chunks...
+
+21/05/26 14:45:10
+✓ 1746 modules transformed.
+
+21/05/26 14:45:09
+Container builder is still running.
+
+21/05/26 14:45:08
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+
+21/05/26 14:45:07
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
