@@ -5,15 +5,14 @@ meta:
     version: "20"
 build:
   skip: false
-  additionalCommands:
-    - npm run build
+  additionalCommands: npm run build
   artifacts:
     "*": /
 run:
   persistenceMount: /data
-  scriptName: dist/index.cjs
+  scriptName: null
   scriptArguments: null
   nodeArguments: null
-  command: null
+  command: npx drizzle-kit push --force && node dist/index.cjs
   containerPort: 5000
   servicePort: 80
