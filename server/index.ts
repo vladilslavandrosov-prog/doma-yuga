@@ -46,6 +46,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use("/uploads", express.static(path.resolve("uploads")));
 
 const PgSession = connectPgSimple(session);
+const isProd = process.env.NODE_ENV === "production";
+if (isProd) {
+  app.set("trust proxy", 1);
+}
 app.use(
   session({
     store: new PgSession({
@@ -55,7 +59,12 @@ app.use(
     secret: process.env.SESSION_SECRET || "doma-yuga-session-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 },
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd,
+    },
   }),
 );
 
