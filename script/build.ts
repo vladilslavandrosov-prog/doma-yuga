@@ -58,6 +58,9 @@ async function buildAll() {
     logLevel: "info",
   });
 
+  console.log("copying connect-pg-simple table.sql...");
+  await cp("node_modules/connect-pg-simple/table.sql", "dist/table.sql");
+
   console.log("ensuring uploads directory...");
   await mkdir("uploads", { recursive: true });
 }
