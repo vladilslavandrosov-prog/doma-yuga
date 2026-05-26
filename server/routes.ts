@@ -681,10 +681,6 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Project not found" });
     }
     const sender = req.session.role === "admin" ? "admin" : "client";
-    const existing = await storage.getDayCommentsByProjectId(projectId);
-    if (existing.find(c => c.date === date && c.sender === sender)) {
-      return res.status(409).json({ error: "Comment for this date already exists" });
-    }
     const comment = await storage.createDayComment({
       projectId,
       date,

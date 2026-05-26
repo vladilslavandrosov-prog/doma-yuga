@@ -517,7 +517,6 @@ function DayCommentSection({
   const { toast } = useToast();
   const dayComments = comments.filter(c => c.date === date);
   const mySender = isAdmin ? "admin" : "client";
-  const myComment = dayComments.find(c => c.sender === mySender);
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
 
@@ -554,7 +553,7 @@ function DayCommentSection({
           canManage={isAdmin || c.sender === mySender}
         />
       ))}
-      {isAuthenticated && !myComment && !editing && (
+      {isAuthenticated && !editing && (
         <div className="border-t">
           <button
             className="w-full p-2 text-xs text-muted-foreground hover:text-primary hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors"
