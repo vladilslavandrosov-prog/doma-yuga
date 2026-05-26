@@ -138,9 +138,9 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async deleteDocument(id: number): Promise<boolean> {
-    const result = await db.delete(documents).where(eq(documents.id, id)).returning();
-    return result.length > 0;
+  async deleteDocument(id: number): Promise<string | undefined> {
+    const [row] = await db.delete(documents).where(eq(documents.id, id)).returning();
+    return row?.url;
   }
 
   async createPhoto(photo: InsertPhoto): Promise<Photo> {

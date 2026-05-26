@@ -53,6 +53,27 @@ const uploadVideo = multer({
   },
 });
 
+const ALLOWED_DOC_MIMES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain",
+]);
+
+const uploadDoc = multer({
+  storage: uploadStorage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_DOC_MIMES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Поддерживаются PDF, Word, Excel"));
+    }
+  },
+});
+
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -557,6 +578,27 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  // Загрузка файла (PDF / Word / Excel)
+  app.post("/api/admin/documents/upload", requireAdmin, uploadDoc.single("file"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "Файл не загружен" });
+    }
+    const { projectId, name, type } = req.body;
+    if (!projectId || !name || !type) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: "projectId, name и type обязательны" });
+    }
+    const url = `/uploads/${req.file.filename}`;
+    const doc = await storage.createDocument({
+      projectId: parseInt(projectId),
+      name: name.trim(),
+      url,
+      type,
+    });
+    res.json(doc);
+  });
+
+  // Добавление документа по ссылке (обратная совместимость)
   app.post("/api/admin/documents", requireAdmin, async (req, res) => {
     const parsed = insertDocumentSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -567,10 +609,11 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/documents/:id", requireAdmin, async (req, res) => {
-    const ok = await storage.deleteDocument(parseInt(req.params.id));
-    if (!ok) {
+    const url = await storage.deleteDocument(parseInt(req.params.id));
+    if (!url) {
       return res.status(404).json({ error: "Document not found" });
     }
+    deleteUploadedFile(url);
     res.json({ ok: true });
   });
 

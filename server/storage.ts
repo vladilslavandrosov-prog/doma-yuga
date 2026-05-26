@@ -39,7 +39,7 @@ export interface IStorage {
   createPayment(payment: InsertPayment): Promise<Payment>;
   deletePayment(id: number): Promise<boolean>;
   createDocument(doc: InsertDocument): Promise<Document>;
-  deleteDocument(id: number): Promise<boolean>;
+  deleteDocument(id: number): Promise<string | undefined>;
   createPhoto(photo: InsertPhoto): Promise<Photo>;
   deletePhoto(id: number): Promise<string | undefined>;
   getVideosByProjectId(projectId: number): Promise<Video[]>;
@@ -387,8 +387,11 @@ export class MemStorage implements IStorage {
     return d;
   }
 
-  async deleteDocument(id: number): Promise<boolean> {
-    return this.documents.delete(id);
+  async deleteDocument(id: number): Promise<string | undefined> {
+    const doc = this.documents.get(id);
+    if (!doc) return undefined;
+    this.documents.delete(id);
+    return doc.url;
   }
 
   async createPhoto(photo: InsertPhoto): Promise<Photo> {
