@@ -20,6 +20,7 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   address: text("address").notNull(),
   startDate: text("start_date").notNull(),
+  endDate: text("end_date"),
   status: text("status").notNull().default("active"),
   clientId: integer("client_id").notNull(),
 });

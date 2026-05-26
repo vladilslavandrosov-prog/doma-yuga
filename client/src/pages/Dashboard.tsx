@@ -35,6 +35,7 @@ interface DashboardData {
     name: string;
     address: string;
     startDate: string;
+    endDate?: string | null;
     status: string;
     clientId: number;
   };
@@ -194,6 +195,14 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
               <Calendar className="w-4 h-4 shrink-0" />
               <span data-testid="text-project-start-date">Начало: {formatDate(project.startDate)}</span>
             </div>
+            {project.endDate && (
+              <div className="flex items-center gap-2 text-sm" data-testid="text-project-end-date">
+                <Calendar className="w-4 h-4 shrink-0 text-primary" />
+                <span className="font-medium text-primary">
+                  Дедлайн: {formatDate(project.endDate)}
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
