@@ -70,6 +70,30 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+/**
+ * IDOR-защита: если в сессии есть клиент — он может обращаться
+ * только к своим проектам. Администратор и неавторизованный (демо)
+ * проходят без ограничений.
+ */
+async function requireProjectAccess(req: Request, res: Response, next: NextFunction) {
+  // Нет сессии → публичный/демо-доступ
+  if (!req.session.userId) return next();
+  // Администратор → без ограничений
+  if (req.session.role === "admin") return next();
+  // Клиент → проверяем владельца
+  const rawId = req.params.id ?? req.params.projectId;
+  const projectId = parseInt(rawId);
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  const project = await storage.getProjectById(projectId);
+  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (project.clientId !== req.session.clientId) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  next();
+}
+
 function deleteUploadedFile(url: string): void {
   if (!url.startsWith("/uploads/")) return;
   const filePath = path.resolve(url.slice(1));
@@ -255,7 +279,7 @@ export async function registerRoutes(
     res.json(projects);
   });
 
-  app.get("/api/project/:id", async (req, res) => {
+  app.get("/api/project/:id", requireProjectAccess, async (req, res) => {
     const project = await storage.getProjectById(parseInt(req.params.id));
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -263,7 +287,7 @@ export async function registerRoutes(
     res.json(project);
   });
 
-  app.get("/api/project/:id/client", async (req, res) => {
+  app.get("/api/project/:id/client", requireProjectAccess, async (req, res) => {
     const project = await storage.getProjectById(parseInt(req.params.id));
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -272,7 +296,7 @@ export async function registerRoutes(
     res.json(client ?? null);
   });
 
-  app.get("/api/project/:id/estimates", async (req, res) => {
+  app.get("/api/project/:id/estimates", requireProjectAccess, async (req, res) => {
     const projectId = parseInt(req.params.id);
     const estimates = await storage.getEstimatesByProjectId(projectId);
     const result = [];
@@ -289,37 +313,37 @@ export async function registerRoutes(
     res.json(result);
   });
 
-  app.get("/api/project/:id/payments", async (req, res) => {
+  app.get("/api/project/:id/payments", requireProjectAccess, async (req, res) => {
     const payments = await storage.getPaymentsByProjectId(parseInt(req.params.id));
     res.json(payments);
   });
 
-  app.get("/api/project/:id/documents", async (req, res) => {
+  app.get("/api/project/:id/documents", requireProjectAccess, async (req, res) => {
     const documents = await storage.getDocumentsByProjectId(parseInt(req.params.id));
     res.json(documents);
   });
 
-  app.get("/api/project/:id/photos", async (req, res) => {
+  app.get("/api/project/:id/photos", requireProjectAccess, async (req, res) => {
     const photos = await storage.getPhotosByProjectId(parseInt(req.params.id));
     res.json(photos);
   });
 
-  app.get("/api/project/:id/videos", async (req, res) => {
+  app.get("/api/project/:id/videos", requireProjectAccess, async (req, res) => {
     const videos = await storage.getVideosByProjectId(parseInt(req.params.id));
     res.json(videos);
   });
 
-  app.get("/api/project/:id/non-working-days", async (req, res) => {
+  app.get("/api/project/:id/non-working-days", requireProjectAccess, async (req, res) => {
     const days = await storage.getNonWorkingDaysByProjectId(parseInt(req.params.id));
     res.json(days);
   });
 
-  app.get("/api/project/:id/messages", async (req, res) => {
+  app.get("/api/project/:id/messages", requireProjectAccess, async (req, res) => {
     const messages = await storage.getMessagesByProjectId(parseInt(req.params.id));
     res.json(messages);
   });
 
-  app.post("/api/project/:id/messages", requireAuth, async (req, res) => {
+  app.post("/api/project/:id/messages", requireAuth, requireProjectAccess, async (req, res) => {
     const projectId = parseInt(req.params.id);
     const sender = req.session.role === "admin" ? "admin" : "client";
     const parsed = insertMessageSchema.safeParse({
@@ -350,21 +374,21 @@ export async function registerRoutes(
     res.json(message);
   });
 
-  app.post("/api/project/:id/messages/read", requireAuth, async (req, res) => {
+  app.post("/api/project/:id/messages/read", requireAuth, requireProjectAccess, async (req, res) => {
     const projectId = parseInt(req.params.id);
     const senderToMark = req.session.role === "admin" ? "client" : "admin";
     await storage.markMessagesAsRead(projectId, senderToMark);
     res.json({ ok: true });
   });
 
-  app.get("/api/project/:id/unread", async (req, res) => {
+  app.get("/api/project/:id/unread", requireProjectAccess, async (req, res) => {
     const projectId = parseInt(req.params.id);
     const unreadSender = req.session.role === "admin" ? "client" : "admin";
     const count = await storage.getUnreadCount(projectId, unreadSender);
     res.json({ count });
   });
 
-  app.get("/api/dashboard/project/:id", async (req, res) => {
+  app.get("/api/dashboard/project/:id", requireProjectAccess, async (req, res) => {
     const projectId = parseInt(req.params.id);
     const project = await storage.getProjectById(projectId);
     if (!project) {
@@ -665,12 +689,12 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
-  app.get("/api/project/:id/day-comments", async (req, res) => {
+  app.get("/api/project/:id/day-comments", requireProjectAccess, async (req, res) => {
     const comments = await storage.getDayCommentsByProjectId(parseInt(req.params.id));
     res.json(comments);
   });
 
-  app.post("/api/project/:projectId/day-comments", requireAuth, async (req, res) => {
+  app.post("/api/project/:projectId/day-comments", requireAuth, requireProjectAccess, async (req, res) => {
     const projectId = parseInt(req.params.projectId);
     const { date, text } = req.body;
     if (!date || !text?.trim()) {
@@ -708,7 +732,7 @@ export async function registerRoutes(
     res.json(comment);
   });
 
-  app.patch("/api/project/:projectId/day-comments/:id", requireAuth, async (req, res) => {
+  app.patch("/api/project/:projectId/day-comments/:id", requireAuth, requireProjectAccess, async (req, res) => {
     const id = parseInt(req.params.id);
     const projectId = parseInt(req.params.projectId);
     const { text } = req.body;
@@ -742,7 +766,7 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  app.delete("/api/project/:projectId/day-comments/:id", requireAuth, async (req, res) => {
+  app.delete("/api/project/:projectId/day-comments/:id", requireAuth, requireProjectAccess, async (req, res) => {
     const ok = await storage.deleteDayComment(parseInt(req.params.id));
     if (!ok) {
       return res.status(404).json({ error: "Comment not found" });
