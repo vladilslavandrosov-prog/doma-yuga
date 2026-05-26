@@ -3,6 +3,7 @@ import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
 } from "@shared/schema";
+import { hashPassword } from "./auth";
 
 export async function seedDatabase() {
   const existingUsers = await db.select().from(users);
@@ -154,10 +155,15 @@ export async function seedDatabase() {
     { id: 8, projectId: 2, sender: "admin", text: "Напоминаем об оплате следующего этапа — кладка стен.", createdAt: "2026-02-01T11:00:00", isRead: false },
   ]);
 
+  const [pwAdmin, pwClient, pwPetrov] = await Promise.all([
+    hashPassword("admin123"),
+    hashPassword("client123"),
+    hashPassword("petrov123"),
+  ]);
   await db.insert(users).values([
-    { id: 1, username: "admin", password: "admin123", role: "admin", clientId: null },
-    { id: 2, username: "client", password: "client123", role: "client", clientId: 1 },
-    { id: 3, username: "petrov", password: "petrov123", role: "client", clientId: 2 },
+    { id: 1, username: "admin", password: pwAdmin, role: "admin", clientId: null },
+    { id: 2, username: "client", password: pwClient, role: "client", clientId: 1 },
+    { id: 3, username: "petrov", password: pwPetrov, role: "client", clientId: 2 },
   ]);
 
   const { sql } = await import("drizzle-orm");

@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import { storage } from "./storage";
+import { hashPassword, verifyPassword, isHashedPassword } from "./auth";
 import {
   insertMessageSchema,
   insertEstimateItemSchema,
@@ -90,8 +91,17 @@ export async function registerRoutes(
       return res.status(400).json({ error: "Username and password required" });
     }
     const user = await storage.getUserByUsername(username);
-    if (!user || user.password !== password) {
+    if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
+    }
+    const valid = await verifyPassword(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+    // Transparent upgrade: если пароль ещё не захеширован — хешируем
+    if (!isHashedPassword(user.password)) {
+      const hashed = await hashPassword(password);
+      await storage.updateUserPassword(user.id, hashed);
     }
     req.session.userId = user.id;
     req.session.role = user.role;
@@ -125,10 +135,15 @@ export async function registerRoutes(
       return res.status(400).json({ error: "Password must be at least 4 characters" });
     }
     const user = await storage.getUserById(req.session.userId!);
-    if (!user || user.password !== currentPassword) {
+    if (!user) {
       return res.status(401).json({ error: "Неверный текущий пароль" });
     }
-    await storage.updateUserPassword(user.id, newPassword);
+    const valid = await verifyPassword(currentPassword, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Неверный текущий пароль" });
+    }
+    const hashed = await hashPassword(newPassword);
+    await storage.updateUserPassword(user.id, hashed);
     res.json({ ok: true });
   });
 
@@ -160,7 +175,8 @@ export async function registerRoutes(
     }
     const uid = `client-uid-${Date.now()}`;
     const client = await storage.createClient({ name, phone: phone || null, email: email || null, uid });
-    const user = await storage.createUser({ username, password, role: "client", clientId: client.id });
+    const hashedPwd = await hashPassword(password);
+    const user = await storage.createUser({ username, password: hashedPwd, role: "client", clientId: client.id });
     if (projectId) {
       const project = await storage.getProjectById(parseInt(projectId));
       if (project) {
