@@ -148,9 +148,9 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async deletePhoto(id: number): Promise<boolean> {
-    const result = await db.delete(photos).where(eq(photos.id, id)).returning();
-    return result.length > 0;
+  async deletePhoto(id: number): Promise<string | undefined> {
+    const [row] = await db.delete(photos).where(eq(photos.id, id)).returning();
+    return row?.url;
   }
 
   async getVideosByProjectId(projectId: number): Promise<Video[]> {
@@ -162,9 +162,9 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async deleteVideo(id: number): Promise<boolean> {
-    const result = await db.delete(videos).where(eq(videos.id, id)).returning();
-    return result.length > 0;
+  async deleteVideo(id: number): Promise<string | undefined> {
+    const [row] = await db.delete(videos).where(eq(videos.id, id)).returning();
+    return row?.url;
   }
 
   async createProject(project: InsertProject): Promise<Project> {
@@ -233,9 +233,9 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async deleteEstimateItemPhoto(id: number): Promise<boolean> {
-    const result = await db.delete(estimateItemPhotos).where(eq(estimateItemPhotos.id, id)).returning();
-    return result.length > 0;
+  async deleteEstimateItemPhoto(id: number): Promise<string | undefined> {
+    const [row] = await db.delete(estimateItemPhotos).where(eq(estimateItemPhotos.id, id)).returning();
+    return row?.url;
   }
 
   async getAllGalleryPhotos(): Promise<GalleryPhoto[]> {
@@ -247,9 +247,9 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async deleteGalleryPhoto(id: number): Promise<boolean> {
-    const result = await db.delete(galleryPhotos).where(eq(galleryPhotos.id, id)).returning();
-    return result.length > 0;
+  async deleteGalleryPhoto(id: number): Promise<string | undefined> {
+    const [row] = await db.delete(galleryPhotos).where(eq(galleryPhotos.id, id)).returning();
+    return row?.url;
   }
 
   async getDayCommentsByProjectId(projectId: number): Promise<DayComment[]> {

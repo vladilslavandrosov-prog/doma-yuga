@@ -41,10 +41,10 @@ export interface IStorage {
   createDocument(doc: InsertDocument): Promise<Document>;
   deleteDocument(id: number): Promise<boolean>;
   createPhoto(photo: InsertPhoto): Promise<Photo>;
-  deletePhoto(id: number): Promise<boolean>;
+  deletePhoto(id: number): Promise<string | undefined>;
   getVideosByProjectId(projectId: number): Promise<Video[]>;
   createVideo(video: InsertVideo): Promise<Video>;
-  deleteVideo(id: number): Promise<boolean>;
+  deleteVideo(id: number): Promise<string | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, data: Partial<InsertProject>): Promise<Project | undefined>;
   createClient(client: InsertClient): Promise<Client>;
@@ -59,10 +59,10 @@ export interface IStorage {
   getPhotosByEstimateItemId(estimateItemId: number): Promise<EstimateItemPhoto[]>;
   getPhotosByEstimateItemIds(ids: number[]): Promise<EstimateItemPhoto[]>;
   createEstimateItemPhoto(photo: InsertEstimateItemPhoto): Promise<EstimateItemPhoto>;
-  deleteEstimateItemPhoto(id: number): Promise<boolean>;
+  deleteEstimateItemPhoto(id: number): Promise<string | undefined>;
   getAllGalleryPhotos(): Promise<GalleryPhoto[]>;
   createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto>;
-  deleteGalleryPhoto(id: number): Promise<boolean>;
+  deleteGalleryPhoto(id: number): Promise<string | undefined>;
   getDayCommentsByProjectId(projectId: number): Promise<DayComment[]>;
   createDayComment(comment: InsertDayComment): Promise<DayComment>;
   updateDayComment(id: number, data: Partial<InsertDayComment>): Promise<DayComment | undefined>;
@@ -398,8 +398,11 @@ export class MemStorage implements IStorage {
     return p;
   }
 
-  async deletePhoto(id: number): Promise<boolean> {
-    return this.photos.delete(id);
+  async deletePhoto(id: number): Promise<string | undefined> {
+    const photo = this.photos.get(id);
+    if (!photo) return undefined;
+    this.photos.delete(id);
+    return photo.url;
   }
 
   async getVideosByProjectId(projectId: number): Promise<Video[]> {
@@ -413,8 +416,11 @@ export class MemStorage implements IStorage {
     return v;
   }
 
-  async deleteVideo(id: number): Promise<boolean> {
-    return this.videos.delete(id);
+  async deleteVideo(id: number): Promise<string | undefined> {
+    const video = this.videos.get(id);
+    if (!video) return undefined;
+    this.videos.delete(id);
+    return video.url;
   }
 
   async createProject(project: InsertProject): Promise<Project> {
@@ -501,8 +507,11 @@ export class MemStorage implements IStorage {
     return p;
   }
 
-  async deleteEstimateItemPhoto(id: number): Promise<boolean> {
-    return this.estimateItemPhotos.delete(id);
+  async deleteEstimateItemPhoto(id: number): Promise<string | undefined> {
+    const photo = this.estimateItemPhotos.get(id);
+    if (!photo) return undefined;
+    this.estimateItemPhotos.delete(id);
+    return photo.url;
   }
 
   async getAllGalleryPhotos(): Promise<GalleryPhoto[]> {
@@ -516,8 +525,11 @@ export class MemStorage implements IStorage {
     return p;
   }
 
-  async deleteGalleryPhoto(id: number): Promise<boolean> {
-    return this.galleryPhotosMap.delete(id);
+  async deleteGalleryPhoto(id: number): Promise<string | undefined> {
+    const photo = this.galleryPhotosMap.get(id);
+    if (!photo) return undefined;
+    this.galleryPhotosMap.delete(id);
+    return photo.url;
   }
 
   async getDayCommentsByProjectId(projectId: number): Promise<DayComment[]> {

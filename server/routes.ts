@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
+import fs from "fs";
 import multer from "multer";
 import { storage } from "./storage";
 import {
@@ -66,6 +67,16 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
     return res.status(403).json({ error: "Forbidden" });
   }
   next();
+}
+
+function deleteUploadedFile(url: string): void {
+  if (!url.startsWith("/uploads/")) return;
+  const filePath = path.resolve(url.slice(1));
+  fs.unlink(filePath, (err) => {
+    if (err && err.code !== "ENOENT") {
+      console.error(`[uploads] Failed to delete file ${filePath}:`, err);
+    }
+  });
 }
 
 export async function registerRoutes(
@@ -453,7 +464,8 @@ export async function registerRoutes(
     const id = parseInt(req.params.id);
     const photos = await storage.getPhotosByEstimateItemId(id);
     for (const photo of photos) {
-      await storage.deleteEstimateItemPhoto(photo.id);
+      const url = await storage.deleteEstimateItemPhoto(photo.id);
+      if (url) deleteUploadedFile(url);
     }
     const ok = await storage.deleteEstimateItem(id);
     if (!ok) {
@@ -480,10 +492,11 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/estimate-item-photos/:id", requireAdmin, async (req, res) => {
-    const ok = await storage.deleteEstimateItemPhoto(parseInt(req.params.id));
-    if (!ok) {
+    const url = await storage.deleteEstimateItemPhoto(parseInt(req.params.id));
+    if (!url) {
       return res.status(404).json({ error: "Photo not found" });
     }
+    deleteUploadedFile(url);
     res.json({ ok: true });
   });
 
@@ -549,10 +562,11 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/photos/:id", requireAdmin, async (req, res) => {
-    const ok = await storage.deletePhoto(parseInt(req.params.id));
-    if (!ok) {
+    const url = await storage.deletePhoto(parseInt(req.params.id));
+    if (!url) {
       return res.status(404).json({ error: "Photo not found" });
     }
+    deleteUploadedFile(url);
     res.json({ ok: true });
   });
 
@@ -585,10 +599,11 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/videos/:id", requireAdmin, async (req, res) => {
-    const ok = await storage.deleteVideo(parseInt(req.params.id));
-    if (!ok) {
+    const url = await storage.deleteVideo(parseInt(req.params.id));
+    if (!url) {
       return res.status(404).json({ error: "Video not found" });
     }
+    deleteUploadedFile(url);
     res.json({ ok: true });
   });
 
@@ -626,10 +641,11 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/gallery/:id", requireAdmin, async (req, res) => {
-    const ok = await storage.deleteGalleryPhoto(parseInt(req.params.id));
-    if (!ok) {
+    const url = await storage.deleteGalleryPhoto(parseInt(req.params.id));
+    if (!url) {
       return res.status(404).json({ error: "Gallery photo not found" });
     }
+    deleteUploadedFile(url);
     res.json({ ok: true });
   });
 
