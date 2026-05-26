@@ -1,0 +1,14 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "dyO_zTmE4aaJwl-ZZNFNP"
+uri = "file://docs/user-guide.md"
+type = "text"
+title = "Инструкция пользователя — Личный кабинет «Дома Юга»"
+
+[[outputs]]
+id = "7FvhjeYza8xPhxdE-plVh"
+uri = "file://docs/user-guide.pdf"
+type = "pdf"
+title = "Инструкция пользователя — Личный кабинет «Дома Юга»"

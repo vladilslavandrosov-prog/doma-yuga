@@ -1,0 +1,18 @@
+meta:
+  environment: nodejs
+  toolchain:
+    name: npm
+    version: "20"
+build:
+  skip: false
+  additionalCommands: npm run build
+  artifacts:
+    "*": /
+run:
+  persistenceMount: /data
+  scriptName: null
+  scriptArguments: null
+  nodeArguments: null
+  command: npx drizzle-kit push --force && node dist/index.cjs
+  containerPort: 5000
+  servicePort: 80

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Инструкция — Личный кабинет «Дома Юга»</title>
+<style>
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+    color: #2b2620;
+    line-height: 1.55;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 24mm 20mm;
+    page-break-after: always;
+    position: relative;
+    background: #fdfaf6;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ===== COVER ===== */
+  .cover {
+    background: linear-gradient(135deg, #d96a2c 0%, #b8531e 50%, #2c3140 100%);
+    color: #fff;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .cover-inner {
+    padding: 30mm 22mm;
+    height: 297mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover-inner::before {
+    content: '';
+    position: absolute;
+    right: -80mm; top: -60mm;
+    width: 200mm; height: 200mm;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  .cover-inner::after {
+    content: '';
+    position: absolute;
+    left: -60mm; bottom: -80mm;
+    width: 180mm; height: 180mm;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.12);
+  }
+  .cover-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-weight: 700;
+    font-size: 18pt;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 2;
+  }
+  .cover-logo .badge {
+    width: 56px; height: 56px;
+    background: #fff;
+    color: #d96a2c;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 20pt;
+  }
+  .cover-title-block {
+    position: relative;
+    z-index: 2;
+  }
+  .cover-eyebrow {
+    font-size: 11pt;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    opacity: 0.85;
+    margin-bottom: 18px;
+  }
+  .cover-title {
+    font-size: 44pt;
+    font-weight: 800;
+    line-height: 1.05;
+    margin-bottom: 18px;
+  }
+  .cover-subtitle {
+    font-size: 16pt;
+    font-weight: 300;
+    opacity: 0.92;
+    max-width: 130mm;
+  }
+  .cover-footer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 10pt;
+    opacity: 0.85;
+  }
+  .cover-footer .ver {
+    background: rgba(255,255,255,0.18);
+    padding: 8px 14px;
+    border-radius: 30px;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ===== CONTENT PAGES ===== */
+  .pg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #e8ddd0;
+    padding-bottom: 10px;
+    margin-bottom: 22px;
+  }
+  .pg-header .left {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; color: #d96a2c; font-size: 11pt;
+  }
+  .pg-header .left .dot {
+    width: 10px; height: 10px; border-radius: 50%; background: #d96a2c;
+  }
+  .pg-header .right {
+    font-size: 9.5pt; color: #888;
+  }
+
+  h1.section {
+    font-size: 28pt;
+    color: #2c3140;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+  .section-sub {
+    color: #7b6b58;
+    font-size: 11.5pt;
+    margin-bottom: 24px;
+  }
+
+  h2 {
+    font-size: 16pt;
+    color: #2c3140;
+    margin: 22px 0 10px;
+    padding-left: 14px;
+    border-left: 4px solid #d96a2c;
+  }
+  h3 {
+    font-size: 13pt;
+    color: #b8531e;
+    margin: 16px 0 6px;
+  }
+  p { margin: 0 0 10px; font-size: 11pt; }
+  ul, ol { margin: 6px 0 12px 22px; }
+  li { font-size: 11pt; margin-bottom: 5px; }
+
+  .card {
+    background: #fff;
+    border: 1px solid #ecdfcf;
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin: 14px 0;
+    box-shadow: 0 2px 6px rgba(180,140,90,0.08);
+  }
+  .card-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 10px;
+  }
+  .card-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #fcd9b8, #d96a2c);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20pt;
+    flex-shrink: 0;
+  }
+  .card-title {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #2c3140;
+  }
+  .pill {
+    display: inline-block;
+    background: #fbeede;
+    color: #b8531e;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 9.5pt;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+
+  .step-list {
+    counter-reset: step;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .step-list li {
+    counter-increment: step;
+    padding-left: 44px;
+    position: relative;
+    margin-bottom: 12px;
+    min-height: 32px;
+    padding-top: 4px;
+  }
+  .step-list li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #d96a2c;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 12pt;
+  }
+
+  .note {
+    background: linear-gradient(135deg, #fff5e8, #fdebd1);
+    border-left: 4px solid #d96a2c;
+    padding: 14px 18px;
+    border-radius: 0 10px 10px 0;
+    margin: 14px 0;
+    font-size: 10.5pt;
+  }
+  .note strong { color: #b8531e; }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .mini-card {
+    background: #fff;
+    border: 1px solid #ecdfcf;
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .mini-card .mc-title {
+    font-weight: 700;
+    color: #2c3140;
+    margin-bottom: 4px;
+    font-size: 11.5pt;
+  }
+  .mini-card .mc-desc {
+    font-size: 10pt;
+    color: #6e6358;
+  }
+
+  .footer-page {
+    position: absolute;
+    bottom: 12mm;
+    left: 20mm;
+    right: 20mm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 9pt;
+    color: #aaa;
+    border-top: 1px solid #ecdfcf;
+    padding-top: 8px;
+  }
+
+  /* TOC */
+  .toc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px dashed #ecdfcf;
+    font-size: 12pt;
+  }
+  .toc-item .num {
+    color: #d96a2c;
+    font-weight: 700;
+    margin-right: 14px;
+    font-size: 14pt;
+  }
+  .toc-item .title { flex: 1; color: #2c3140; font-weight: 500; }
+  .toc-item .page-no { color: #999; font-size: 10pt; }
+
+  /* Closing */
+  .closing {
+    background: linear-gradient(135deg, #2c3140, #1a1d28);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60mm 20mm;
+  }
+  .closing h1 {
+    font-size: 32pt;
+    margin-bottom: 16px;
+  }
+  .closing p {
+    font-size: 14pt;
+    opacity: 0.85;
+    max-width: 130mm;
+    line-height: 1.6;
+  }
+  .closing .contact {
+    margin-top: 40px;
+    background: rgba(217,106,44,0.15);
+    border: 1px solid rgba(217,106,44,0.4);
+    padding: 24px 36px;
+    border-radius: 14px;
+    color: #fdbb86;
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="page cover">
+  <div class="cover-inner">
+    <div class="cover-logo">
+      <div class="badge">ДЮ</div>
+      <div>Дома Юга</div>
+    </div>
+
+    <div class="cover-title-block">
+      <div class="cover-eyebrow">Инструкция пользователя</div>
+      <div class="cover-title">Личный кабинет<br>клиента</div>
+      <div class="cover-subtitle">
+        Полное руководство по работе с порталом для отслеживания строительства вашего объекта
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <div>2026 © Строительная компания «Дома Юга»</div>
+      <div class="ver">Версия 1.0</div>
+    </div>
+  </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="page">
+  <div class="pg-header">
+    <div class="left"><div class="dot"></div>СОДЕРЖАНИЕ</div>
+    <div class="right">Дома Юга · Личный кабинет</div>
+  </div>
+
+  <h1 class="section">Содержание</h1>
+  <div class="section-sub">Что вы найдёте в этом руководстве</div>
+
+  <div class="toc-item"><span class="num">01</span><span class="title">Добро пожаловать</span><span class="page-no">стр. 3</span></div>
+  <div class="toc-item"><span class="num">02</span><span class="title">Вход в кабинет</span><span class="page-no">стр. 4</span></div>
+  <div class="toc-item"><span class="num">03</span><span class="title">Главные разделы</span><span class="page-no">стр. 5</span></div>
+  <div class="toc-item"><span class="num">04</span><span class="title">Смета и выполнение работ</span><span class="page-no">стр. 6</span></div>
+  <div class="toc-item"><span class="num">05</span><span class="title">Финансы и документы</span><span class="page-no">стр. 7</span></div>
+  <div class="toc-item"><span class="num">06</span><span class="title">Фото, видео и чат</span><span class="page-no">стр. 8</span></div>
+  <div class="toc-item"><span class="num">07</span><span class="title">Настройки и полезные советы</span><span class="page-no">стр. 9</span></div>
+  <div class="toc-item"><span class="num">08</span><span class="title">Поддержка</span><span class="page-no">стр. 10</span></div>
+
+  <div class="footer-page"><span>Дома Юга</span><span>2</span></div>
+</div>
+
+<!-- PAGE 1: WELCOME -->
+<div class="page">
+  <div class="pg-header">
+    <div class="left"><div class="dot"></div>01 · ДОБРО ПОЖАЛОВАТЬ</div>
+    <div class="right">Дома Юга · Личный кабинет</div>
+  </div>
+
+  <h1 class="section">Добро пожаловать</h1>
+  <div class="section-sub">Ваш персональный портал стройки</div>
+
+  <p>Личный кабинет «Дома Юга» — это удобный инструмент, который позволяет вам в режиме реального времени следить за всем процессом строительства вашего объекта.</p>
+
+  <div class="grid-2">
+    <div class="mini-card">
+      <div class="mc-title">🏗 Прогресс стройки</div>
+      <div class="mc-desc">Каждый этап работ, фото и видео с площадки</div>
+    </div>
+    <div class="mini-card">
+      <div class="mc-title">💰 Финансовая прозрачность</div>
+      <div class="mc-desc">Полная смета, платежи и остаток</div>
+    </div>
+    <div class="mini-card">
+      <div class="mc-title">📄 Все документы рядом</div>
+      <div class="mc-desc">Договоры, акты, спецификации</div>
+    </div>
+    <div class="mini-card">
+      <div class="mc-title">💬 Прямой контакт</div>
+      <div class="mc-desc">Чат с менеджером и комментарии к дням</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Совет:</strong> зайдите в кабинет хотя бы раз в неделю, чтобы быть в курсе всех изменений на вашем объекте и оперативно реагировать на вопросы команды.
+  </div>
+
+  <div class="footer-page"><span>Дома Юга · Глава 01</span><span>3</span></div>
+</div>
+
+<!-- PAGE 2: LOGIN -->
+<div class="page">
+  <div class="pg-header">
+    <div class="left"><div class="dot"></div>02 · ВХОД В КАБИНЕТ</div>
+    <div class="right">Дома Юга · Личный кабинет</div>
+  </div>
+
+  <h1 class="section">Вход в кабинет</h1>
+  <div class="section-sub">Как начать пользоваться порталом</div>
+
+  <h2>Шаги для входа</h2>
+  <ol class="step-list">
+    <li>Откройте сайт компании в любом современном браузере.</li>
+    <li>В левом меню (сайдбаре) внизу нажмите кнопку <strong>«Войти»</strong>.</li>
+    <li>Введите ваш <strong>логин</strong> и <strong>пароль</strong>, которые передал менеджер.</li>
+    <li>Нажмите <strong>«Войти»</strong> — откроется ваш персональный кабинет.</li>
+  </ol>
+
+  <div class="note">
+    <strong>Демо-режим:</strong> если зайти на сайт без авторизации, можно посмотреть, как устроен кабинет, на демонстрационных данных. Сверху появится плашка «Демо-режим».
+  </div>
+
+  <h2>Если у вас несколько объектов</h2>
+  <p>После входа сначала откроется страница <strong>«Мои объекты»</strong> — выберите нужный объект, нажав на его карточку, и вы попадёте на его дашборд.</p>
+
+  <h2>Безопасность</h2>
+  <ul>
+    <li>Никому не передавайте свой пароль</li>
+    <li>Смените пароль после первого входа в разделе «Настройки»</li>
+    <li>Выходите из кабинета на чужих устройствах через кнопку <strong>«Выйти»</strong></li>
+  </ul>
+
+  <div class="footer-page"><span>Дома Юга · Глава 02</span><span>4</span></div>
+</div>
+
+<!-- PAGE 3: MAIN SECTIONS -->
+<div class="page">
+  <div class="pg-header">
+    <div class="left"><div class="dot"></div>03 · ГЛАВНЫЕ РАЗДЕЛЫ</div>
+    <div class="right">Дома Юга · Личный кабинет</div>
+  </div>
+
+  <h1 class="section">Главные разделы</h1>
+  <div class="section-sub">Обзор навигации по кабинету</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🏠</div>
+      <div class="card-title">Главная (дашборд объекта)</div>
+    </div>
+    <p>Открывается сразу после входа. Здесь — самое важное:</p>
+    <ul>
+      <li>Название и адрес вашего объекта</li>
+      <li>Дата начала строительства и текущий статус</li>
+      <li>Прогресс выполнения работ в процентах</li>
+      <li>Финансовая сводка: смета, оплачено, остаток</li>
+      <li>Контакты вашего менеджера</li>
+    </ul>
+  </div>
+
+  <h2>Навигация в сайдбаре</h2>
+  <p>Слева расположено меню с разделами. У клиента доступны:</p>
+  <div>
+    <span class="pill">Главная</span>
+    <span class="pill">Плановая смета</span>
+    <span class="pill">Выполнение работ</span>
+    <span class="pill">Платежи</span>
+    <span class="pill">Документы</span>
+    <span class="pill">Фото</span>
+    <span class="pill">Видео</span>
+    <span class="pill">Чат</span>
+    <span class="pill">Настройки</span>
+  </div>
+
+  <div class="note">
+    На мобильном устройстве сайдбар можно свернуть кнопкой в верхнем левом углу — это освобождает место для контента.
+  </div>
+
+  <div class="footer-page"><span>Дома Юга · Глава 03</span><span>5</span></div>
+</div>
+
+<!-- PAGE 4: ESTIMATES & WORKS -->
+<div class="page">
+  <div class="pg-header">
+    <div class="left"><div class="dot"></div>04 · СМЕТА И РАБОТЫ</div>
+    <div class="right">Дома Юга · Личный кабинет</div>
+  </div>
+
+  <h1 class="section">Смета и работы</h1>
+  <div class="section-sub">Что планируется и что уже сделано</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📋</div>
+      <div class="card-title">Плановая смета</div>
+    </div>
+    <p>Полный список всех запланированных позиций по объекту с тремя вкладками:</p>
+    <ul>
+      <li><strong>Работы</strong> — все строительные операции</li>
+      <li><strong>Материалы</strong> — закупки и поставки</li>
+      <li><strong>Транспорт</strong> — доставка и спецтехника</li>
+    </ul>
+    <p>По каждой позиции видно: дату, наименование, количество, цену и общую стоимость. Внизу — итоговая сумма по разделу.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔨</div>
+      <div class="card-title">Выполнение работ</div>
+    </div>
+    <p>Реальный ход стройки в трёх удобных представлениях:</p>
+    <ul>
+      <li><strong>По дням</strong> — календарь с иконками рабочих 🔨 и нерабочих 🌙 дней с указанием причины</li>
+      <li><strong>Общая</strong> — все записи по датам со статусами (выполнено, в работе, запланировано)</li>
+      <li><strong>По видам работ</strong> — группировка по этапам (фундамент, стены, кровля...)</li>
+    </ul>
+    <p>Нажав на любой день, можно посмотреть подробности и фото каждой выполненной услуги.</p>
+  </div>
+
+  <div class="note">
+    <strong>Комментарии к дням:</strong> вы можете оставить свой комментарий к любому рабочему дню — менеджер сразу получит уведомление в Telegram и ответит вам.
+  </div>
+
+  <div class="footer-page"><span>Дома Юга · Глава 04</span><span>6</span></div>
+</div>
+
+<!-- PAGE 5: PAYMENTS & DOCS -->
+<div class="page">
+  <div class="pg-header">
+    <div class="left"><div class="dot"></div>05 · ФИНАНСЫ И ДОКУМЕНТЫ</div>
+    <div class="right">Дома Юга · Личный кабинет</div>
+  </div>
+
+  <h1 class="section">Финансы и документы</h1>
+  <div class="section-sub">Всё, что связано с деньгами и бумагами</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">💰</div>
+      <div class="card-title">Платежи</div>
+    </div>
+    <p>В этом разделе отображаются все оплаты по вашему объекту с указанием:</p>
+    <ul>
+      <li>Даты платежа</li>
+      <li>Назначения (за что произведена оплата)</li>
+      <li>Суммы</li>
+      <li>Способа оплаты (наличные, перевод, карта)</li>
+    </ul>
+    <p>Внизу таблицы — итоговая сумма всех оплат и остаток по смете.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📄</div>
+      <div class="card-title">Документы</div>
+    </div>
+    <p>Все официальные документы по вашему проекту:</p>
+    <ul>
+      <li>Договоры подряда</li>
+      <li>Акты выполненных работ</li>
+      <li>Спецификации материалов</li>
+      <li>Технические задания и проектная документация</li>
+    </ul>
+    <p>Нажмите на документ, чтобы скачать или открыть его для просмотра.</p>
+  </div>
+
+  <div class="note">
+    <strong>Совет:</strong> сохраняйте важные документы себе на устройство сразу после получения — это поможет всегда иметь их под рукой.
+  </div>
+
+  <div class="footer-page"><span>Дома Юга · Глава 05</span><span>7</span></div>
+</div>
+
+<!-- PAGE 6: PHOTOS, VIDEOS, CHAT -->
+<div class="page">
+  <div class="pg-header">
+    <div class="left"><div class="dot"></div>06 · МЕДИА И ОБЩЕНИЕ</div>
+    <div class="right">Дома Юга · Личный кабинет</div>
+  </div>
+
+  <h1 class="section">Фото, видео и чат</h1>
+  <div class="section-sub">Визуальный отчёт и связь с командой</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📷</div>
+      <div class="card-title">Фотогалерея</div>
+    </div>
+    <p>Регулярные фотоотчёты со строительной площадки. Нажмите на любую фотографию, чтобы открыть её в полном размере с возможностью пролистывания.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🎥</div>
+      <div class="card-title">Видеообзоры</div>
+    </div>
+    <p>Видеоматериалы с объекта — обзоры с дрона, отчёты по этапам, демонстрация работы команды. Все ролики можно смотреть прямо в браузере.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">💬</div>
+      <div class="card-title">Чат с менеджером</div>
+    </div>
+    <p>Прямое общение с командой проекта:</p>
+    <ol class="step-list">
+      <li>Введите сообщение в нижнее поле</li>
+      <li>Нажмите кнопку отправки или клавишу Enter</li>
+      <li>Менеджер получит уведомление в Telegram и быстро ответит</li>
+    </ol>
+    <p>Количество непрочитанных сообщений отображается цифрой рядом с пунктом «Чат» в меню.</p>
+  </div>
+
+  <div class="footer-page"><span>Дома Юга · Глава 06</span><span>8</span></div>
+</div>
+
+<!-- PAGE 7: SETTINGS & TIPS -->
+<div class="page">
+  <div class="pg-header">
+    <div class="left"><div class="dot"></div>07 · НАСТРОЙКИ И СОВЕТЫ</div>
+    <div class="right">Дома Юга · Личный кабинет</div>
+  </div>
+
+  <h1 class="section">Настройки и советы</h1>
+  <div class="section-sub">Персонализация и полезные хитрости</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">⚙️</div>
+      <div class="card-title">Настройки</div>
+    </div>
+    <ul>
+      <li><strong>Смена пароля</strong> — рекомендуем сменить пароль при первом входе</li>
+      <li><strong>Переключение темы</strong> — иконка солнца/луны в верхнем правом углу. Тёмная тема удобна вечером и экономит заряд устройства</li>
+    </ul>
+  </div>
+
+  <h2>Полезные подсказки</h2>
+
+  <div class="grid-2">
+    <div class="mini-card">
+      <div class="mc-title">📱 Мобильная версия</div>
+      <div class="mc-desc">Полноценно работает на телефоне — таблицы превращаются в удобные карточки</div>
+    </div>
+    <div class="mini-card">
+      <div class="mc-title">🔔 Уведомления</div>
+      <div class="mc-desc">Счётчик непрочитанных сообщений всегда виден в меню</div>
+    </div>
+    <div class="mini-card">
+      <div class="mc-title">🌙 Тёмная тема</div>
+      <div class="mc-desc">Бережёт зрение при работе в вечернее время</div>
+    </div>
+    <div class="mini-card">
+      <div class="mc-title">🚪 Безопасный выход</div>
+      <div class="mc-desc">Кнопка «Выйти» в самом низу сайдбара</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Закладка в браузере:</strong> сохраните адрес сайта в закладки, чтобы быстро открывать кабинет одним кликом.
+  </div>
+
+  <div class="footer-page"><span>Дома Юга · Глава 07</span><span>9</span></div>
+</div>
+
+<!-- PAGE 8: SUPPORT (CLOSING) -->
+<div class="page closing">
+  <h1>Мы всегда на связи</h1>
+  <p>
+    Если у вас возникнут любые вопросы по работе с кабинетом или по ходу строительства — напишите нам в чате личного кабинета или свяжитесь с менеджером по контактам на странице «О компании».
+  </p>
+  <div class="contact">
+    💬 Чат в кабинете &nbsp;·&nbsp; 📞 Телефон менеджера &nbsp;·&nbsp; ✉️ Электронная почта
+  </div>
+  <p style="margin-top: 60px; font-size: 12pt; opacity: 0.6;">Спасибо, что выбрали «Дома Юга»<br>Желаем приятной работы с личным кабинетом!</p>
+</div>
+
+</body>
+</html>
