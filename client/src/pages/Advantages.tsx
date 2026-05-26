@@ -85,13 +85,15 @@ export default function Advantages() {
             custom={0}
             data-testid="card-main-advance"
           >
-            <div className="absolute -bottom-3 -right-2 text-[4.5rem] sm:text-[7rem] md:text-[8rem] font-black leading-none text-primary/6 select-none pointer-events-none">
+            {/* Водяной знак — z-0 чтобы не перекрывал контент */}
+            <div className="absolute -bottom-3 -right-2 z-0 text-[4.5rem] sm:text-[7rem] md:text-[8rem] font-black leading-none text-primary/[0.07] select-none pointer-events-none">
               10%
             </div>
-            <div className="flex items-center justify-center w-13 h-13 w-12 h-12 rounded-xl bg-primary/10 text-primary">
+            {/* Контент поверх водяного знака */}
+            <div className="relative z-[1] flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary">
               <BadgePercent className="w-6 h-6" />
             </div>
-            <div className="space-y-2">
+            <div className="relative z-[1] space-y-2">
               <p className="text-xl font-bold">Аванс всего 10%</p>
               <p className="text-muted-foreground leading-relaxed text-sm">
                 Чтобы начать стройку, достаточно 10% от стоимости проекта.
@@ -99,7 +101,7 @@ export default function Advantages() {
                 Никаких «заплатите всё сразу».
               </p>
             </div>
-            <ul className="space-y-2">
+            <ul className="relative z-[1] space-y-2">
               {[
                 "Фиксированная смета — без сюрпризов",
                 "Оплата только за сделанное",
