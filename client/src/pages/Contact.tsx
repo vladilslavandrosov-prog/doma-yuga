@@ -16,11 +16,11 @@ const CALL_TIMES = ["Утром 9–12", "Днём 12–17", "Вечером 17�
 
 const s = {
   wrap:   { fontFamily: "'Geologica','Segoe UI',sans-serif", minHeight: "100vh", background: "#F7F4EF", display: "flex" as const },
-  left:   { background: "#1B3A2D", padding: "4rem 3rem", width: 380, flexShrink: 0 as const, display: "flex" as const, flexDirection: "column" as const, justifyContent: "space-between" },
+  left:   { background: "#262B36", padding: "4rem 3rem", width: 380, flexShrink: 0 as const, display: "flex" as const, flexDirection: "column" as const, justifyContent: "space-between" },
   right:  { flex: 1, padding: "3.5rem 3rem", maxWidth: 560 },
   logo:   { fontSize: 13, fontWeight: 600, letterSpacing: ".14em", textTransform: "uppercase" as const, color: "rgba(255,255,255,.45)" },
   h1:     { color: "#fff", fontSize: 32, fontWeight: 700, lineHeight: 1.25, marginTop: "2rem", letterSpacing: "-.03em" },
-  accent: { width: 36, height: 3, background: "#C17F3A", borderRadius: 2, margin: "1.25rem 0" },
+  accent: { width: 36, height: 3, background: "#F47B25", borderRadius: 2, margin: "1.25rem 0" },
   desc:   { color: "rgba(255,255,255,.6)", fontSize: 14, lineHeight: 1.7, maxWidth: 280 },
   ben:    { display: "flex" as const, flexDirection: "column" as const, gap: 14, marginTop: "2rem" },
   benRow: { display: "flex" as const, gap: 12, alignItems: "flex-start" },
@@ -30,11 +30,11 @@ const s = {
 
   tab:      { flex: 1, textAlign: "center" as const, padding: "10px 6px", fontSize: 11, borderRight: "1px solid #DDD8CF", cursor: "pointer", background: "#EEE8DF", color: "#888", transition: "all .2s" },
   tabA:     { background: "#fff", color: "#1A1A1A", fontWeight: 600 },
-  tabD:     { background: "#EEF5EE", color: "#2D7A4F" },
+  tabD:     { background: "#FDEBDD", color: "#C2410C" },
   progress: { display: "flex" as const, borderRadius: 10, overflow: "hidden", border: "1px solid #DDD8CF", marginBottom: "2.5rem" },
 
   card:  { border: "1.5px solid #DDD8CF", borderRadius: 12, padding: "1rem 1.1rem", cursor: "pointer", transition: "all .18s", background: "#fff", display: "flex" as const, gap: 12, alignItems: "flex-start" },
-  cardOn:{ border: "1.5px solid #C17F3A", background: "#FDF5E8" },
+  cardOn:{ border: "1.5px solid #F47B25", background: "#FEF0E2" },
   cards: { display: "grid" as const, gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: "2rem" },
 
   label: { fontSize: 13, fontWeight: 500, color: "#6B6B6B", display: "block", marginBottom: 6 },
@@ -42,14 +42,14 @@ const s = {
   row:   { display: "grid" as const, gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 },
 
   pill:  { padding: "7px 16px", borderRadius: 50, fontSize: 13, cursor: "pointer", border: "1.5px solid #DDD8CF", color: "#888", background: "#fff", transition: "all .15s", userSelect: "none" as const, fontFamily: "inherit" },
-  pillOn:{ background: "#1B3A2D", borderColor: "#1B3A2D", color: "#fff" },
+  pillOn:{ background: "#262B36", borderColor: "#262B36", color: "#fff" },
   pills: { display: "flex" as const, flexWrap: "wrap" as const, gap: 8, marginTop: 4, marginBottom: 14 },
 
   btnB:  { padding: "11px 20px", border: "1.5px solid #DDD8CF", borderRadius: 8, fontSize: 14, cursor: "pointer", background: "transparent", color: "#888", fontFamily: "inherit", fontWeight: 500 },
-  btnN:  { flex: 1, padding: "12px 24px", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", background: "#C17F3A", color: "#fff", fontFamily: "inherit", letterSpacing: ".01em" },
+  btnN:  { flex: 1, padding: "12px 24px", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", background: "#F47B25", color: "#fff", fontFamily: "inherit", letterSpacing: ".01em" },
   btns:  { display: "flex" as const, gap: 10, marginTop: "2rem" },
   err:   { fontSize: 12, color: "#C0392B", marginTop: 4 },
-  req:   { color: "#C17F3A" },
+  req:   { color: "#F47B25" },
   note:  { fontSize: 12, color: "#888", lineHeight: 1.6, marginTop: "1.25rem" },
   sec:   { fontSize: 22, fontWeight: 700, marginBottom: 4, letterSpacing: "-.02em" },
   sub:   { color: "#888", fontSize: 14, marginBottom: "2rem" },
@@ -200,7 +200,7 @@ export default function ContactPage() {
                   <span style={{ fontSize: 22 }}>{svc.icon}</span>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3,
-                      color: services.includes(svc.v) ? "#8B5E3C" : "#1A1A1A" }}>{svc.name}</div>
+                      color: services.includes(svc.v) ? "#C2410C" : "#1A1A1A" }}>{svc.name}</div>
                     <div style={{ fontSize: 12, color: "#888", lineHeight: 1.4 }}>{svc.hint}</div>
                   </div>
                 </div>
