@@ -18,6 +18,7 @@ import {
   insertProjectSchema,
   insertGalleryPhotoSchema,
   insertDayCommentSchema,
+  insertLeadSchema,
 } from "@shared/schema";
 
 const uploadStorage = multer.diskStorage({
@@ -816,6 +817,66 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Comment not found" });
     }
     res.json({ ok: true });
+  });
+
+  app.post("/api/leads", async (req, res) => {
+    try {
+      const data = insertLeadSchema.parse(req.body);
+      const lead = await storage.createLead(data);
+
+      try {
+        const { sendTelegramNotification } = await import("./telegram");
+        let services = data.services;
+        try { services = JSON.parse(data.services).join(", "); } catch {}
+        const parts = [
+          `📋 Услуги: ${services}`,
+          data.objectType ? `🏠 Объект: ${data.objectType}` : null,
+          data.area ? `📐 Площадь: ${data.area} м²` : null,
+          data.budget ? `💰 Бюджет: ${data.budget}` : null,
+          data.timeline ? `⏱ Сроки: ${data.timeline}` : null,
+          data.city ? `📍 Город: ${data.city}` : null,
+          data.description ? `📝 ${data.description}` : null,
+          `📞 ${data.phone}`,
+          data.email ? `✉️ ${data.email}` : null,
+        ].filter(Boolean).join("\n");
+        sendTelegramNotification("Новая заявка с сайта", data.name, parts);
+      } catch (err) {
+        console.error("lead telegram error:", err);
+      }
+
+      return res.status(201).json({ ok: true, id: lead.id });
+    } catch (e) {
+      console.error("create lead error:", e);
+      return res.status(400).json({ error: "Не удалось сохранить заявку" });
+    }
+  });
+
+  app.get("/api/admin/leads", requireAdmin, async (_req, res) => {
+    const all = await storage.getLeads();
+    res.json(all);
+  });
+
+  const LEAD_STATUSES = ["new", "called", "working", "done", "declined"];
+  app.patch("/api/admin/leads/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const update: { status?: string; notes?: string } = {};
+    if (typeof req.body.status === "string") {
+      if (!LEAD_STATUSES.includes(req.body.status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      update.status = req.body.status;
+    }
+    if (typeof req.body.notes === "string") {
+      update.notes = req.body.notes;
+    }
+    const lead = await storage.updateLead(id, update);
+    if (!lead) {
+      return res.status(404).json({ error: "Lead not found" });
+    }
+    res.json(lead);
   });
 
   return httpServer;

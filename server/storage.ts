@@ -13,6 +13,7 @@ import {
   type EstimateItemPhoto, type InsertEstimateItemPhoto,
   type GalleryPhoto, type InsertGalleryPhoto,
   type DayComment, type InsertDayComment,
+  type Lead, type InsertLead,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -67,6 +68,9 @@ export interface IStorage {
   createDayComment(comment: InsertDayComment): Promise<DayComment>;
   updateDayComment(id: number, data: Partial<InsertDayComment>): Promise<DayComment | undefined>;
   deleteDayComment(id: number): Promise<boolean>;
+  getLeads(): Promise<Lead[]>;
+  createLead(lead: InsertLead): Promise<Lead>;
+  updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -84,6 +88,7 @@ export class MemStorage implements IStorage {
   private nonWorkingDays: Map<number, NonWorkingDay> = new Map();
   private galleryPhotosMap: Map<number, GalleryPhoto> = new Map();
   private dayCommentsMap: Map<number, DayComment> = new Map();
+  private leadsMap: Map<number, Lead> = new Map();
   private nextId = 100;
 
   constructor() {
@@ -556,6 +561,43 @@ export class MemStorage implements IStorage {
 
   async deleteDayComment(id: number): Promise<boolean> {
     return this.dayCommentsMap.delete(id);
+  }
+
+  async getLeads(): Promise<Lead[]> {
+    return Array.from(this.leadsMap.values()).sort((a, b) => b.id - a.id);
+  }
+
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const id = this.nextId++;
+    const l: Lead = {
+      id,
+      services: lead.services,
+      objectType: lead.objectType ?? null,
+      area: lead.area ?? null,
+      budget: lead.budget ?? null,
+      timeline: lead.timeline ?? null,
+      city: lead.city ?? null,
+      description: lead.description ?? null,
+      name: lead.name,
+      phone: lead.phone,
+      email: lead.email ?? null,
+      contactMethods: lead.contactMethods,
+      callTimes: lead.callTimes ?? null,
+      source: lead.source ?? null,
+      status: "new",
+      notes: null,
+      createdAt: new Date().toISOString(),
+    };
+    this.leadsMap.set(id, l);
+    return l;
+  }
+
+  async updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined> {
+    const existing = this.leadsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...data };
+    this.leadsMap.set(id, updated);
+    return updated;
   }
 }
 

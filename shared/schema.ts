@@ -175,3 +175,29 @@ export const messages = pgTable("messages", {
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true });
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
+
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  services: text("services").notNull(),
+  objectType: text("object_type"),
+  area: integer("area"),
+  budget: text("budget"),
+  timeline: text("timeline"),
+  city: text("city"),
+  description: text("description"),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  contactMethods: text("contact_methods").notNull(),
+  callTimes: text("call_times"),
+  source: text("source"),
+  status: text("status").notNull().default("new"),
+  notes: text("notes"),
+  createdAt: text("created_at").notNull(),
+});
+
+export const insertLeadSchema = createInsertSchema(leads).omit({
+  id: true, createdAt: true, status: true, notes: true,
+});
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type Lead = typeof leads.$inferSelect;

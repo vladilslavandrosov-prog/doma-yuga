@@ -1,9 +1,9 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
-  estimateItemPhotos, galleryPhotos, dayComments,
+  estimateItemPhotos, galleryPhotos, dayComments, leads,
 } from "@shared/schema";
 import type {
   Client, InsertClient,
@@ -20,6 +20,7 @@ import type {
   EstimateItemPhoto, InsertEstimateItemPhoto,
   GalleryPhoto, InsertGalleryPhoto,
   DayComment, InsertDayComment,
+  Lead, InsertLead,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -269,5 +270,22 @@ export class DatabaseStorage implements IStorage {
   async deleteDayComment(id: number): Promise<boolean> {
     const result = await db.delete(dayComments).where(eq(dayComments.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getLeads(): Promise<Lead[]> {
+    return db.select().from(leads).orderBy(desc(leads.id));
+  }
+
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const [row] = await db
+      .insert(leads)
+      .values({ ...lead, createdAt: new Date().toISOString() })
+      .returning();
+    return row;
+  }
+
+  async updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined> {
+    const [row] = await db.update(leads).set(data).where(eq(leads.id, id)).returning();
+    return row;
   }
 }
