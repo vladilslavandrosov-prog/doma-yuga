@@ -21,6 +21,7 @@ import {
   Users,
   Settings,
   ImageIcon,
+  ClipboardList,
 } from "lucide-react";
 import {
   useSidebar,
@@ -45,6 +46,7 @@ const publicItems = [
   { title: "О компании", url: "/", icon: Building2 },
   { title: "Почему выбирают нас", url: "/advantages", icon: Shield },
   { title: "Фото наших работ", url: "/gallery", icon: ImageIcon },
+  { title: "Оставить заявку", url: "/contact", icon: ClipboardList },
 ];
 
 function getProjectItems(basePath: string) {
