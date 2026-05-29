@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -56,6 +57,15 @@ const s = {
 };
 
 export default function ContactPage() {
+  const isMobile = useIsMobile();
+  const wrap = isMobile ? { ...s.wrap, flexDirection: "column" as const } : s.wrap;
+  const left = isMobile
+    ? { ...s.left, width: "auto", padding: "2.5rem 1.5rem" }
+    : s.left;
+  const right = isMobile
+    ? { ...s.right, padding: "2rem 1.5rem", maxWidth: "100%" }
+    : s.right;
+  const grid1 = isMobile ? { gridTemplateColumns: "1fr" } : {};
   const [step, setStep] = useState<Step>(1);
   const [services, setServices] = useState<string[]>([]);
   const [objType, setObjType] = useState("");
@@ -146,9 +156,9 @@ export default function ContactPage() {
   );
 
   return (
-    <div style={s.wrap}>
+    <div style={wrap}>
       {/* ── LEFT ── */}
-      <div style={s.left}>
+      <div style={left}>
         <div>
           <div style={s.logo}>● Дома Юга</div>
           <h1 style={s.h1}>Оставить<br />заявку</h1>
@@ -175,7 +185,7 @@ export default function ContactPage() {
       </div>
 
       {/* ── RIGHT ── */}
-      <div style={s.right}>
+      <div style={right}>
         {/* Progress */}
         <div style={s.progress}>
           {["1Услуга", "2Проект", "3Контакты"].map((t, i) => (
@@ -191,7 +201,7 @@ export default function ContactPage() {
           <div>
             <div style={s.sec}>Чем мы можем помочь?</div>
             <div style={s.sub}>Можно выбрать несколько вариантов</div>
-            <div style={s.cards}>
+            <div style={{ ...s.cards, ...grid1 }}>
               {SERVICES.map((svc) => (
                 <div key={svc.v}
                   data-testid={`card-service-${svc.v}`}
@@ -219,7 +229,7 @@ export default function ContactPage() {
             <div style={s.sec}>Расскажите о проекте</div>
             <div style={s.sub}>Чем подробнее — тем точнее расчёт</div>
 
-            <div style={s.row}>
+            <div style={{ ...s.row, ...grid1 }}>
               <div><label style={s.label}>Тип объекта</label>
                 <select style={s.input} value={objType} onChange={(e) => setObjType(e.target.value)} data-testid="select-object-type">
                   <option value="">Выберите...</option>
@@ -231,7 +241,7 @@ export default function ContactPage() {
               </div>
             </div>
 
-            <div style={s.row}>
+            <div style={{ ...s.row, ...grid1 }}>
               <div><label style={s.label}>Бюджет</label>
                 <select style={s.input} value={budget} onChange={(e) => setBudget(e.target.value)} data-testid="select-budget">
                   <option value="">Не определился</option>
@@ -269,7 +279,7 @@ export default function ContactPage() {
             <div style={s.sec}>Контактные данные</div>
             <div style={s.sub}>Как с вами связаться?</div>
 
-            <div style={s.row}>
+            <div style={{ ...s.row, ...grid1 }}>
               <div>
                 <label style={s.label}>Имя <span style={s.req}>*</span></label>
                 <input style={inp(errors.name)} placeholder="Ваше имя" value={name} onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: "" })); }} data-testid="input-name" />
