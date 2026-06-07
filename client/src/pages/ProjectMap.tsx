@@ -92,7 +92,56 @@ interface PkkFeature {
 }
 
 // ──────────────────────────────────────────────────────────
-// Вспомогательный компонент: "центрировать карту"
+// Базовые тайл-слои, доступные в России
+// ──────────────────────────────────────────────────────────
+type BasemapId = "2gis" | "yandex" | "yandex-sat" | "esri-sat";
+
+const BASEMAPS: Record<BasemapId, { label: string; url: string; attribution: string; subdomains?: string | string[]; maxZoom?: number }> = {
+  "2gis": {
+    label: "2ГИС",
+    url: "https://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1",
+    attribution: '&copy; <a href="https://2gis.ru">2ГИС</a>',
+    maxZoom: 18,
+  },
+  "yandex": {
+    label: "Яндекс Карты",
+    url: "https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=1&lang=ru_RU",
+    attribution: '&copy; <a href="https://yandex.ru/maps">Яндекс Карты</a>',
+    maxZoom: 19,
+  },
+  "yandex-sat": {
+    label: "Яндекс Спутник",
+    url: "https://core-sat.maps.yandex.net/tiles?l=sat&x={x}&y={y}&z={z}",
+    attribution: '&copy; <a href="https://yandex.ru/maps">Яндекс Карты</a>',
+    maxZoom: 18,
+  },
+  "esri-sat": {
+    label: "ESRI Спутник",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP',
+    maxZoom: 19,
+  },
+};
+
+// Компонент динамической смены тайл-слоя без перезагрузки карты
+function BasemapLayer({ id }: { id: BasemapId }) {
+  const map = useMap();
+  const bm = BASEMAPS[id];
+  // Пересоздаём тайл-слой при смене
+  useEffect(() => {
+    const layer = L.tileLayer(bm.url, {
+      attribution: bm.attribution,
+      maxZoom: bm.maxZoom ?? 19,
+    });
+    layer.addTo(map);
+    layer.bringToBack();
+    return () => { map.removeLayer(layer); };
+  }, [id]);
+  return null;
+}
+
+// ──────────────────────────────────────────────────────────
+// Вспомогательный компонент: плавно центрировать карту
 // ──────────────────────────────────────────────────────────
 function FlyTo({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
@@ -145,6 +194,7 @@ export default function ProjectMap({ projectId }: { projectId: number }) {
 
   // Слои
   const [showCadastre, setShowCadastre] = useState(true);
+  const [basemap, setBasemap] = useState<BasemapId>("2gis");
 
   // PDF
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -402,19 +452,33 @@ export default function ProjectMap({ projectId }: { projectId: number }) {
         <div className="lg:col-span-2 space-y-2">
           <div
             id="project-map-container"
-            className="rounded-xl overflow-hidden border shadow-sm"
+            className="rounded-xl overflow-hidden border shadow-sm relative"
             style={{ height: 480 }}
           >
+            {/* Переключатель базовых карт */}
+            <div className="absolute top-2 right-2 z-[1000] flex flex-col gap-1">
+              {(Object.entries(BASEMAPS) as [BasemapId, typeof BASEMAPS[BasemapId]][]).map(([id, bm]) => (
+                <button
+                  key={id}
+                  onClick={() => setBasemap(id)}
+                  className={`text-xs px-2 py-1 rounded-md border shadow-sm transition-all backdrop-blur-sm ${
+                    basemap === id
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background/90 text-foreground border-border hover:bg-accent"
+                  }`}
+                >
+                  {bm.label}
+                </button>
+              ))}
+            </div>
+
             <MapContainer
               center={center}
               zoom={zoom}
               style={{ height: "100%", width: "100%" }}
               ref={mapRef as any}
             >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
+              <BasemapLayer id={basemap} />
               {showCadastre && (
                 <TileLayer
                   url="https://pkk.rosreestr.ru/arcgis/rest/services/PKK6/CadastreObjects/MapServer/tile/{z}/{y}/{x}"
