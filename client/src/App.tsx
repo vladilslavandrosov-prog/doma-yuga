@@ -209,31 +209,26 @@ function CabinetHome() {
   return <Dashboard projectId={1} basePath="/cabinet" />;
 }
 
+function ClientPageInner({ section, projectId }: { section: string; projectId: number }) {
+  const { data: project } = useQuery<Project>({ queryKey: ["/api/project", projectId] });
+  switch (section) {
+    case "estimates": return <Estimates projectId={projectId} />;
+    case "execution": return <WorkExecution projectId={projectId} />;
+    case "payments": return <Payments projectId={projectId} />;
+    case "documents": return <Documents projectId={projectId} />;
+    case "photos": return <Photos projectId={projectId} />;
+    case "videos": return <Videos projectId={projectId} />;
+    case "chat": return <Chat projectId={projectId} />;
+    case "landscape": return <LandscapeDesign projectId={projectId} address={project?.address} />;
+    case "houseplan": return <HousePlan projectId={projectId} address={project?.address} />;
+    default: return null;
+  }
+}
+
 function ClientPage({ section }: { section: "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" | "landscape" | "houseplan" }) {
   return (
     <ClientProjectLoader>
-      {(projectId) => {
-        switch (section) {
-          case "estimates":
-            return <Estimates projectId={projectId} />;
-          case "execution":
-            return <WorkExecution projectId={projectId} />;
-          case "payments":
-            return <Payments projectId={projectId} />;
-          case "documents":
-            return <Documents projectId={projectId} />;
-          case "photos":
-            return <Photos projectId={projectId} />;
-          case "videos":
-            return <Videos projectId={projectId} />;
-          case "chat":
-            return <Chat projectId={projectId} />;
-          case "landscape":
-            return <LandscapeDesign projectId={projectId} />;
-          case "houseplan":
-            return <HousePlan projectId={projectId} />;
-        }
-      }}
+      {(projectId) => <ClientPageInner section={section} projectId={projectId} />}
     </ClientProjectLoader>
   );
 }

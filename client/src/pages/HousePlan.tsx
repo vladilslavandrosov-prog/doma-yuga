@@ -204,13 +204,13 @@ export default function HousePlan({ projectId, address }: { projectId: number; a
         <CardContent className="p-0">
           {mapAddress || plan?.cadastralNumber ? (
             <iframe
-              src={`https://yandex.ru/maps/?text=${encodeURIComponent(plan?.cadastralNumber ? `${mapAddress}` : mapAddress)}&z=17&l=map&mode=whatshere`}
+              src={`https://yandex.ru/maps/?text=${encodeURIComponent(mapAddress)}&z=17&l=map`}
               width="100%"
               height="450"
-              frameBorder="0"
+              style={{ border: 0 }}
               className="rounded-b-lg"
               title="Карта объекта"
-              allowFullScreen
+              allow="fullscreen"
             />
           ) : (
             <div className="h-64 flex flex-col items-center justify-center text-muted-foreground gap-2 p-6">
