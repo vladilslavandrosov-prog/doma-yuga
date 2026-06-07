@@ -50,6 +50,33 @@ interface Questionnaire {
   wishes: string;
 }
 
+function DesignImage({ url }: { url: string }) {
+  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+  return (
+    <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted">
+      {status === "loading" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="text-xs">Загрузка изображения...</span>
+        </div>
+      )}
+      {status === "error" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground p-4">
+          <Leaf className="h-10 w-10 opacity-20" />
+          <span className="text-xs text-center">Изображение недоступно.<br/>Нажмите «Скачать» для просмотра.</span>
+        </div>
+      )}
+      <img
+        src={url}
+        alt="Ландшафтный дизайн"
+        className={`w-full h-full object-cover transition-opacity duration-300 ${status === "ok" ? "opacity-100" : "opacity-0"}`}
+        onLoad={() => setStatus("ok")}
+        onError={() => setStatus("error")}
+      />
+    </div>
+  );
+}
+
 const defaultQ: Questionnaire = {
   style: "",
   area: "",
@@ -386,12 +413,7 @@ export default function LandscapeDesign({ projectId, address }: { projectId: num
                   <Card key={d.id}>
                     <CardContent className="p-0">
                       {d.generatedImageUrl ? (
-                        <img
-                          src={d.generatedImageUrl}
-                          alt="Ландшафтный дизайн"
-                          className="w-full rounded-t-lg object-cover aspect-video"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        />
+                        <DesignImage url={d.generatedImageUrl} />
                       ) : (
                         <div className="aspect-video bg-muted flex items-center justify-center rounded-t-lg">
                           <Leaf className="h-12 w-12 text-muted-foreground/30" />
