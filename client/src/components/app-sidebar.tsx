@@ -22,6 +22,7 @@ import {
   Settings,
   ImageIcon,
   ClipboardList,
+  Inbox,
 } from "lucide-react";
 import {
   useSidebar,
@@ -76,7 +77,7 @@ export function AppSidebar() {
   const inCabinet = location.startsWith("/cabinet");
   const projectIdFromUrl = extractProjectId(location);
   const inProject = projectIdFromUrl !== null;
-  const adminPages = ["/cabinet", "/cabinet/clients", "/cabinet/settings"];
+  const adminPages = ["/cabinet", "/cabinet/clients", "/cabinet/leads", "/cabinet/settings"];
   const inAdminPanel = isAdmin && inCabinet && !inProject && adminPages.includes(location);
 
   const isClient = !!user && user.role === "client";
@@ -105,6 +106,13 @@ export function AppSidebar() {
     refetchInterval: 30000,
     enabled: activeProjectId !== null,
   });
+
+  const { data: leadsData } = useQuery<{ id: number; status: string }[]>({
+    queryKey: ["/api/admin/leads"],
+    refetchInterval: 60000,
+    enabled: isAdmin && inCabinet,
+  });
+  const newLeadsCount = (leadsData ?? []).filter((l) => l.status === "new").length;
 
   const unreadCount = unreadData?.count ?? 0;
 
@@ -208,6 +216,24 @@ export function AppSidebar() {
                       <span>Клиенты</span>
                     </Link>
                   </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/cabinet/leads"}
+                    tooltip="Заявки"
+                    data-testid="link-nav-leads"
+                  >
+                    <Link href="/cabinet/leads" onClick={closeMobile}>
+                      <Inbox />
+                      <span>Заявки</span>
+                    </Link>
+                  </SidebarMenuButton>
+                  {newLeadsCount > 0 && (
+                    <SidebarMenuBadge data-testid="badge-new-leads">
+                      {newLeadsCount}
+                    </SidebarMenuBadge>
+                  )}
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton

@@ -19,6 +19,7 @@ import Videos from "@/pages/Videos";
 import Chat from "@/pages/Chat";
 import Settings from "@/pages/Settings";
 import Clients from "@/pages/Clients";
+import Leads from "@/pages/Leads";
 import About from "@/pages/About";
 import Advantages from "@/pages/Advantages";
 import PublicGallery from "@/pages/PublicGallery";
@@ -246,6 +247,7 @@ function Router() {
       <Route path="/cabinet/chat">{() => <CabinetLayout><ClientPage section="chat" /></CabinetLayout>}</Route>
       <Route path="/cabinet/settings">{() => <CabinetLayout><Settings /></CabinetLayout>}</Route>
       <Route path="/cabinet/clients">{() => <CabinetLayout><AdminOnly><Clients /></AdminOnly></CabinetLayout>}</Route>
+      <Route path="/cabinet/leads">{() => <CabinetLayout><AdminOnly><Leads /></AdminOnly></CabinetLayout>}</Route>
 
       <Route path="/cabinet/project/:id">{() => <CabinetLayout><ProjectPage section="dashboard" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/estimates">{() => <CabinetLayout><ProjectPage section="estimates" /></CabinetLayout>}</Route>

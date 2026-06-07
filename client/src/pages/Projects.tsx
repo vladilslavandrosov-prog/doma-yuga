@@ -193,7 +193,7 @@ export default function Projects() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) => {
+    mutationFn: async ({ id, oldStatus, data }: { id: number; oldStatus: string; data: Record<string, unknown> }) => {
       const res = await apiRequest("PATCH", `/api/admin/projects/${id}`, data);
       if (!res.ok) {
         const err = await res.json();
@@ -206,7 +206,7 @@ export default function Projects() {
       queryClient.invalidateQueries({ queryKey: ["/api/project", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", variables.id] });
       toast({ title: "Готово", description: "Объект обновлён" });
-      if (editingProject && variables.data.status !== editingProject.status) {
+      if (variables.data.status !== variables.oldStatus && variables.data.status !== "active") {
         setStatusFilter("all");
       }
       setEditOpen(false);
@@ -254,6 +254,7 @@ export default function Projects() {
     if (!editingProject) return;
     updateMutation.mutate({
       id: editingProject.id,
+      oldStatus: editingProject.status,
       data: {
         name: formName,
         address: formAddress,
