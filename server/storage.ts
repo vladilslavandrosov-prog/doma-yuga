@@ -117,7 +117,7 @@ export class MemStorage implements IStorage {
     this.clients.set(1, client1);
     this.clients.set(2, client2);
 
-    const project1: Project = { id: 1, name: "Демо", address: "г. Краснодар, ул. Демонстрационная, 1", startDate: "2026-01-07", status: "active", clientId: 1 };
+    const project1: Project = { id: 1, name: "Демо", address: "г. Новороссийск, ул. Клеверная, 23", startDate: "2026-01-07", status: "active", clientId: 1 };
     const project2: Project = { id: 2, name: "Атамана Матвеева", address: "Борисовка, ул. Ад. Матвеева, 15", startDate: "2026-01-07", status: "active", clientId: 2 };
     const project3: Project = { id: 3, name: "Коттедж на Южной", address: "г. Краснодар, ул. Южная, 22", startDate: "2026-02-15", status: "active", clientId: 2 };
     this.projects.set(1, project1);
