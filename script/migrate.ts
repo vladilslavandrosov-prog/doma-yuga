@@ -1,8 +1,8 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import * as schema from "../shared/schema";
 import { sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 const url = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 if (!url) {
@@ -91,6 +91,11 @@ async function main() {
     `);
     console.log("✓ тестовый план дома добавлен");
   }
+
+  // Обновить пароль admin
+  const newHash = await bcrypt.hash("admin1q2w3e", 10);
+  await db.execute(sql`UPDATE users SET password = ${newHash} WHERE username = 'admin'`);
+  console.log("✓ пароль admin обновлён");
 
   console.log("Готово! Все таблицы созданы/обновлены.");
   await pool.end();
