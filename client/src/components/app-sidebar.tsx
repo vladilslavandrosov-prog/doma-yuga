@@ -24,6 +24,7 @@ import {
   ClipboardList,
   Inbox,
   Map,
+  Leaf,
 } from "lucide-react";
 import {
   useSidebar,
@@ -61,6 +62,7 @@ function getProjectItems(basePath: string) {
     { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera },
     { title: "Видео", url: `${basePath}/videos`, icon: Video },
     { title: "Карта объекта", url: `${basePath}/map`, icon: Map },
+    { title: "Ландшафтный дизайн", url: `${basePath}/landscape`, icon: Leaf },
     { title: "Чат", url: `${basePath}/chat`, icon: MessageCircle },
   ];
 }

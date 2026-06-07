@@ -205,3 +205,32 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 });
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Lead = typeof leads.$inferSelect;
+
+export const landscapeSurveys = pgTable("landscape_surveys", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().unique(),
+  egrnUrl: text("egrn_url"),
+  egrnData: text("egrn_data"),
+  plotArea: text("plot_area"),
+  plotShape: text("plot_shape"),
+  terrain: text("terrain"),
+  soilType: text("soil_type"),
+  groundwater: text("groundwater"),
+  designStyle: text("design_style"),
+  zones: text("zones"),
+  plants: text("plants"),
+  budget: text("budget"),
+  landscapeTimeline: text("landscape_timeline"),
+  maintenanceLevel: text("maintenance_level"),
+  wishes: text("wishes"),
+  aiConcept: text("ai_concept"),
+  status: text("status").notNull().default("draft"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const insertLandscapeSurveySchema = createInsertSchema(landscapeSurveys).omit({
+  id: true, createdAt: true, updatedAt: true,
+});
+export type InsertLandscapeSurvey = z.infer<typeof insertLandscapeSurveySchema>;
+export type LandscapeSurvey = typeof landscapeSurveys.$inferSelect;

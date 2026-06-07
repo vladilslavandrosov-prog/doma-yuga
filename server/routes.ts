@@ -67,10 +67,10 @@ const uploadDoc = multer({
   storage: uploadStorage,
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (ALLOWED_DOC_MIMES.has(file.mimetype)) {
+    if (ALLOWED_DOC_MIMES.has(file.mimetype) || file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
-      cb(new Error("Поддерживаются PDF, Word, Excel"));
+      cb(new Error("Поддерживаются PDF, Word, Excel, изображения"));
     }
   },
 });
@@ -1008,6 +1008,109 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Lead not found" });
     }
     res.json(lead);
+  });
+
+  // ── Ландшафтный дизайн ──────────────────────────────────
+
+  app.get("/api/project/:id/landscape", requireProjectAccess, async (req, res) => {
+    const projectId = parseInt(req.params.id as string);
+    const survey = await storage.getLandscapeSurveyByProjectId(projectId);
+    res.json(survey ?? null);
+  });
+
+  app.patch("/api/project/:id/landscape", requireProjectAccess, async (req, res) => {
+    const projectId = parseInt(req.params.id as string);
+    const allowed = [
+      "egrnUrl", "egrnData", "plotArea", "plotShape", "terrain", "soilType",
+      "groundwater", "designStyle", "zones", "plants", "budget",
+      "landscapeTimeline", "maintenanceLevel", "wishes", "status",
+    ];
+    const data: Record<string, string> = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) data[key] = req.body[key];
+    }
+    const survey = await storage.upsertLandscapeSurvey(projectId, data);
+    res.json(survey);
+  });
+
+  // Загрузка выписки ЕГРН
+  app.post("/api/project/:id/landscape/egrn-upload", requireProjectAccess,
+    uploadDoc.single("file"),
+    async (req, res) => {
+      const projectId = parseInt(req.params.id as string);
+      const file = req.file;
+      if (!file) return res.status(400).json({ error: "No file" });
+      const url = `/uploads/${file.filename}`;
+      const survey = await storage.upsertLandscapeSurvey(projectId, { egrnUrl: url });
+      res.json({ url, survey });
+    }
+  );
+
+  // AI-генерация концепции ландшафтного дизайна
+  app.post("/api/project/:id/landscape/ai-concept", requireProjectAccess, async (req, res) => {
+    const projectId = parseInt(req.params.id as string);
+    const survey = await storage.getLandscapeSurveyByProjectId(projectId);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+
+    const key = process.env.GROQ_API_KEY;
+    if (!key) {
+      // Заглушка без ключа
+      const fallback = `На основе указанных данных участка (${survey.plotArea ?? "площадь не указана"}) рекомендуется придерживаться выбранного стиля «${survey.designStyle ?? "не задан"}». Рекомендуется зонирование территории с учётом функциональных зон. Для получения полной концепции настройте GROQ_API_KEY.`;
+      const updated = await storage.upsertLandscapeSurvey(projectId, { aiConcept: fallback, status: "done" });
+      return res.json(updated);
+    }
+
+    let zonesArr: string[] = [];
+    let plantsArr: string[] = [];
+    try { zonesArr = JSON.parse(survey.zones ?? "[]"); } catch {}
+    try { plantsArr = JSON.parse(survey.plants ?? "[]"); } catch {}
+
+    const prompt = `Ты ведущий ландшафтный дизайнер. Разработай подробную концепцию ландшафтного дизайна участка (ответ строго на русском, без маркдауна, структурированными абзацами).
+
+Данные участка:
+- Площадь: ${survey.plotArea ?? "не указана"}
+- Форма: ${survey.plotShape ?? "не указана"}
+- Рельеф: ${survey.terrain ?? "не указан"}
+- Тип грунта: ${survey.soilType ?? "не указан"}
+- Глубина грунтовых вод: ${survey.groundwater ?? "не указана"}
+
+Пожелания заказчика:
+- Стиль дизайна: ${survey.designStyle ?? "не указан"}
+- Функциональные зоны: ${zonesArr.join(", ") || "не указаны"}
+- Растения и покрытия: ${plantsArr.join(", ") || "не указаны"}
+- Бюджет: ${survey.budget ?? "не указан"}
+- Сроки: ${survey.landscapeTimeline ?? "не указаны"}
+- Уровень ухода: ${survey.maintenanceLevel ?? "не указан"}
+- Дополнительные пожелания: ${survey.wishes ?? "нет"}
+
+Структура ответа:
+1. Общая концепция (3-4 предложения)
+2. Зонирование территории (описание каждой зоны)
+3. Рекомендуемые растения (с учётом климата Краснодарского края)
+4. Материалы и покрытия
+5. Освещение и полив
+6. Ориентировочные сроки и последовательность работ`;
+
+    try {
+      const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 1500,
+          temperature: 0.8,
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!r.ok) throw new Error("Groq error");
+      const d = await r.json();
+      const concept = d.choices?.[0]?.message?.content?.trim() ?? "Не удалось получить ответ";
+      const updated = await storage.upsertLandscapeSurvey(projectId, { aiConcept: concept, status: "done" });
+      res.json(updated);
+    } catch (e) {
+      res.status(502).json({ error: "AI service unavailable" });
+    }
   });
 
   return httpServer;

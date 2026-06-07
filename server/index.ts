@@ -124,6 +124,28 @@ httpServer.listen(
     ALTER TABLE projects ADD COLUMN IF NOT EXISTS longitude NUMERIC;
     ALTER TABLE projects ADD COLUMN IF NOT EXISTS cadastral_number TEXT;
     ALTER TABLE projects ADD COLUMN IF NOT EXISTS utilities_json TEXT;
+    CREATE TABLE IF NOT EXISTS landscape_surveys (
+      id SERIAL PRIMARY KEY,
+      project_id INTEGER NOT NULL UNIQUE,
+      egrn_url TEXT,
+      egrn_data TEXT,
+      plot_area TEXT,
+      plot_shape TEXT,
+      terrain TEXT,
+      soil_type TEXT,
+      groundwater TEXT,
+      design_style TEXT,
+      zones TEXT,
+      plants TEXT,
+      budget TEXT,
+      landscape_timeline TEXT,
+      maintenance_level TEXT,
+      wishes TEXT,
+      ai_concept TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `).catch((e) => console.warn("Migration warning:", e.message));
 
   const { seedDatabase } = await import("./seed");

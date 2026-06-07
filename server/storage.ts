@@ -14,6 +14,7 @@ import {
   type GalleryPhoto, type InsertGalleryPhoto,
   type DayComment, type InsertDayComment,
   type Lead, type InsertLead,
+  type LandscapeSurvey, type InsertLandscapeSurvey,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -71,6 +72,8 @@ export interface IStorage {
   getLeads(): Promise<Lead[]>;
   createLead(lead: InsertLead): Promise<Lead>;
   updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined>;
+  getLandscapeSurveyByProjectId(projectId: number): Promise<LandscapeSurvey | undefined>;
+  upsertLandscapeSurvey(projectId: number, data: Partial<InsertLandscapeSurvey>): Promise<LandscapeSurvey>;
 }
 
 export class MemStorage implements IStorage {
@@ -101,9 +104,10 @@ export class MemStorage implements IStorage {
     this.clients.set(1, client1);
     this.clients.set(2, client2);
 
-    const project1: Project = { id: 1, name: "Демо", address: "г. Краснодар, ул. Демонстрационная, 1", startDate: "2026-01-07", status: "active", clientId: 1 };
-    const project2: Project = { id: 2, name: "Атамана Матвеева", address: "Борисовка, ул. Ад. Матвеева, 15", startDate: "2026-01-07", status: "active", clientId: 2 };
-    const project3: Project = { id: 3, name: "Коттедж на Южной", address: "г. Краснодар, ул. Южная, 22", startDate: "2026-02-15", status: "active", clientId: 2 };
+    const nullGeo = { endDate: null, latitude: null, longitude: null, cadastralNumber: null, utilitiesJson: null };
+    const project1: Project = { id: 1, name: "Демо", address: "г. Краснодар, ул. Демонстрационная, 1", startDate: "2026-01-07", status: "active", clientId: 1, ...nullGeo };
+    const project2: Project = { id: 2, name: "Атамана Матвеева", address: "Борисовка, ул. Ад. Матвеева, 15", startDate: "2026-01-07", status: "active", clientId: 2, ...nullGeo };
+    const project3: Project = { id: 3, name: "Коттедж на Южной", address: "г. Краснодар, ул. Южная, 22", startDate: "2026-02-15", status: "active", clientId: 2, ...nullGeo };
     this.projects.set(1, project1);
     this.projects.set(2, project2);
     this.projects.set(3, project3);
@@ -598,6 +602,34 @@ export class MemStorage implements IStorage {
     const updated = { ...existing, ...data };
     this.leadsMap.set(id, updated);
     return updated;
+  }
+
+  private landscapeMap: Map<number, LandscapeSurvey> = new Map();
+
+  async getLandscapeSurveyByProjectId(projectId: number): Promise<LandscapeSurvey | undefined> {
+    return Array.from(this.landscapeMap.values()).find((s) => s.projectId === projectId);
+  }
+
+  async upsertLandscapeSurvey(projectId: number, data: Partial<InsertLandscapeSurvey>): Promise<LandscapeSurvey> {
+    const now = new Date().toISOString();
+    const existing = await this.getLandscapeSurveyByProjectId(projectId);
+    if (existing) {
+      const updated: LandscapeSurvey = { ...existing, ...data, updatedAt: now };
+      this.landscapeMap.set(existing.id, updated);
+      return updated;
+    }
+    const id = this.nextId++;
+    const rec: LandscapeSurvey = {
+      id, projectId,
+      egrnUrl: null, egrnData: null, plotArea: null, plotShape: null,
+      terrain: null, soilType: null, groundwater: null, designStyle: null,
+      zones: null, plants: null, budget: null, landscapeTimeline: null,
+      maintenanceLevel: null, wishes: null, aiConcept: null,
+      status: "draft", createdAt: now, updatedAt: now,
+      ...data,
+    };
+    this.landscapeMap.set(id, rec);
+    return rec;
   }
 }
 

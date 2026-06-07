@@ -3,7 +3,7 @@ import { db } from "./db";
 import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
-  estimateItemPhotos, galleryPhotos, dayComments, leads,
+  estimateItemPhotos, galleryPhotos, dayComments, leads, landscapeSurveys,
 } from "@shared/schema";
 import type {
   Client, InsertClient,
@@ -21,6 +21,7 @@ import type {
   GalleryPhoto, InsertGalleryPhoto,
   DayComment, InsertDayComment,
   Lead, InsertLead,
+  LandscapeSurvey, InsertLandscapeSurvey,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -286,6 +287,29 @@ export class DatabaseStorage implements IStorage {
 
   async updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined> {
     const [row] = await db.update(leads).set(data).where(eq(leads.id, id)).returning();
+    return row;
+  }
+
+  async getLandscapeSurveyByProjectId(projectId: number): Promise<LandscapeSurvey | undefined> {
+    const [row] = await db.select().from(landscapeSurveys).where(eq(landscapeSurveys.projectId, projectId));
+    return row;
+  }
+
+  async upsertLandscapeSurvey(projectId: number, data: Partial<InsertLandscapeSurvey>): Promise<LandscapeSurvey> {
+    const now = new Date().toISOString();
+    const existing = await this.getLandscapeSurveyByProjectId(projectId);
+    if (existing) {
+      const [row] = await db
+        .update(landscapeSurveys)
+        .set({ ...data, updatedAt: now })
+        .where(eq(landscapeSurveys.projectId, projectId))
+        .returning();
+      return row;
+    }
+    const [row] = await db
+      .insert(landscapeSurveys)
+      .values({ projectId, ...data, status: (data.status ?? "draft"), createdAt: now, updatedAt: now })
+      .returning();
     return row;
   }
 }
