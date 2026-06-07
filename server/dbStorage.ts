@@ -338,7 +338,7 @@ export class DatabaseStorage implements IStorage {
   async upsertHousePlan(plan: InsertHousePlan): Promise<HousePlan> {
     const existing = await this.getHousePlanByProjectId(plan.projectId);
     if (existing) {
-      const [row] = await db.update(housePlans).set({ cadastralNumber: plan.cadastralNumber, communicationsNotes: plan.communicationsNotes, updatedAt: plan.updatedAt }).where(eq(housePlans.id, existing.id)).returning();
+      const [row] = await db.update(housePlans).set({ cadastralNumber: plan.cadastralNumber, communicationsNotes: plan.communicationsNotes, communicationsGeojson: plan.communicationsGeojson ?? existing.communicationsGeojson, updatedAt: plan.updatedAt }).where(eq(housePlans.id, existing.id)).returning();
       return row;
     }
     const [row] = await db.insert(housePlans).values(plan).returning();

@@ -1050,6 +1050,20 @@ ${groupsSummary || "  - данные не указаны"}
       projectId: parseInt(req.body.projectId),
       cadastralNumber: req.body.cadastralNumber || null,
       communicationsNotes: req.body.communicationsNotes || null,
+      communicationsGeojson: req.body.communicationsGeojson ?? null,
+      updatedAt: new Date().toISOString(),
+    });
+    res.json(plan);
+  });
+
+  app.put("/api/admin/house-plan/geojson", requireAdmin, async (req, res) => {
+    const projectId = parseInt(req.body.projectId);
+    const existing = await storage.getHousePlanByProjectId(projectId);
+    const plan = await storage.upsertHousePlan({
+      projectId,
+      cadastralNumber: existing?.cadastralNumber ?? null,
+      communicationsNotes: existing?.communicationsNotes ?? null,
+      communicationsGeojson: req.body.communicationsGeojson ?? null,
       updatedAt: new Date().toISOString(),
     });
     res.json(plan);

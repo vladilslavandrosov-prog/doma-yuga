@@ -219,6 +219,7 @@ export const housePlans = pgTable("house_plans", {
   projectId: integer("project_id").notNull().unique(),
   cadastralNumber: text("cadastral_number"),
   communicationsNotes: text("communications_notes"),
+  communicationsGeojson: text("communications_geojson"),
   updatedAt: text("updated_at").notNull(),
 });
 

@@ -317,6 +317,16 @@ export class MemStorage implements IStorage {
       projectId: 1,
       cadastralNumber: "23:49:0204007:123",
       communicationsNotes: "Газ — от ул. Демонстрационной\nВода — централизованное водоснабжение\nЭлектричество — 15 кВт, однофазное\nКанализация — централизованная",
+      communicationsGeojson: JSON.stringify({
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: [[37.8072, 44.7138], [37.8078, 44.7135], [37.8085, 44.7133]] },
+            properties: { utilityType: "электр", label: "Электричество", owner: "Электросети" }
+          }
+        ]
+      }),
       updatedAt: "2026-01-15T10:00:00",
     };
     this.housePlans.set(50, testHousePlan);
@@ -705,12 +715,12 @@ export class MemStorage implements IStorage {
   async upsertHousePlan(plan: InsertHousePlan): Promise<HousePlan> {
     const existing = Array.from(this.housePlans.values()).find(p => p.projectId === plan.projectId);
     if (existing) {
-      const updated = { ...existing, cadastralNumber: plan.cadastralNumber ?? null, communicationsNotes: plan.communicationsNotes ?? null, updatedAt: plan.updatedAt };
+      const updated = { ...existing, cadastralNumber: plan.cadastralNumber ?? null, communicationsNotes: plan.communicationsNotes ?? null, communicationsGeojson: plan.communicationsGeojson ?? existing.communicationsGeojson ?? null, updatedAt: plan.updatedAt };
       this.housePlans.set(existing.id, updated);
       return updated;
     }
     const id = this.nextId++;
-    const p: HousePlan = { id, projectId: plan.projectId, cadastralNumber: plan.cadastralNumber ?? null, communicationsNotes: plan.communicationsNotes ?? null, updatedAt: plan.updatedAt };
+    const p: HousePlan = { id, projectId: plan.projectId, cadastralNumber: plan.cadastralNumber ?? null, communicationsNotes: plan.communicationsNotes ?? null, communicationsGeojson: plan.communicationsGeojson ?? null, updatedAt: plan.updatedAt };
     this.housePlans.set(id, p);
     return p;
   }

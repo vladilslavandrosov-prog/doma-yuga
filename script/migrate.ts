@@ -142,6 +142,37 @@ async function main() {
     console.log("✓ тестовый план дома добавлен");
   }
 
+  // Добавить колонку communications_geojson если её нет
+  await db.execute(sql.raw(`
+    ALTER TABLE house_plans ADD COLUMN IF NOT EXISTS communications_geojson TEXT
+  `));
+  console.log("✓ house_plans.communications_geojson");
+
+  // Добавить демо-коммуникации (электричество Электросети) если их ещё нет
+  const planWithoutGeo = await db.execute(sql`SELECT id FROM house_plans WHERE project_id = 1 AND communications_geojson IS NULL LIMIT 1`);
+  if (planWithoutGeo.rows.length > 0) {
+    // Координаты около г. Новороссийск, ул. Клеверная, 23 (приблизительно)
+    const demoGeo = JSON.stringify({
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [37.8072, 44.7138],
+              [37.8078, 44.7135],
+              [37.8085, 44.7133]
+            ]
+          },
+          properties: { utilityType: "электр", label: "Электричество", owner: "Электросети" }
+        }
+      ]
+    });
+    await db.execute(sql`UPDATE house_plans SET communications_geojson = ${demoGeo} WHERE project_id = 1`);
+    console.log("✓ демо-коммуникации добавлены");
+  }
+
   // Обновить адрес демо-проекта
   await db.execute(sql`UPDATE projects SET address = 'г. Новороссийск, ул. Клеверная, 23' WHERE id = 1`);
   console.log("✓ адрес демо-проекта обновлён");

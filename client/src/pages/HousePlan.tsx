@@ -28,6 +28,7 @@ interface HousePlan {
   projectId: number;
   cadastralNumber: string | null;
   communicationsNotes: string | null;
+  communicationsGeojson: string | null;
   updatedAt: string;
 }
 
@@ -189,7 +190,14 @@ export default function HousePlan({ projectId, address }: { projectId: number; a
         </CardHeader>
         <CardContent className="p-0">
           {mapAddress ? (
-            <LeafletMap address={mapAddress} className="h-[450px] w-full rounded-b-lg" />
+            <LeafletMap
+              address={mapAddress}
+              className="h-[500px] w-full rounded-b-lg"
+              communicationsNotes={plan?.communicationsNotes}
+              communicationsGeojson={plan?.communicationsGeojson}
+              isAdmin={isAdmin}
+              projectId={projectId}
+            />
           ) : (
             <div className="h-64 flex flex-col items-center justify-center text-muted-foreground gap-2 p-6">
               <Map className="h-12 w-12 opacity-20" />
