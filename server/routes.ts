@@ -449,6 +449,71 @@ export async function registerRoutes(
     });
   });
 
+  app.post("/api/project/:id/ai-timeline", requireProjectAccess, async (req, res) => {
+    const projectId = parseInt(req.params.id);
+    const project = await storage.getProjectById(projectId);
+    if (!project) return res.status(404).json({ error: "Not found" });
+
+    const estimates = await storage.getEstimatesByProjectId(projectId);
+    const allItems: any[] = [];
+    for (const est of estimates) {
+      const items = await storage.getEstimateItemsByEstimateId(est.id);
+      items.forEach(i => allItems.push({ ...i, category: est.title }));
+    }
+
+    const completed = allItems.filter(i => i.status === "completed").length;
+    const inProgress = allItems.filter(i => i.status === "in_progress").length;
+    const planned = allItems.filter(i => i.status === "planned").length;
+
+    const groups: Record<string, { total: number; completed: number; inProgress: number }> = {};
+    for (const item of allItems) {
+      const g = item.workGroup ?? item.category ?? "Прочее";
+      if (!groups[g]) groups[g] = { total: 0, completed: 0, inProgress: 0 };
+      groups[g].total++;
+      if (item.status === "completed") groups[g].completed++;
+      if (item.status === "in_progress") groups[g].inProgress++;
+    }
+
+    const groupsSummary = Object.entries(groups)
+      .map(([name, g]) => `  - ${name}: выполнено ${g.completed}/${g.total}${g.inProgress > 0 ? `, в работе ${g.inProgress}` : ""}`)
+      .join("\n");
+
+    const prompt = `Ты — эксперт по строительству в России. Проанализируй прогресс строительного проекта и дай прогноз сроков завершения.
+
+Проект: "${project.name}"
+Адрес: ${project.address}
+Дата начала: ${project.startDate}
+Статус: ${project.status}
+
+Прогресс работ:
+- Всего позиций: ${allItems.length}
+- Выполнено: ${completed} (${allItems.length > 0 ? Math.round(completed / allItems.length * 100) : 0}%)
+- В работе: ${inProgress}
+- Запланировано: ${planned}
+
+По группам работ:
+${groupsSummary || "  - данные не указаны"}
+
+Дай краткий анализ (3-5 абзацев на русском языке):
+1. Оценка текущего темпа строительства
+2. Прогноз даты завершения (укажи конкретный месяц и год)
+3. Риски и узкие места
+4. Рекомендации для ускорения
+
+Пиши конкретно, без лишних вводных слов.`;
+
+    try {
+      const encoded = encodeURIComponent(prompt);
+      const url = `https://text.pollinations.ai/${encoded}`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
+      if (!response.ok) throw new Error("AI unavailable");
+      const text = await response.text();
+      res.json({ analysis: text.trim() });
+    } catch {
+      res.status(503).json({ error: "Сервис AI временно недоступен. Попробуйте позже." });
+    }
+  });
+
   app.get("/api/dashboard/:uid", async (req, res) => {
     const client = await storage.getClientByUid(req.params.uid);
     if (!client) {

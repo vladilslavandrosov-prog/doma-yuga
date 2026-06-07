@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
   LayoutDashboard,
@@ -15,12 +16,19 @@ import {
   Clock,
   CircleDot,
   HardHat,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardData {
   client: {
@@ -130,8 +138,21 @@ function DashboardSkeleton() {
 
 export default function Dashboard({ projectId, basePath }: { projectId: number; basePath?: string }) {
   const linkBase = basePath ?? "/cabinet";
+  const { toast } = useToast();
+  const [aiOpen, setAiOpen] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+
   const { data, isLoading, error } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard/project", projectId],
+  });
+
+  const aiMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/project/${projectId}/ai-timeline`),
+    onSuccess: async (res) => {
+      const json = await res.json();
+      setAnalysis(json.analysis);
+    },
+    onError: () => toast({ title: "Не удалось получить анализ. Попробуйте позже.", variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -222,6 +243,17 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                 <span>Осталось: {progress.total - progress.completed}</span>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => { setAnalysis(null); setAiOpen(true); aiMutation.mutate(); }}
+              disabled={aiMutation.isPending}
+            >
+              {aiMutation.isPending
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Анализирую...</>
+                : <><Sparkles className="w-4 h-4 mr-2" />Расчёт сроков с AI</>}
+            </Button>
           </CardContent>
         </Card>
 
@@ -294,6 +326,39 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
           ))}
         </div>
       </div>
+
+      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Расчёт сроков выполнения — AI анализ
+            </DialogTitle>
+          </DialogHeader>
+          {aiMutation.isPending ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm">AI анализирует данные проекта...</p>
+              <p className="text-xs">Обычно занимает 10–20 секунд</p>
+            </div>
+          ) : analysis ? (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted/40 p-4 text-sm leading-relaxed whitespace-pre-wrap">
+                {analysis}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => { setAnalysis(null); aiMutation.mutate(); }}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Запросить повторно
+              </Button>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
