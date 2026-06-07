@@ -15,8 +15,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Leaf, Upload, Trash2, Loader2, FileText, Download,
-  Sparkles, ImageIcon, RefreshCw,
+  Leaf, Plus, Upload, Trash2, Loader2, FileText, Download,
+  Sparkles, ImageIcon, RefreshCw, Trees,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -220,6 +220,7 @@ export default function LandscapeDesign({ projectId, address }: { projectId: num
 
   return (
     <div className="p-4 md:p-8 space-y-6">
+      {/* Hero header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -403,6 +404,7 @@ export default function LandscapeDesign({ projectId, address }: { projectId: num
         </div>
       </motion.div>
 
+      {/* Tabs */}
       <Tabs defaultValue="designs">
         <TabsList className="bg-emerald-50 border border-emerald-100">
           <TabsTrigger value="designs" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
@@ -488,7 +490,11 @@ export default function LandscapeDesign({ projectId, address }: { projectId: num
               })}
             </div>
           ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
               <Card className="border-dashed border-2 border-emerald-200 bg-emerald-50/30">
                 <CardContent className="p-12 text-center space-y-4">
                   <motion.div
