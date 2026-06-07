@@ -14,6 +14,10 @@ import {
   type GalleryPhoto, type InsertGalleryPhoto,
   type DayComment, type InsertDayComment,
   type Lead, type InsertLead,
+  type LandscapeFile, type InsertLandscapeFile,
+  type LandscapeDesign, type InsertLandscapeDesign,
+  type HousePlanFile, type InsertHousePlanFile,
+  type HousePlan, type InsertHousePlan,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -71,6 +75,18 @@ export interface IStorage {
   getLeads(): Promise<Lead[]>;
   createLead(lead: InsertLead): Promise<Lead>;
   updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined>;
+  getLandscapeFilesByProjectId(projectId: number): Promise<LandscapeFile[]>;
+  createLandscapeFile(file: InsertLandscapeFile): Promise<LandscapeFile>;
+  deleteLandscapeFile(id: number): Promise<string | undefined>;
+  getLandscapeDesignsByProjectId(projectId: number): Promise<LandscapeDesign[]>;
+  createLandscapeDesign(design: InsertLandscapeDesign): Promise<LandscapeDesign>;
+  updateLandscapeDesign(id: number, data: Partial<LandscapeDesign>): Promise<LandscapeDesign | undefined>;
+  deleteLandscapeDesign(id: number): Promise<boolean>;
+  getHousePlanFilesByProjectId(projectId: number): Promise<HousePlanFile[]>;
+  createHousePlanFile(file: InsertHousePlanFile): Promise<HousePlanFile>;
+  deleteHousePlanFile(id: number): Promise<string | undefined>;
+  getHousePlanByProjectId(projectId: number): Promise<HousePlan | undefined>;
+  upsertHousePlan(plan: InsertHousePlan): Promise<HousePlan>;
 }
 
 export class MemStorage implements IStorage {
@@ -275,6 +291,35 @@ export class MemStorage implements IStorage {
       { id: 3, username: "petrov", password: "petrov123", role: "client", clientId: 2 },
     ];
     userList.forEach(u => this.users.set(u.id, u));
+
+    // Тестовые данные: ландшафтный дизайн
+    const testDesign: LandscapeDesign = {
+      id: 50,
+      projectId: 1,
+      questionnaire: JSON.stringify({
+        style: "modern minimalist",
+        area: "600",
+        plants: "Газон, хвойные деревья, гортензии",
+        features: "Беседка, дорожки из плитки, освещение",
+        colors: "Зелёный, серый, белый",
+        budget: "moderate",
+        wishes: "Детская площадка в углу участка",
+      }),
+      generatedImageUrl: "https://image.pollinations.ai/prompt/modern%20minimalist%20landscape%20design%20Russian%20residential%20garden%2C%20lawn%2C%20conifer%20trees%2C%20hydrangeas%2C%20gazebo%2C%20stone%20path%2C%20lighting%2C%20green%20grey%20white%20colors%2C%20photorealistic%2C%20bird%20eye%20view%2C%20high%20quality?width=800&height=600&nologo=true&seed=42",
+      status: "done",
+      createdAt: "2026-01-15T10:00:00",
+    };
+    this.landscapeDesigns.set(50, testDesign);
+
+    // Тестовые данные: план дома
+    const testHousePlan: HousePlan = {
+      id: 50,
+      projectId: 1,
+      cadastralNumber: "23:49:0204007:123",
+      communicationsNotes: "Газ — от ул. Демонстрационной\nВода — централизованное водоснабжение\nЭлектричество — 15 кВт, однофазное\nКанализация — централизованная",
+      updatedAt: "2026-01-15T10:00:00",
+    };
+    this.housePlans.set(50, testHousePlan);
   }
 
   async getClientByUid(uid: string): Promise<Client | undefined> {
@@ -598,6 +643,76 @@ export class MemStorage implements IStorage {
     const updated = { ...existing, ...data };
     this.leadsMap.set(id, updated);
     return updated;
+  }
+
+  private landscapeFiles: Map<number, LandscapeFile> = new Map();
+  private landscapeDesigns: Map<number, LandscapeDesign> = new Map();
+  private housePlanFiles: Map<number, HousePlanFile> = new Map();
+  private housePlans: Map<number, HousePlan> = new Map();
+
+  async getLandscapeFilesByProjectId(projectId: number): Promise<LandscapeFile[]> {
+    return Array.from(this.landscapeFiles.values()).filter(f => f.projectId === projectId);
+  }
+  async createLandscapeFile(file: InsertLandscapeFile): Promise<LandscapeFile> {
+    const id = this.nextId++;
+    const f: LandscapeFile = { id, projectId: file.projectId, url: file.url, name: file.name, type: file.type ?? "egrn", createdAt: file.createdAt };
+    this.landscapeFiles.set(id, f);
+    return f;
+  }
+  async deleteLandscapeFile(id: number): Promise<string | undefined> {
+    const f = this.landscapeFiles.get(id);
+    if (!f) return undefined;
+    this.landscapeFiles.delete(id);
+    return f.url;
+  }
+  async getLandscapeDesignsByProjectId(projectId: number): Promise<LandscapeDesign[]> {
+    return Array.from(this.landscapeDesigns.values()).filter(d => d.projectId === projectId);
+  }
+  async createLandscapeDesign(design: InsertLandscapeDesign): Promise<LandscapeDesign> {
+    const id = this.nextId++;
+    const d: LandscapeDesign = { id, projectId: design.projectId, questionnaire: design.questionnaire, generatedImageUrl: design.generatedImageUrl ?? null, status: design.status ?? "pending", createdAt: design.createdAt };
+    this.landscapeDesigns.set(id, d);
+    return d;
+  }
+  async updateLandscapeDesign(id: number, data: Partial<LandscapeDesign>): Promise<LandscapeDesign | undefined> {
+    const existing = this.landscapeDesigns.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...data };
+    this.landscapeDesigns.set(id, updated);
+    return updated;
+  }
+  async deleteLandscapeDesign(id: number): Promise<boolean> {
+    return this.landscapeDesigns.delete(id);
+  }
+  async getHousePlanFilesByProjectId(projectId: number): Promise<HousePlanFile[]> {
+    return Array.from(this.housePlanFiles.values()).filter(f => f.projectId === projectId);
+  }
+  async createHousePlanFile(file: InsertHousePlanFile): Promise<HousePlanFile> {
+    const id = this.nextId++;
+    const f: HousePlanFile = { id, projectId: file.projectId, url: file.url, name: file.name, type: file.type ?? "cadastral", createdAt: file.createdAt };
+    this.housePlanFiles.set(id, f);
+    return f;
+  }
+  async deleteHousePlanFile(id: number): Promise<string | undefined> {
+    const f = this.housePlanFiles.get(id);
+    if (!f) return undefined;
+    this.housePlanFiles.delete(id);
+    return f.url;
+  }
+  async getHousePlanByProjectId(projectId: number): Promise<HousePlan | undefined> {
+    return Array.from(this.housePlans.values()).find(p => p.projectId === projectId);
+  }
+  async upsertHousePlan(plan: InsertHousePlan): Promise<HousePlan> {
+    const existing = Array.from(this.housePlans.values()).find(p => p.projectId === plan.projectId);
+    if (existing) {
+      const updated = { ...existing, cadastralNumber: plan.cadastralNumber ?? null, communicationsNotes: plan.communicationsNotes ?? null, updatedAt: plan.updatedAt };
+      this.housePlans.set(existing.id, updated);
+      return updated;
+    }
+    const id = this.nextId++;
+    const p: HousePlan = { id, projectId: plan.projectId, cadastralNumber: plan.cadastralNumber ?? null, communicationsNotes: plan.communicationsNotes ?? null, updatedAt: plan.updatedAt };
+    this.housePlans.set(id, p);
+    return p;
   }
 }
 

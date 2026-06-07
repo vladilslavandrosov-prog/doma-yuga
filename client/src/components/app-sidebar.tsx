@@ -22,6 +22,8 @@ import {
   Settings,
   ImageIcon,
   ClipboardList,
+  Leaf,
+  Map,
 } from "lucide-react";
 import {
   useSidebar,
@@ -58,6 +60,8 @@ function getProjectItems(basePath: string) {
     { title: "Документы", url: `${basePath}/documents`, icon: FileText },
     { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera },
     { title: "Видео", url: `${basePath}/videos`, icon: Video },
+    { title: "Ландшафтный дизайн", url: `${basePath}/landscape`, icon: Leaf },
+    { title: "План дома", url: `${basePath}/houseplan`, icon: Map },
     { title: "Чат", url: `${basePath}/chat`, icon: MessageCircle },
   ];
 }

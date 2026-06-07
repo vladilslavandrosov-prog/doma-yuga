@@ -13,6 +13,6 @@ run:
   scriptName: null
   scriptArguments: null
   nodeArguments: null
-  command: npx drizzle-kit push --force && node dist/index.cjs
+  command: npm run db:migrate && node dist/index.cjs
   containerPort: 5000
   servicePort: 80

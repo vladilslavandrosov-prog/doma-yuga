@@ -17,6 +17,8 @@ import Documents from "@/pages/Documents";
 import Photos from "@/pages/Photos";
 import Videos from "@/pages/Videos";
 import Chat from "@/pages/Chat";
+import LandscapeDesign from "@/pages/LandscapeDesign";
+import HousePlan from "@/pages/HousePlan";
 import Settings from "@/pages/Settings";
 import Clients from "@/pages/Clients";
 import About from "@/pages/About";
@@ -46,10 +48,11 @@ function CabinetLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
+function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" | "landscape" | "houseplan" }) {
   const params = useParams<{ id: string }>();
   const projectId = parseInt(params.id);
   const basePath = `/cabinet/project/${params.id}`;
+  const { data: project } = useQuery<Project>({ queryKey: ["/api/project", projectId], enabled: !isNaN(projectId) });
 
   if (isNaN(projectId)) return <NotFound />;
 
@@ -70,6 +73,10 @@ function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execut
       return <Videos projectId={projectId} />;
     case "chat":
       return <Chat projectId={projectId} />;
+    case "landscape":
+      return <LandscapeDesign projectId={projectId} address={project?.address} />;
+    case "houseplan":
+      return <HousePlan projectId={projectId} address={project?.address} />;
   }
 }
 
@@ -202,27 +209,26 @@ function CabinetHome() {
   return <Dashboard projectId={1} basePath="/cabinet" />;
 }
 
-function ClientPage({ section }: { section: "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
+function ClientPageInner({ section, projectId }: { section: string; projectId: number }) {
+  const { data: project } = useQuery<Project>({ queryKey: ["/api/project", projectId] });
+  switch (section) {
+    case "estimates": return <Estimates projectId={projectId} />;
+    case "execution": return <WorkExecution projectId={projectId} />;
+    case "payments": return <Payments projectId={projectId} />;
+    case "documents": return <Documents projectId={projectId} />;
+    case "photos": return <Photos projectId={projectId} />;
+    case "videos": return <Videos projectId={projectId} />;
+    case "chat": return <Chat projectId={projectId} />;
+    case "landscape": return <LandscapeDesign projectId={projectId} address={project?.address} />;
+    case "houseplan": return <HousePlan projectId={projectId} address={project?.address} />;
+    default: return null;
+  }
+}
+
+function ClientPage({ section }: { section: "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" | "landscape" | "houseplan" }) {
   return (
     <ClientProjectLoader>
-      {(projectId) => {
-        switch (section) {
-          case "estimates":
-            return <Estimates projectId={projectId} />;
-          case "execution":
-            return <WorkExecution projectId={projectId} />;
-          case "payments":
-            return <Payments projectId={projectId} />;
-          case "documents":
-            return <Documents projectId={projectId} />;
-          case "photos":
-            return <Photos projectId={projectId} />;
-          case "videos":
-            return <Videos projectId={projectId} />;
-          case "chat":
-            return <Chat projectId={projectId} />;
-        }
-      }}
+      {(projectId) => <ClientPageInner section={section} projectId={projectId} />}
     </ClientProjectLoader>
   );
 }
@@ -244,6 +250,8 @@ function Router() {
       <Route path="/cabinet/photos">{() => <CabinetLayout><ClientPage section="photos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/videos">{() => <CabinetLayout><ClientPage section="videos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/chat">{() => <CabinetLayout><ClientPage section="chat" /></CabinetLayout>}</Route>
+      <Route path="/cabinet/landscape">{() => <CabinetLayout><ClientPage section="landscape" /></CabinetLayout>}</Route>
+      <Route path="/cabinet/houseplan">{() => <CabinetLayout><ClientPage section="houseplan" /></CabinetLayout>}</Route>
       <Route path="/cabinet/settings">{() => <CabinetLayout><Settings /></CabinetLayout>}</Route>
       <Route path="/cabinet/clients">{() => <CabinetLayout><AdminOnly><Clients /></AdminOnly></CabinetLayout>}</Route>
 
@@ -255,6 +263,8 @@ function Router() {
       <Route path="/cabinet/project/:id/photos">{() => <CabinetLayout><ProjectPage section="photos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/videos">{() => <CabinetLayout><ProjectPage section="videos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/chat">{() => <CabinetLayout><ProjectPage section="chat" /></CabinetLayout>}</Route>
+      <Route path="/cabinet/project/:id/landscape">{() => <CabinetLayout><ProjectPage section="landscape" /></CabinetLayout>}</Route>
+      <Route path="/cabinet/project/:id/houseplan">{() => <CabinetLayout><ProjectPage section="houseplan" /></CabinetLayout>}</Route>
 
       <Route path="/login" component={Login} />
       <Route component={NotFound} />

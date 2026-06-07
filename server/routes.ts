@@ -257,12 +257,11 @@ export async function registerRoutes(
 
   app.patch("/api/admin/projects/:id", requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
-    const { name, address, startDate, endDate, status, clientId } = req.body;
+    const { name, address, startDate, status, clientId } = req.body;
     const updates: Record<string, any> = {};
     if (name !== undefined) updates.name = name;
     if (address !== undefined) updates.address = address;
     if (startDate !== undefined) updates.startDate = startDate;
-    if (endDate !== undefined) updates.endDate = endDate || null;
     if (status !== undefined) updates.status = status;
     if (clientId !== undefined) updates.clientId = clientId;
     const updated = await storage.updateProject(id, updates);
@@ -448,6 +447,71 @@ export async function registerRoutes(
       },
       unreadMessages: unreadCount,
     });
+  });
+
+  app.post("/api/project/:id/ai-timeline", requireProjectAccess, async (req, res) => {
+    const projectId = parseInt(req.params.id);
+    const project = await storage.getProjectById(projectId);
+    if (!project) return res.status(404).json({ error: "Not found" });
+
+    const estimates = await storage.getEstimatesByProjectId(projectId);
+    const allItems: any[] = [];
+    for (const est of estimates) {
+      const items = await storage.getEstimateItemsByEstimateId(est.id);
+      items.forEach(i => allItems.push({ ...i, category: est.title }));
+    }
+
+    const completed = allItems.filter(i => i.status === "completed").length;
+    const inProgress = allItems.filter(i => i.status === "in_progress").length;
+    const planned = allItems.filter(i => i.status === "planned").length;
+
+    const groups: Record<string, { total: number; completed: number; inProgress: number }> = {};
+    for (const item of allItems) {
+      const g = item.workGroup ?? item.category ?? "Прочее";
+      if (!groups[g]) groups[g] = { total: 0, completed: 0, inProgress: 0 };
+      groups[g].total++;
+      if (item.status === "completed") groups[g].completed++;
+      if (item.status === "in_progress") groups[g].inProgress++;
+    }
+
+    const groupsSummary = Object.entries(groups)
+      .map(([name, g]) => `  - ${name}: выполнено ${g.completed}/${g.total}${g.inProgress > 0 ? `, в работе ${g.inProgress}` : ""}`)
+      .join("\n");
+
+    const prompt = `Ты — эксперт по строительству в России. Проанализируй прогресс строительного проекта и дай прогноз сроков завершения.
+
+Проект: "${project.name}"
+Адрес: ${project.address}
+Дата начала: ${project.startDate}
+Статус: ${project.status}
+
+Прогресс работ:
+- Всего позиций: ${allItems.length}
+- Выполнено: ${completed} (${allItems.length > 0 ? Math.round(completed / allItems.length * 100) : 0}%)
+- В работе: ${inProgress}
+- Запланировано: ${planned}
+
+По группам работ:
+${groupsSummary || "  - данные не указаны"}
+
+Дай краткий анализ (3-5 абзацев на русском языке):
+1. Оценка текущего темпа строительства
+2. Прогноз даты завершения (укажи конкретный месяц и год)
+3. Риски и узкие места
+4. Рекомендации для ускорения
+
+Пиши конкретно, без лишних вводных слов.`;
+
+    try {
+      const encoded = encodeURIComponent(prompt);
+      const url = `https://text.pollinations.ai/${encoded}`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
+      if (!response.ok) throw new Error("AI unavailable");
+      const text = await response.text();
+      res.json({ analysis: text.trim() });
+    } catch {
+      res.status(503).json({ error: "Сервис AI временно недоступен. Попробуйте позже." });
+    }
   });
 
   app.get("/api/dashboard/:uid", async (req, res) => {
@@ -877,6 +941,128 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Lead not found" });
     }
     res.json(lead);
+  });
+
+  // ── Ландшафтный дизайн ───────────────────────────────────────
+  app.get("/api/project/:id/landscape-files", requireProjectAccess, async (req, res) => {
+    const files = await storage.getLandscapeFilesByProjectId(parseInt(req.params.id));
+    res.json(files);
+  });
+
+  app.post("/api/admin/landscape-files/upload", requireAdmin, uploadDoc.single("file"), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const url = `/uploads/${req.file.filename}`;
+    const file = await storage.createLandscapeFile({
+      projectId: parseInt(req.body.projectId),
+      url,
+      name: req.body.name || req.file.originalname,
+      type: req.body.type || "egrn",
+      createdAt: new Date().toISOString(),
+    });
+    res.json(file);
+  });
+
+  app.delete("/api/admin/landscape-files/:id", requireAdmin, async (req, res) => {
+    const url = await storage.deleteLandscapeFile(parseInt(req.params.id));
+    if (url) deleteUploadedFile(url);
+    res.json({ ok: true });
+  });
+
+  app.get("/api/project/:id/landscape-designs", requireProjectAccess, async (req, res) => {
+    const designs = await storage.getLandscapeDesignsByProjectId(parseInt(req.params.id));
+    res.json(designs);
+  });
+
+  app.post("/api/admin/landscape-designs", requireAdmin, async (req, res) => {
+    const design = await storage.createLandscapeDesign({
+      projectId: parseInt(req.body.projectId),
+      questionnaire: JSON.stringify(req.body.questionnaire),
+      generatedImageUrl: req.body.generatedImageUrl || null,
+      status: req.body.status || "pending",
+      createdAt: new Date().toISOString(),
+    });
+    res.json(design);
+  });
+
+  app.post("/api/admin/landscape-designs/generate", requireAdmin, async (req, res) => {
+    const { projectId, questionnaire, prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "prompt required" });
+
+    try {
+      const encoded = encodeURIComponent(prompt);
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=800&height=600&nologo=true&seed=${Date.now()}`;
+
+      const imgRes = await fetch(pollinationsUrl, { signal: AbortSignal.timeout(60000) });
+      if (!imgRes.ok) throw new Error("Pollinations error");
+
+      const buffer = Buffer.from(await imgRes.arrayBuffer());
+      const filename = `landscape-${Date.now()}.jpg`;
+      const filePath = path.resolve("uploads", filename);
+      fs.writeFileSync(filePath, buffer);
+      const localUrl = `/uploads/${filename}`;
+
+      const design = await storage.createLandscapeDesign({
+        projectId: parseInt(projectId),
+        questionnaire: JSON.stringify(questionnaire),
+        generatedImageUrl: localUrl,
+        status: "done",
+        createdAt: new Date().toISOString(),
+      });
+      res.json(design);
+    } catch {
+      res.status(503).json({ error: "Не удалось сгенерировать изображение. Попробуйте ещё раз." });
+    }
+  });
+
+  app.patch("/api/admin/landscape-designs/:id", requireAdmin, async (req, res) => {
+    const design = await storage.updateLandscapeDesign(parseInt(req.params.id), req.body);
+    if (!design) return res.status(404).json({ error: "Not found" });
+    res.json(design);
+  });
+
+  app.delete("/api/admin/landscape-designs/:id", requireAdmin, async (req, res) => {
+    await storage.deleteLandscapeDesign(parseInt(req.params.id));
+    res.json({ ok: true });
+  });
+
+  // ── План дома ─────────────────────────────────────────────────
+  app.get("/api/project/:id/house-plan", requireProjectAccess, async (req, res) => {
+    const plan = await storage.getHousePlanByProjectId(parseInt(req.params.id));
+    res.json(plan ?? null);
+  });
+
+  app.put("/api/admin/house-plan", requireAdmin, async (req, res) => {
+    const plan = await storage.upsertHousePlan({
+      projectId: parseInt(req.body.projectId),
+      cadastralNumber: req.body.cadastralNumber || null,
+      communicationsNotes: req.body.communicationsNotes || null,
+      updatedAt: new Date().toISOString(),
+    });
+    res.json(plan);
+  });
+
+  app.get("/api/project/:id/house-plan-files", requireProjectAccess, async (req, res) => {
+    const files = await storage.getHousePlanFilesByProjectId(parseInt(req.params.id));
+    res.json(files);
+  });
+
+  app.post("/api/admin/house-plan-files/upload", requireAdmin, uploadDoc.single("file"), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const url = `/uploads/${req.file.filename}`;
+    const file = await storage.createHousePlanFile({
+      projectId: parseInt(req.body.projectId),
+      url,
+      name: req.body.name || req.file.originalname,
+      type: req.body.type || "cadastral",
+      createdAt: new Date().toISOString(),
+    });
+    res.json(file);
+  });
+
+  app.delete("/api/admin/house-plan-files/:id", requireAdmin, async (req, res) => {
+    const url = await storage.deleteHousePlanFile(parseInt(req.params.id));
+    if (url) deleteUploadedFile(url);
+    res.json({ ok: true });
   });
 
   return httpServer;
