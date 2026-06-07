@@ -878,5 +878,97 @@ export async function registerRoutes(
     res.json(lead);
   });
 
+  // ── Ландшафтный дизайн ───────────────────────────────────────
+  app.get("/api/project/:id/landscape-files", requireProjectAccess, async (req, res) => {
+    const files = await storage.getLandscapeFilesByProjectId(parseInt(req.params.id));
+    res.json(files);
+  });
+
+  app.post("/api/admin/landscape-files/upload", requireAdmin, uploadDoc.single("file"), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const url = `/uploads/${req.file.filename}`;
+    const file = await storage.createLandscapeFile({
+      projectId: parseInt(req.body.projectId),
+      url,
+      name: req.body.name || req.file.originalname,
+      type: req.body.type || "egrn",
+      createdAt: new Date().toISOString(),
+    });
+    res.json(file);
+  });
+
+  app.delete("/api/admin/landscape-files/:id", requireAdmin, async (req, res) => {
+    const url = await storage.deleteLandscapeFile(parseInt(req.params.id));
+    if (url) deleteUploadedFile(url);
+    res.json({ ok: true });
+  });
+
+  app.get("/api/project/:id/landscape-designs", requireProjectAccess, async (req, res) => {
+    const designs = await storage.getLandscapeDesignsByProjectId(parseInt(req.params.id));
+    res.json(designs);
+  });
+
+  app.post("/api/admin/landscape-designs", requireAdmin, async (req, res) => {
+    const design = await storage.createLandscapeDesign({
+      projectId: parseInt(req.body.projectId),
+      questionnaire: JSON.stringify(req.body.questionnaire),
+      generatedImageUrl: req.body.generatedImageUrl || null,
+      status: req.body.status || "pending",
+      createdAt: new Date().toISOString(),
+    });
+    res.json(design);
+  });
+
+  app.patch("/api/admin/landscape-designs/:id", requireAdmin, async (req, res) => {
+    const design = await storage.updateLandscapeDesign(parseInt(req.params.id), req.body);
+    if (!design) return res.status(404).json({ error: "Not found" });
+    res.json(design);
+  });
+
+  app.delete("/api/admin/landscape-designs/:id", requireAdmin, async (req, res) => {
+    await storage.deleteLandscapeDesign(parseInt(req.params.id));
+    res.json({ ok: true });
+  });
+
+  // ── План дома ─────────────────────────────────────────────────
+  app.get("/api/project/:id/house-plan", requireProjectAccess, async (req, res) => {
+    const plan = await storage.getHousePlanByProjectId(parseInt(req.params.id));
+    res.json(plan ?? null);
+  });
+
+  app.put("/api/admin/house-plan", requireAdmin, async (req, res) => {
+    const plan = await storage.upsertHousePlan({
+      projectId: parseInt(req.body.projectId),
+      cadastralNumber: req.body.cadastralNumber || null,
+      communicationsNotes: req.body.communicationsNotes || null,
+      updatedAt: new Date().toISOString(),
+    });
+    res.json(plan);
+  });
+
+  app.get("/api/project/:id/house-plan-files", requireProjectAccess, async (req, res) => {
+    const files = await storage.getHousePlanFilesByProjectId(parseInt(req.params.id));
+    res.json(files);
+  });
+
+  app.post("/api/admin/house-plan-files/upload", requireAdmin, uploadDoc.single("file"), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const url = `/uploads/${req.file.filename}`;
+    const file = await storage.createHousePlanFile({
+      projectId: parseInt(req.body.projectId),
+      url,
+      name: req.body.name || req.file.originalname,
+      type: req.body.type || "cadastral",
+      createdAt: new Date().toISOString(),
+    });
+    res.json(file);
+  });
+
+  app.delete("/api/admin/house-plan-files/:id", requireAdmin, async (req, res) => {
+    const url = await storage.deleteHousePlanFile(parseInt(req.params.id));
+    if (url) deleteUploadedFile(url);
+    res.json({ ok: true });
+  });
+
   return httpServer;
 }
