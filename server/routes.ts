@@ -21,8 +21,11 @@ import {
   insertLeadSchema,
 } from "@shared/schema";
 
+const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
 const uploadStorage = multer.diskStorage({
-  destination: path.resolve("uploads"),
+  destination: uploadsDir,
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
     const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
@@ -118,7 +121,8 @@ async function requireProjectAccess(req: Request, res: Response, next: NextFunct
 
 function deleteUploadedFile(url: string): void {
   if (!url.startsWith("/uploads/")) return;
-  const filePath = path.resolve(url.slice(1));
+  const filename = url.slice("/uploads/".length);
+  const filePath = path.join(uploadsDir, filename);
   fs.unlink(filePath, (err) => {
     if (err && err.code !== "ENOENT") {
       console.error(`[uploads] Failed to delete file ${filePath}:`, err);
@@ -1007,7 +1011,7 @@ ${groupsSummary || "  - данные не указаны"}
 
       const buffer = Buffer.from(await imgRes.arrayBuffer());
       const filename = `landscape-${Date.now()}.jpg`;
-      const filePath = path.resolve("uploads", filename);
+      const filePath = path.join(uploadsDir, filename);
       fs.writeFileSync(filePath, buffer);
       const localUrl = `/uploads/${filename}`;
 

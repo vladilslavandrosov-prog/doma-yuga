@@ -43,7 +43,9 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-app.use("/uploads", express.static(path.resolve("uploads")));
+const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
+if (!require("fs").existsSync(uploadsDir)) require("fs").mkdirSync(uploadsDir, { recursive: true });
+app.use("/uploads", express.static(uploadsDir));
 
 const PgSession = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production";

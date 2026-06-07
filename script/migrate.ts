@@ -67,7 +67,7 @@ async function main() {
     // Скачиваем демо-изображение с Pollinations.ai
     let demoImageUrl: string | null = null;
     try {
-      const uploadsDir = path.resolve("uploads");
+      const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
       const demoPrompt = encodeURIComponent(
         "modern minimalist landscape design, cottage garden, gazebo, tile paths, conifer trees, hydrangeas, lawn, soft lighting, aerial view, photorealistic"
@@ -102,7 +102,7 @@ async function main() {
     const designWithoutImage = await db.execute(sql`SELECT id FROM landscape_designs WHERE project_id = 1 AND generated_image_url IS NULL LIMIT 1`);
     if (designWithoutImage.rows.length > 0) {
       try {
-        const uploadsDir = path.resolve("uploads");
+        const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
         if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
         const demoPrompt = encodeURIComponent(
           "modern minimalist landscape design, cottage garden, gazebo, tile paths, conifer trees, hydrangeas, lawn, soft lighting, aerial view, photorealistic"
