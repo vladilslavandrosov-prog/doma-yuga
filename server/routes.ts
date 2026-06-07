@@ -503,13 +503,23 @@ ${groupsSummary || "  - данные не указаны"}
 Пиши конкретно, без лишних вводных слов.`;
 
     try {
-      const encoded = encodeURIComponent(prompt);
-      const url = `https://text.pollinations.ai/${encoded}`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
-      if (!response.ok) throw new Error("AI unavailable");
-      const text = await response.text();
+      const response = await fetch("https://text.pollinations.ai/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "openai",
+          messages: [{ role: "user", content: prompt }],
+          stream: false,
+        }),
+        signal: AbortSignal.timeout(45000),
+      });
+      if (!response.ok) throw new Error(`AI status ${response.status}`);
+      const data = await response.json() as any;
+      const text: string = data?.choices?.[0]?.message?.content ?? "";
+      if (!text) throw new Error("Empty response");
       res.json({ analysis: text.trim() });
-    } catch {
+    } catch (err) {
+      console.error("AI timeline error:", err);
       res.status(503).json({ error: "Сервис AI временно недоступен. Попробуйте позже." });
     }
   });
