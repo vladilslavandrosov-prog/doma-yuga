@@ -984,6 +984,36 @@ ${groupsSummary || "  - данные не указаны"}
     res.json(design);
   });
 
+  app.post("/api/admin/landscape-designs/generate", requireAdmin, async (req, res) => {
+    const { projectId, questionnaire, prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "prompt required" });
+
+    try {
+      const encoded = encodeURIComponent(prompt);
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=800&height=600&nologo=true&seed=${Date.now()}`;
+
+      const imgRes = await fetch(pollinationsUrl, { signal: AbortSignal.timeout(60000) });
+      if (!imgRes.ok) throw new Error("Pollinations error");
+
+      const buffer = Buffer.from(await imgRes.arrayBuffer());
+      const filename = `landscape-${Date.now()}.jpg`;
+      const filePath = path.resolve("uploads", filename);
+      fs.writeFileSync(filePath, buffer);
+      const localUrl = `/uploads/${filename}`;
+
+      const design = await storage.createLandscapeDesign({
+        projectId: parseInt(projectId),
+        questionnaire: JSON.stringify(questionnaire),
+        generatedImageUrl: localUrl,
+        status: "done",
+        createdAt: new Date().toISOString(),
+      });
+      res.json(design);
+    } catch {
+      res.status(503).json({ error: "Не удалось сгенерировать изображение. Попробуйте ещё раз." });
+    }
+  });
+
   app.patch("/api/admin/landscape-designs/:id", requireAdmin, async (req, res) => {
     const design = await storage.updateLandscapeDesign(parseInt(req.params.id), req.body);
     if (!design) return res.status(404).json({ error: "Not found" });

@@ -173,27 +173,23 @@ export default function LandscapeDesign({ projectId, address }: { projectId: num
     setGenerating(true);
     setPreviewUrl(null);
     try {
-      const prompt = encodeURIComponent(buildPrompt(q, address ?? ""));
-      const url = `https://image.pollinations.ai/prompt/${prompt}?width=800&height=600&nologo=true&seed=${Date.now()}`;
-      // Проверяем что изображение загрузится
-      await new Promise<void>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error("Не удалось сгенерировать изображение"));
-        img.src = url;
+      const prompt = buildPrompt(q, address ?? "");
+      const res = await fetch("/api/admin/landscape-designs/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ projectId, questionnaire: q, prompt }),
       });
-      setPreviewUrl(url);
-      // Сохраняем дизайн
-      await apiRequest("POST", "/api/admin/landscape-designs", {
-        projectId,
-        questionnaire: q,
-        generatedImageUrl: url,
-        status: "done",
-      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Ошибка генерации");
+      }
+      const design = await res.json();
+      setPreviewUrl(design.generatedImageUrl);
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "landscape-designs"] });
       toast({ title: "Дизайн сгенерирован!" });
-    } catch {
-      toast({ title: "Ошибка генерации. Попробуйте ещё раз.", variant: "destructive" });
+    } catch (e: any) {
+      toast({ title: e.message ?? "Ошибка генерации. Попробуйте ещё раз.", variant: "destructive" });
     } finally {
       setGenerating(false);
     }

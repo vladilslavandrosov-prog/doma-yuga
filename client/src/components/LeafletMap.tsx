@@ -38,7 +38,7 @@ export function LeafletMap({ address, className = "" }: LeafletMapProps) {
       const lat = geoData[0] ? parseFloat(geoData[0].lat) : 55.7558;
       const lon = geoData[0] ? parseFloat(geoData[0].lon) : 37.6173;
 
-      const map = L.map(containerRef.current).setView([lat, lon], 17);
+      const map = L.map(containerRef.current, { attributionControl: false }).setView([lat, lon], 17);
       mapRef.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {

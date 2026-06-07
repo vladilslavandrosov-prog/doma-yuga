@@ -67,7 +67,7 @@ async function main() {
       VALUES (
         1,
         '{"style":"modern minimalist","area":"600","plants":"Газон, хвойные деревья, гортензии","features":"Беседка, дорожки из плитки, освещение","colors":"Зелёный, серый, белый","budget":"moderate","wishes":"Детская площадка в углу участка"}',
-        'https://image.pollinations.ai/prompt/modern%20minimalist%20landscape%20design%20Russian%20residential%20garden%2C%20lawn%2C%20conifer%20trees%2C%20hydrangeas%2C%20gazebo%2C%20stone%20path%2C%20outdoor%20lighting%2C%20green%20grey%20white%20palette%2C%20photorealistic%2C%20aerial%20bird%20eye%20view%2C%20high%20quality?width=800&height=600&nologo=true&seed=42',
+        null,
         'done',
         '2026-01-15T10:00:00'
       )
