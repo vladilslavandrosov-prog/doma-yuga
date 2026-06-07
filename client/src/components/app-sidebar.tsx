@@ -23,6 +23,7 @@ import {
   ImageIcon,
   ClipboardList,
   Inbox,
+  Map,
 } from "lucide-react";
 import {
   useSidebar,
@@ -59,6 +60,7 @@ function getProjectItems(basePath: string) {
     { title: "Документы", url: `${basePath}/documents`, icon: FileText },
     { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera },
     { title: "Видео", url: `${basePath}/videos`, icon: Video },
+    { title: "Карта объекта", url: `${basePath}/map`, icon: Map },
     { title: "Чат", url: `${basePath}/chat`, icon: MessageCircle },
   ];
 }

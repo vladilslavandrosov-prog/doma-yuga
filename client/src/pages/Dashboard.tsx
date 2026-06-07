@@ -15,12 +15,25 @@ import {
   Clock,
   CircleDot,
   HardHat,
+  BrainCircuit,
+  AlertTriangle,
+  ShieldCheck,
+  Map,
 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+
+interface ForecastChartPoint {
+  month: string;
+  planned: number;
+  completed: number;
+}
 
 interface DashboardData {
   client: {
@@ -38,6 +51,8 @@ interface DashboardData {
     endDate?: string | null;
     status: string;
     clientId: number;
+    latitude?: string | null;
+    longitude?: string | null;
   };
   progress: {
     total: number;
@@ -50,6 +65,15 @@ interface DashboardData {
     remaining: number;
   };
   unreadMessages: number;
+  forecast?: {
+    estimatedEndDate: string | null;
+    estimatedDaysLeft: number | null;
+    elapsedDays: number;
+    velocityPerDay: number;
+    riskLevel: "none" | "low" | "medium" | "high";
+    aiSummary: string | null;
+    chartData: ForecastChartPoint[];
+  };
 }
 
 function formatCurrency(value: number): string {
@@ -59,6 +83,19 @@ function formatCurrency(value: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function getRiskBadge(risk: string) {
+  switch (risk) {
+    case "low":
+      return <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"><ShieldCheck className="w-3 h-3 mr-1" />В срок</Badge>;
+    case "medium":
+      return <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"><AlertTriangle className="w-3 h-3 mr-1" />Небольшое отставание</Badge>;
+    case "high":
+      return <Badge variant="destructive" className="text-xs"><AlertTriangle className="w-3 h-3 mr-1" />Риск срыва срока</Badge>;
+    default:
+      return null;
+  }
 }
 
 function getStatusBadge(status: string) {
@@ -90,6 +127,7 @@ function getQuickLinks(basePath: string) {
     { title: "Оплата", url: `${basePath}/payments`, icon: CreditCard, description: "История платежей" },
     { title: "Документы", url: `${basePath}/documents`, icon: FileText, description: "Файлы проекта" },
     { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera, description: "Фото с объекта" },
+    { title: "Карта объекта", url: `${basePath}/map`, icon: Map, description: "Расположение и кадастр" },
     { title: "Чат", url: `${basePath}/chat`, icon: MessageCircle, description: "Связь с компанией" },
   ];
 }
@@ -161,10 +199,12 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
     );
   }
 
-  const { client, project, progress, financial, unreadMessages } = data;
+  const { client, project, progress, financial, unreadMessages, forecast } = data;
   const paymentPercentage = financial.totalEstimate > 0
     ? Math.round((financial.totalPaid / financial.totalEstimate) * 100)
     : 0;
+
+  const hasMap = !!(project.latitude && project.longitude);
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -272,6 +312,93 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Прогноз завершения ── */}
+      {forecast && progress.total > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <BrainCircuit className="w-5 h-5 text-primary" />
+            Прогноз завершения
+            {forecast.riskLevel !== "none" && getRiskBadge(forecast.riskLevel)}
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Метрики */}
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Прошло дней</p>
+                    <p className="text-2xl font-bold">{forecast.elapsedDays}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Осталось (расчётно)</p>
+                    <p className="text-2xl font-bold">
+                      {forecast.estimatedDaysLeft !== null ? forecast.estimatedDaysLeft : "—"}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">дн.</span>
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Темп работ</p>
+                    <p className="text-lg font-semibold">
+                      {forecast.velocityPerDay > 0 ? forecast.velocityPerDay.toFixed(2) : "—"}
+                      <span className="text-xs font-normal text-muted-foreground ml-1">поз./день</span>
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Прогноз окончания</p>
+                    {forecast.estimatedEndDate ? (
+                      <p className="text-sm font-semibold text-primary">
+                        {new Date(forecast.estimatedEndDate).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Нет данных</p>
+                    )}
+                  </div>
+                </div>
+                {forecast.aiSummary && (
+                  <div className="rounded-lg bg-primary/5 border border-primary/15 p-3 text-sm text-foreground/80 leading-relaxed">
+                    <div className="flex items-center gap-1.5 text-xs text-primary font-medium mb-1.5">
+                      <BrainCircuit className="w-3.5 h-3.5" />
+                      ИИ-анализ
+                    </div>
+                    {forecast.aiSummary}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* График помесячного выполнения */}
+            {forecast.chartData.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Динамика выполнения работ</CardTitle>
+                  <CardDescription className="text-xs">По плановым месяцам</CardDescription>
+                </CardHeader>
+                <CardContent className="p-2">
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={forecast.chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+                      <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                        formatter={(val, name) => [val, name === "planned" ? "Запланировано" : "Выполнено"]}
+                        labelFormatter={(l) => {
+                          const [y, m] = String(l).split("-");
+                          return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+                        }}
+                      />
+                      <Legend formatter={(v) => v === "planned" ? "Запланировано" : "Выполнено"} iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="planned" fill="hsl(var(--chart-4))" radius={[3, 3, 0, 0]} opacity={0.6} />
+                      <Bar dataKey="completed" fill="hsl(var(--chart-2))" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Быстрый доступ</h2>

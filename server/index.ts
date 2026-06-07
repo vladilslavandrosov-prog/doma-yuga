@@ -118,6 +118,14 @@ httpServer.listen(
 );
 
 (async () => {
+  // Автомиграция новых колонок (безопасно — IF NOT EXISTS)
+  await pool.query(`
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS latitude NUMERIC;
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS longitude NUMERIC;
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS cadastral_number TEXT;
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS utilities_json TEXT;
+  `).catch((e) => console.warn("Migration warning:", e.message));
+
   const { seedDatabase } = await import("./seed");
   await seedDatabase();
 

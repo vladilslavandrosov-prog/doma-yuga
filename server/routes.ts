@@ -257,7 +257,7 @@ export async function registerRoutes(
 
   app.patch("/api/admin/projects/:id", requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
-    const { name, address, startDate, endDate, status, clientId } = req.body;
+    const { name, address, startDate, endDate, status, clientId, latitude, longitude, cadastralNumber } = req.body;
     const updates: Record<string, any> = {};
     if (name !== undefined) updates.name = name;
     if (address !== undefined) updates.address = address;
@@ -265,6 +265,10 @@ export async function registerRoutes(
     if (endDate !== undefined) updates.endDate = endDate || null;
     if (status !== undefined) updates.status = status;
     if (clientId !== undefined) updates.clientId = clientId;
+    if (latitude !== undefined) updates.latitude = latitude || null;
+    if (longitude !== undefined) updates.longitude = longitude || null;
+    if (cadastralNumber !== undefined) updates.cadastralNumber = cadastralNumber || null;
+    if (req.body.utilitiesJson !== undefined) updates.utilitiesJson = req.body.utilitiesJson || null;
     const updated = await storage.updateProject(id, updates);
     if (!updated) {
       return res.status(404).json({ error: "Project not found" });
@@ -411,6 +415,75 @@ export async function registerRoutes(
     res.json({ count });
   });
 
+  // Прокси к Росреестру ПКК — обходим CORS
+  app.get("/api/pkk/:cn", requireProjectAccess, async (req, res) => {
+    const cn = String(req.params.cn).replace(/[^0-9:]/g, "");
+    if (!cn) return res.status(400).json({ error: "Invalid cadastral number" });
+    try {
+      const url = `https://pkk.rosreestr.ru/api/features/1?text=${encodeURIComponent(cn)}&limit=11&tolerance=4`;
+      const r = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible)" },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) return res.status(502).json({ error: "PKK unavailable" });
+      const data = await r.json();
+      res.json(data);
+    } catch {
+      res.status(502).json({ error: "PKK request failed" });
+    }
+  });
+
+  // Геокодирование адреса через Nominatim (OpenStreetMap, бесплатно)
+  app.get("/api/geocode", requireProjectAccess, async (req, res) => {
+    const q = String(req.query.q ?? "").trim();
+    if (!q) return res.status(400).json({ error: "Missing q" });
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=ru`;
+      const r = await fetch(url, {
+        headers: { "User-Agent": "doma-yuga/1.0" },
+        signal: AbortSignal.timeout(8000),
+      });
+      const data = await r.json();
+      res.json(data);
+    } catch {
+      res.status(502).json({ error: "Geocoding failed" });
+    }
+  });
+
+  async function getAiForecast(params: {
+    projectName: string;
+    startDate: string;
+    endDate: string | null | undefined;
+    totalItems: number;
+    completedItems: number;
+    elapsedDays: number;
+    estimatedDaysLeft: number;
+    riskLevel: string;
+  }): Promise<string | null> {
+    const key = process.env.GROQ_API_KEY;
+    if (!key) return null;
+    try {
+      const prompt = `Ты аналитик строительного проекта. Дай краткий прогноз (2-3 предложения, на русском, без маркдауна) по завершению стройки.
+Данные: проект «${params.projectName}», начало ${params.startDate}, дедлайн ${params.endDate ?? "не задан"}, выполнено ${params.completedItems}/${params.totalItems} позиций (${Math.round(params.completedItems / Math.max(params.totalItems, 1) * 100)}%), прошло ${params.elapsedDays} дней, по темпам осталось ~${params.estimatedDaysLeft} дней, уровень риска: ${params.riskLevel}.`;
+      const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 200,
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!r.ok) return null;
+      const d = await r.json();
+      return d.choices?.[0]?.message?.content?.trim() ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   app.get("/api/dashboard/project/:id", requireProjectAccess, async (req, res) => {
     const projectId = parseInt(req.params.id);
     const project = await storage.getProjectById(projectId);
@@ -422,16 +495,65 @@ export async function registerRoutes(
     let totalItems = 0;
     let completedItems = 0;
     let totalEstimateSum = 0;
+    const allItems: { date: string; status: string; totalPrice: string }[] = [];
     for (const est of estimates) {
       const items = await storage.getEstimateItemsByEstimateId(est.id);
       totalItems += items.length;
       completedItems += items.filter(i => i.status === "completed").length;
       totalEstimateSum += items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
+      allItems.push(...items.map(i => ({ date: i.date, status: i.status, totalPrice: i.totalPrice })));
     }
     const payments = await storage.getPaymentsByProjectId(project.id);
     const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
     const unreadSender = req.session.role === "admin" ? "client" : "admin";
     const unreadCount = await storage.getUnreadCount(project.id, unreadSender);
+
+    // Прогноз завершения
+    const today = new Date();
+    const start = new Date(project.startDate);
+    const elapsedDays = Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000));
+    const velocityPerDay = completedItems / elapsedDays;
+    const remaining = totalItems - completedItems;
+    const estimatedDaysLeft = velocityPerDay > 0 ? Math.ceil(remaining / velocityPerDay) : null;
+    const estimatedEndDate = estimatedDaysLeft !== null
+      ? new Date(today.getTime() + estimatedDaysLeft * 86400000).toISOString().split("T")[0]
+      : null;
+
+    let riskLevel: "none" | "low" | "medium" | "high" = "none";
+    if (totalItems > 0 && estimatedDaysLeft !== null && project.endDate) {
+      const deadline = new Date(project.endDate);
+      const projectedEnd = new Date(today.getTime() + estimatedDaysLeft * 86400000);
+      const diffDays = Math.floor((projectedEnd.getTime() - deadline.getTime()) / 86400000);
+      if (diffDays <= 0) riskLevel = "low";
+      else if (diffDays <= 14) riskLevel = "medium";
+      else riskLevel = "high";
+    } else if (totalItems > 0 && completedItems < totalItems) {
+      riskLevel = "low";
+    }
+
+    // Ежемесячная динамика для графика — группируем позиции по плановому месяцу
+    const monthMap = new Map<string, { planned: number; completed: number }>();
+    for (const item of allItems) {
+      const mo = item.date?.slice(0, 7) ?? "unknown";
+      if (!monthMap.has(mo)) monthMap.set(mo, { planned: 0, completed: 0 });
+      const entry = monthMap.get(mo)!;
+      entry.planned++;
+      if (item.status === "completed") entry.completed++;
+    }
+    const chartData = Array.from(monthMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, v]) => ({ month, planned: v.planned, completed: v.completed }));
+
+    const aiSummary = await getAiForecast({
+      projectName: project.name,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      totalItems,
+      completedItems,
+      elapsedDays,
+      estimatedDaysLeft: estimatedDaysLeft ?? 0,
+      riskLevel,
+    });
 
     res.json({
       client: client ?? { id: 0, name: "Неизвестный", phone: null, email: null, uid: "" },
@@ -447,6 +569,15 @@ export async function registerRoutes(
         remaining: totalEstimateSum - totalPaid,
       },
       unreadMessages: unreadCount,
+      forecast: {
+        estimatedEndDate,
+        estimatedDaysLeft,
+        elapsedDays,
+        velocityPerDay: Math.round(velocityPerDay * 100) / 100,
+        riskLevel,
+        aiSummary,
+        chartData,
+      },
     });
   });
 

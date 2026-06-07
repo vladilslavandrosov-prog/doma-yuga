@@ -20,6 +20,7 @@ import Chat from "@/pages/Chat";
 import Settings from "@/pages/Settings";
 import Clients from "@/pages/Clients";
 import Leads from "@/pages/Leads";
+import ProjectMap from "@/pages/ProjectMap";
 import About from "@/pages/About";
 import Advantages from "@/pages/Advantages";
 import PublicGallery from "@/pages/PublicGallery";
@@ -47,7 +48,7 @@ function CabinetLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
+function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" | "map" }) {
   const params = useParams<{ id: string }>();
   const projectId = parseInt(params.id);
   const basePath = `/cabinet/project/${params.id}`;
@@ -71,6 +72,8 @@ function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execut
       return <Videos projectId={projectId} />;
     case "chat":
       return <Chat projectId={projectId} />;
+    case "map":
+      return <ProjectMap projectId={projectId} />;
   }
 }
 
@@ -257,6 +260,7 @@ function Router() {
       <Route path="/cabinet/project/:id/photos">{() => <CabinetLayout><ProjectPage section="photos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/videos">{() => <CabinetLayout><ProjectPage section="videos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/chat">{() => <CabinetLayout><ProjectPage section="chat" /></CabinetLayout>}</Route>
+      <Route path="/cabinet/project/:id/map">{() => <CabinetLayout><ProjectPage section="map" /></CabinetLayout>}</Route>
 
       <Route path="/login" component={Login} />
       <Route component={NotFound} />

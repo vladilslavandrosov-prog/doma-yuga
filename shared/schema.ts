@@ -23,6 +23,10 @@ export const projects = pgTable("projects", {
   endDate: text("end_date"),
   status: text("status").notNull().default("active"),
   clientId: integer("client_id").notNull(),
+  latitude: numeric("latitude"),
+  longitude: numeric("longitude"),
+  cadastralNumber: text("cadastral_number"),
+  utilitiesJson: text("utilities_json"),
 });
 
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true });
