@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { LeafletMap } from "@/components/LeafletMap";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import {
   Map, Upload, Trash2, Loader2, FileText, Download,
-  Save, ExternalLink, Info,
+  Save, Info,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -46,12 +47,6 @@ const FILE_TYPE_LABELS: Record<string, string> = {
   other: "Другое",
 };
 
-function buildYandexMapUrl(address: string, cadastralNumber?: string | null): string {
-  const query = cadastralNumber
-    ? `кадастровый номер ${cadastralNumber}`
-    : address;
-  return `https://yandex.ru/maps/?text=${encodeURIComponent(query)}&z=17&l=map`;
-}
 
 export default function HousePlan({ projectId, address }: { projectId: number; address?: string }) {
   const { isAdmin } = useAuth();
@@ -129,7 +124,6 @@ export default function HousePlan({ projectId, address }: { projectId: number; a
   }
 
   const mapAddress = address ?? "";
-  const mapUrl = buildYandexMapUrl(mapAddress, plan?.cadastralNumber);
 
   if (planLoading || filesLoading) {
     return (
@@ -188,30 +182,14 @@ export default function HousePlan({ projectId, address }: { projectId: number; a
       {/* Карта */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Map className="h-4 w-4" />
-              Карта объекта
-            </CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <a href={mapUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-1.5" />
-                Открыть в Яндекс.Картах
-              </a>
-            </Button>
-          </div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Map className="h-4 w-4" />
+            Карта объекта
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {mapAddress || plan?.cadastralNumber ? (
-            <iframe
-              src={`https://yandex.ru/maps/?text=${encodeURIComponent(mapAddress)}&z=17&l=map`}
-              width="100%"
-              height="450"
-              style={{ border: 0 }}
-              className="rounded-b-lg"
-              title="Карта объекта"
-              allow="fullscreen"
-            />
+          {mapAddress ? (
+            <LeafletMap address={mapAddress} className="h-[450px] w-full rounded-b-lg" />
           ) : (
             <div className="h-64 flex flex-col items-center justify-center text-muted-foreground gap-2 p-6">
               <Map className="h-12 w-12 opacity-20" />
