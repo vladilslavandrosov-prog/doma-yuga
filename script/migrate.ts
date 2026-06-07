@@ -142,6 +142,10 @@ async function main() {
     console.log("✓ тестовый план дома добавлен");
   }
 
+  // Обновить адрес демо-проекта
+  await db.execute(sql`UPDATE projects SET address = 'г. Новороссийск, ул. Клеверная, 23' WHERE id = 1`);
+  console.log("✓ адрес демо-проекта обновлён");
+
   // Обновить пароль admin
   const newHash = await bcrypt.hash("admin1q2w3e", 10);
   await db.execute(sql`UPDATE users SET password = ${newHash} WHERE username = 'admin'`);
