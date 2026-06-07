@@ -80,14 +80,6 @@ function ProjectCard({ project, isAdmin, onEdit }: { project: Project; isAdmin: 
               <Calendar className="w-4 h-4 shrink-0" />
               <span>Начало: {formatDate(project.startDate)}</span>
             </div>
-            {project.endDate && (
-              <div className="flex items-center gap-2 text-sm" data-testid={`text-project-end-date-${project.id}`}>
-                <Calendar className="w-4 h-4 shrink-0 text-primary" />
-                <span className="font-medium text-primary">
-                  Дедлайн: {formatDate(project.endDate)}
-                </span>
-              </div>
-            )}
             {client && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="w-4 h-4 shrink-0" />
@@ -133,7 +125,6 @@ export default function Projects() {
   const [formName, setFormName] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formStartDate, setFormStartDate] = useState("");
-  const [formEndDate, setFormEndDate] = useState("");
   const [formStatus, setFormStatus] = useState("active");
   const [formClientId, setFormClientId] = useState("");
 
@@ -231,7 +222,6 @@ export default function Projects() {
     setFormName(project.name);
     setFormAddress(project.address);
     setFormStartDate(project.startDate);
-    setFormEndDate(project.endDate ?? "");
     setFormStatus(project.status);
     setFormClientId(String(project.clientId || ""));
     setEditOpen(true);
@@ -243,7 +233,6 @@ export default function Projects() {
       name: formName,
       address: formAddress,
       startDate: formStartDate,
-      endDate: formEndDate || null,
       status: formStatus,
       clientId: formClientId ? parseInt(formClientId) : 0,
     });
@@ -258,7 +247,6 @@ export default function Projects() {
         name: formName,
         address: formAddress,
         startDate: formStartDate,
-        endDate: formEndDate || null,
         status: formStatus,
         clientId: formClientId ? parseInt(formClientId) : 0,
       },
@@ -373,15 +361,6 @@ export default function Projects() {
                   data-testid="input-project-start-date"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Дата завершения</Label>
-                <Input
-                  type="date"
-                  value={formEndDate}
-                  onChange={(e) => setFormEndDate(e.target.value)}
-                  data-testid="input-project-end-date"
-                />
-              </div>
             </div>
             <div className="space-y-2">
               <Label>Статус</Label>
@@ -452,15 +431,6 @@ export default function Projects() {
                   onChange={(e) => setFormStartDate(e.target.value)}
                   required
                   data-testid="input-edit-project-start-date"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Дата завершения</Label>
-                <Input
-                  type="date"
-                  value={formEndDate}
-                  onChange={(e) => setFormEndDate(e.target.value)}
-                  data-testid="input-edit-project-end-date"
                 />
               </div>
             </div>

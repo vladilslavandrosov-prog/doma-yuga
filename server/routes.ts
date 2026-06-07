@@ -257,12 +257,11 @@ export async function registerRoutes(
 
   app.patch("/api/admin/projects/:id", requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
-    const { name, address, startDate, endDate, status, clientId } = req.body;
+    const { name, address, startDate, status, clientId } = req.body;
     const updates: Record<string, any> = {};
     if (name !== undefined) updates.name = name;
     if (address !== undefined) updates.address = address;
     if (startDate !== undefined) updates.startDate = startDate;
-    if (endDate !== undefined) updates.endDate = endDate || null;
     if (status !== undefined) updates.status = status;
     if (clientId !== undefined) updates.clientId = clientId;
     const updated = await storage.updateProject(id, updates);
