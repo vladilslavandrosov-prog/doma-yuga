@@ -149,9 +149,22 @@ async function main() {
   console.log("✓ house_plans.communications_geojson");
 
   // Добавить демо-коммуникации (электричество Электросети) если их ещё нет
-  const planWithoutGeo = await db.execute(sql`SELECT id FROM house_plans WHERE project_id = 1 AND communications_geojson IS NULL LIMIT 1`);
+  const planWithoutGeo = await db.execute(sql`SELECT id FROM house_plans WHERE project_id = 1 AND (communications_geojson IS NULL OR communications_geojson LIKE '%37.8072%') LIMIT 1`);
   if (planWithoutGeo.rows.length > 0) {
-    // Координаты около г. Новороссийск, ул. Клеверная, 23 (приблизительно)
+    // Геокодируем адрес чтобы получить реальные координаты
+    let lat = 44.7138, lon = 37.8072;
+    try {
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent("г. Новороссийск, ул. Клеверная, 23")}&format=json&limit=1`,
+        { headers: { "Accept-Language": "ru", "User-Agent": "doma-yuga/1.0" }, signal: AbortSignal.timeout(10000) }
+      );
+      const geoData = await geoRes.json();
+      if (geoData[0]) { lat = parseFloat(geoData[0].lat); lon = parseFloat(geoData[0].lon); }
+      console.log(`Координаты: ${lat}, ${lon}`);
+    } catch (e) {
+      console.log("⚠ геокодирование не доступно, используем fallback координаты");
+    }
+    // Линия электричества вдоль улицы (~100м)
     const demoGeo = JSON.stringify({
       type: "FeatureCollection",
       features: [
@@ -160,9 +173,10 @@ async function main() {
           geometry: {
             type: "LineString",
             coordinates: [
-              [37.8072, 44.7138],
-              [37.8078, 44.7135],
-              [37.8085, 44.7133]
+              [lon - 0.0012, lat + 0.0002],
+              [lon - 0.0006, lat + 0.0001],
+              [lon,          lat],
+              [lon + 0.0006, lat - 0.0001],
             ]
           },
           properties: { utilityType: "электр", label: "Электричество", owner: "Электросети" }
