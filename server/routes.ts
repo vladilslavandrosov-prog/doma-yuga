@@ -478,72 +478,53 @@ export async function registerRoutes(
       if (item.status === "in_progress") groups[g].inProgress++;
     }
 
-    const groupsSummary = Object.entries(groups)
-      .map(([name, g]) => `  - ${name}: выполнено ${g.completed}/${g.total}${g.inProgress > 0 ? `, в работе ${g.inProgress}` : ""}`)
-      .join("\n");
+    const pct = allItems.length > 0 ? Math.round(completed / allItems.length * 100) : 0;
+    const startDate = new Date(project.startDate);
+    const now = new Date();
+    const daysElapsed = Math.max(1, Math.round((now.getTime() - startDate.getTime()) / 86400000));
+    const weeksElapsed = daysElapsed / 7;
+    const ratePerWeek = weeksElapsed > 0 && completed > 0 ? completed / weeksElapsed : 0;
+    const remaining = planned + inProgress;
+    const weeksLeft = ratePerWeek > 0 ? Math.ceil(remaining / ratePerWeek) : null;
+    const estimatedEnd = weeksLeft != null ? new Date(now.getTime() + weeksLeft * 7 * 86400000) : null;
+    const monthNames = ["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"];
+    const endStr = estimatedEnd
+      ? `${monthNames[estimatedEnd.getMonth()]} ${estimatedEnd.getFullYear()} г.`
+      : "сроки определятся после начала активных работ";
+    const activeGroups = Object.entries(groups).filter(([, g]) => g.inProgress > 0).map(([n, g]) => `${n} (${g.inProgress})`);
+    const slowGroups  = Object.entries(groups).filter(([, g]) => g.total >= 3 && g.completed / g.total < 0.3).map(([n]) => n);
 
-    const prompt = `Ты — эксперт по строительству в России. Проанализируй прогресс строительного проекта и дай прогноз сроков завершения.
+    let analysis = `**Текущий прогресс**\n`;
+    analysis += `По проекту "${project.name}" выполнено ${completed} из ${allItems.length} позиций (${pct}%). `;
+    analysis += `С начала работ (${project.startDate}) прошло ${daysElapsed} дней. `;
+    analysis += ratePerWeek > 0 ? `Средний темп: ${ratePerWeek.toFixed(1)} позиций/неделю.\n\n` : `Активные работы ещё не начаты.\n\n`;
 
-Проект: "${project.name}"
-Адрес: ${project.address}
-Дата начала: ${project.startDate}
-Статус: ${project.status}
-
-Прогресс работ:
-- Всего позиций: ${allItems.length}
-- Выполнено: ${completed} (${allItems.length > 0 ? Math.round(completed / allItems.length * 100) : 0}%)
-- В работе: ${inProgress}
-- Запланировано: ${planned}
-
-По группам работ:
-${groupsSummary || "  - данные не указаны"}
-
-Дай краткий анализ (3-5 абзацев на русском языке):
-1. Оценка текущего темпа строительства
-2. Прогноз даты завершения (укажи конкретный месяц и год)
-3. Риски и узкие места
-4. Рекомендации для ускорения
-
-Пиши конкретно, без лишних вводных слов.`;
-
-    try {
-      // Пробуем POST endpoint
-      let text = "";
-      const tryPost = await fetch("https://text.pollinations.ai/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "openai",
-          messages: [{ role: "user", content: prompt }],
-          stream: false,
-        }),
-        signal: AbortSignal.timeout(45000),
-      });
-      if (tryPost.ok) {
-        const ct = tryPost.headers.get("content-type") ?? "";
-        if (ct.includes("application/json")) {
-          const d = await tryPost.json() as any;
-          text = d?.choices?.[0]?.message?.content ?? d?.content ?? "";
-        } else {
-          text = await tryPost.text();
-        }
-      }
-
-      // Fallback: GET endpoint
-      if (!text) {
-        const encPrompt = encodeURIComponent(prompt);
-        const getRes = await fetch(`https://text.pollinations.ai/${encPrompt}?model=openai&seed=42`, {
-          signal: AbortSignal.timeout(45000),
-        });
-        if (getRes.ok) text = await getRes.text();
-      }
-
-      if (!text) throw new Error("Empty response from AI");
-      res.json({ analysis: text.trim() });
-    } catch (err) {
-      console.error("AI timeline error:", err);
-      res.status(503).json({ error: "Сервис AI временно недоступен. Попробуйте позже." });
+    analysis += `**Прогноз завершения**\n`;
+    if (remaining === 0) {
+      analysis += `Все работы выполнены — проект завершён.\n\n`;
+    } else {
+      analysis += `При текущем темпе оставшиеся ${remaining} позиций будут выполнены ориентировочно в ${endStr}. `;
+      analysis += activeGroups.length > 0 ? `Сейчас в работе: ${activeGroups.join(", ")}.\n\n` : `Активных работ сейчас нет.\n\n`;
     }
+
+    analysis += `**По группам работ**\n`;
+    for (const [name, g] of Object.entries(groups)) {
+      const gp = Math.round(g.completed / g.total * 100);
+      const bar = "█".repeat(Math.round(gp / 10)) + "░".repeat(10 - Math.round(gp / 10));
+      analysis += `${name}: ${bar} ${gp}% (${g.completed}/${g.total})${g.inProgress > 0 ? ` ⚡${g.inProgress}` : ""}\n`;
+    }
+
+    if (slowGroups.length > 0) {
+      analysis += `\n**⚠ Отстают от графика**\n${slowGroups.join(", ")} — рекомендуется усилить бригаду.`;
+    } else if (pct >= 80) {
+      analysis += `\n**Итог**\nПроект близится к завершению. Финальный этап — контроль качества и сдача работ.`;
+    } else if (pct >= 40) {
+      analysis += `\n**Рекомендация**\nДля ускорения можно вести несколько групп работ параллельно.`;
+    } else {
+      analysis += `\n**Рекомендация**\nРаботы на начальном этапе. Важно придерживаться графика с первых недель.`;
+    }
+
+    res.json({ analysis });
   });
 
   app.get("/api/dashboard/:uid", async (req, res) => {
