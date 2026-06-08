@@ -303,28 +303,44 @@ function ItemPhotos({
   isAdmin: boolean;
 }) {
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const photos = item.photos ?? [];
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const uploadMut = useMutation({
-    mutationFn: async (file: File) => {
-      const fd = new FormData();
-      fd.append("photo", file);
-      fd.append("estimateItemId", String(item.id));
-      const res = await fetch("/api/admin/estimate-item-photos/upload", {
-        method: "POST",
-        body: fd,
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Ошибка загрузки");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
-      toast({ title: "Фото загружено" });
-    },
-  });
+  async function uploadFile(file: File) {
+    const fd = new FormData();
+    fd.append("photo", file);
+    fd.append("estimateItemId", String(item.id));
+    const res = await fetch("/api/admin/estimate-item-photos/upload", {
+      method: "POST",
+      body: fd,
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error ?? "Ошибка загрузки");
+    }
+    return res.json();
+  }
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    let success = 0;
+    for (const file of Array.from(files)) {
+      try {
+        await uploadFile(file);
+        success++;
+      } catch (e: any) {
+        toast({ title: `Ошибка: ${e.message}`, variant: "destructive" });
+      }
+    }
+    setUploading(false);
+    if (success > 0) {
+      await queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
+      toast({ title: success > 1 ? `Загружено ${success} фото` : "Фото загружено" });
+    }
+  }
 
   const deleteMut = useMutation({
     mutationFn: async (photoId: number) => {
@@ -333,6 +349,7 @@ function ItemPhotos({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
     },
+    onError: () => toast({ title: "Не удалось удалить фото", variant: "destructive" }),
   });
 
   if (photos.length === 0 && !isAdmin) return null;
@@ -361,29 +378,29 @@ function ItemPhotos({
         ))}
         {isAdmin && (
           <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) uploadMut.mutate(file);
-                e.target.value = "";
-              }}
-            />
-            <button
-              className="w-16 h-16 rounded-md border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-              disabled={uploadMut.isPending}
+            <label
+              className={`w-16 h-16 rounded-md border-2 border-dashed flex items-center justify-center transition-colors cursor-pointer ${
+                uploading
+                  ? "border-muted-foreground/20 text-muted-foreground/40 cursor-not-allowed"
+                  : "border-muted-foreground/30 text-muted-foreground hover:border-primary hover:text-primary"
+              }`}
+              onClick={(e) => e.stopPropagation()}
               data-testid={`button-upload-item-photo-${item.id}`}
             >
-              {uploadMut.isPending ? (
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => { handleFiles(e.target.files); e.currentTarget.value = ""; }}
+              />
+              {uploading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Upload className="w-4 h-4" />
               )}
-            </button>
+            </label>
           </>
         )}
       </div>

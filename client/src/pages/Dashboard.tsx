@@ -359,73 +359,140 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
       </div>
 
       <Dialog open={aiOpen} onOpenChange={setAiOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-[90vh] flex flex-col">
+          {/* Шапка */}
+          <div className="flex items-center gap-3 px-6 py-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary" />
-              Расчёт сроков выполнения — AI анализ
-            </DialogTitle>
-          </DialogHeader>
-          {aiMutation.isPending ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm">Анализирую проект и загружаю прогноз погоды...</p>
             </div>
-          ) : analysis ? (
-            <div className="space-y-4">
-              {/* Погода */}
-              {weatherDays.length > 0 && (
-                <div className="rounded-xl border bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">🌤️</span>
-                    <p className="text-sm font-semibold text-sky-800 dark:text-sky-300">Погода на объекте — 14 дней</p>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1">
-                    {weatherDays.slice(0, 14).map((d) => {
-                      const dt = new Date(d.date);
-                      const isRainy = d.precip > 5;
-                      const isFrost = d.tmin < 0;
-                      return (
-                        <div
-                          key={d.date}
-                          className={`flex flex-col items-center rounded-lg p-1.5 text-center text-[11px] ${
-                            isRainy ? "bg-blue-100 dark:bg-blue-900/40" :
-                            isFrost ? "bg-indigo-100 dark:bg-indigo-900/40" :
-                            "bg-white/60 dark:bg-white/10"
-                          }`}
-                        >
-                          <span className="text-[10px] text-muted-foreground font-medium">{DAY_NAMES[dt.getDay()]}</span>
-                          <span className="text-[10px] text-muted-foreground">{dt.getDate()}.{String(dt.getMonth()+1).padStart(2,"0")}</span>
-                          <span className="text-xl leading-tight my-0.5" title={weatherLabel(d.code)}>{weatherIcon(d.code)}</span>
-                          <span className="font-semibold text-orange-600 dark:text-orange-400">{d.tmax}°</span>
-                          <span className={`${d.tmin < 0 ? "text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>{d.tmin}°</span>
-                          {d.precip > 0 && (
-                            <span className="text-[10px] text-blue-500 mt-0.5">💧{d.precip}</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex gap-3 mt-2 text-[10px] text-muted-foreground">
-                    <span><span className="inline-block w-2 h-2 rounded-sm bg-blue-200 mr-1"/>осадки &gt;5мм</span>
-                    <span><span className="inline-block w-2 h-2 rounded-sm bg-indigo-200 mr-1"/>мороз</span>
-                    <span>💧 — осадки мм</span>
+            <div>
+              <p className="font-semibold text-base">Анализ проекта</p>
+              <p className="text-xs text-muted-foreground">Прогресс, сроки и прогноз погоды</p>
+            </div>
+          </div>
+
+          <div className="overflow-y-auto flex-1">
+            {aiMutation.isPending ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-4">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Loader2 className="w-7 h-7 animate-spin text-primary" />
                   </div>
                 </div>
-              )}
-
-              {/* Текстовый анализ */}
-              <div className="rounded-lg bg-muted/40 p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono">
-                {analysis}
+                <div className="text-center">
+                  <p className="font-medium">Анализирую проект...</p>
+                  <p className="text-sm text-muted-foreground mt-1">Загружаю данные и прогноз погоды</p>
+                </div>
               </div>
+            ) : analysis ? (
+              <div>
+                {/* Погода */}
+                {weatherDays.length > 0 && (
+                  <div className="px-6 pt-5 pb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-base">⛅</span>
+                      <p className="font-semibold text-sm">Погода на объекте — 14 дней</p>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {weatherDays.slice(0, 14).map((d) => {
+                        const dt = new Date(d.date);
+                        const isRainy = d.precip > 5;
+                        const isFrost = d.tmin < 0;
+                        const isToday = dt.toDateString() === new Date().toDateString();
+                        return (
+                          <div key={d.date} className={`flex flex-col items-center rounded-xl px-1 py-2 text-center transition-colors ${
+                            isToday ? "bg-primary/10 ring-1 ring-primary/30" :
+                            isRainy ? "bg-blue-50 dark:bg-blue-950/40" :
+                            isFrost ? "bg-violet-50 dark:bg-violet-950/40" :
+                            "bg-muted/40 hover:bg-muted/70"
+                          }`}>
+                            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{DAY_NAMES[dt.getDay()]}</span>
+                            <span className="text-[10px] text-muted-foreground mb-1">{dt.getDate()}.{String(dt.getMonth()+1).padStart(2,"0")}</span>
+                            <span className="text-2xl leading-none my-1" title={weatherLabel(d.code)}>{weatherIcon(d.code)}</span>
+                            <span className="text-sm font-bold text-foreground">{d.tmax > 0 ? "+" : ""}{d.tmax}°</span>
+                            <span className={`text-xs font-medium ${d.tmin < 0 ? "text-violet-600 dark:text-violet-400" : "text-muted-foreground"}`}>{d.tmin > 0 ? "+" : ""}{d.tmin}°</span>
+                            {d.precip > 0 ? (
+                              <span className="text-[10px] text-blue-500 dark:text-blue-400 mt-1 font-medium">{d.precip}мм</span>
+                            ) : <span className="text-[10px] mt-1 opacity-0">-</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-4 mt-3 text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-100 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 inline-block"/>осадки &gt;5мм</div>
+                      <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-violet-100 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 inline-block"/>мороз</div>
+                      <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-primary/15 border border-primary/30 inline-block"/>сегодня</div>
+                    </div>
+                  </div>
+                )}
 
-              <Button variant="outline" size="sm" className="w-full"
-                onClick={() => { setAnalysis(null); setWeatherDays([]); aiMutation.mutate(); }}>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Обновить анализ
-              </Button>
-            </div>
-          ) : null}
+                <div className="border-t mx-6"/>
+
+                {/* Анализ по секциям */}
+                <div className="px-6 py-4 space-y-4">
+                  {analysis.split(/\n\n+/).map((block, i) => {
+                    const titleMatch = block.match(/^\*\*(.+?)\*\*/);
+                    const title = titleMatch?.[1];
+                    const body = titleMatch ? block.replace(/^\*\*(.+?)\*\*\n?/, "") : block;
+                    if (!body.trim()) return null;
+
+                    const icons: Record<string, string> = {
+                      "Текущий прогресс": "📊", "Прогноз завершения": "📅",
+                      "По группам работ": "🏗️", "Отстают от графика": "⚠️",
+                      "Итог": "✅", "Рекомендация": "💡", "Погода на объекте": "⛅",
+                    };
+
+                    return (
+                      <div key={i} className="rounded-xl border bg-card">
+                        {title && (
+                          <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/30 rounded-t-xl">
+                            <span>{icons[title] ?? "•"}</span>
+                            <p className="text-sm font-semibold">{title}</p>
+                          </div>
+                        )}
+                        <div className="px-4 py-3">
+                          {title === "По группам работ" ? (
+                            <div className="space-y-2">
+                              {body.trim().split("\n").filter(Boolean).map((line, j) => {
+                                const m = line.match(/^(.+?):\s*(█+░*)\s*(\d+)%\s*\((\d+)\/(\d+)\)(.*)?$/);
+                                if (!m) return <p key={j} className="text-sm text-muted-foreground">{line}</p>;
+                                const [, name,, pct, done, total, extra] = m;
+                                const pctNum = parseInt(pct);
+                                return (
+                                  <div key={j}>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-sm font-medium">{name.trim()}</span>
+                                      <span className="text-xs text-muted-foreground">{done}/{total}{extra}</span>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                      <div className="h-full rounded-full transition-all" style={{
+                                        width: `${pctNum}%`,
+                                        backgroundColor: pctNum === 100 ? "#22c55e" : pctNum > 50 ? "#f97316" : pctNum > 0 ? "#3b82f6" : "#e2e8f0"
+                                      }}/>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-sm leading-relaxed text-foreground/90">{body.trim()}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="px-6 pb-5">
+                  <Button variant="outline" className="w-full"
+                    onClick={() => { setAnalysis(null); setWeatherDays([]); aiMutation.mutate(); }}>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Обновить анализ
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

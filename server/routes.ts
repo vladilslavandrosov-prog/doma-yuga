@@ -24,17 +24,43 @@ import {
 const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-const uploadStorage = multer.diskStorage({
-  destination: uploadsDir,
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-    cb(null, name);
+// Возвращает путь к подпапке, создаёт если нет
+function subDir(...parts: string[]): string {
+  const dir = path.join(uploadsDir, ...parts);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+// Динамическое хранилище — папка определяется из req во время запроса
+function dynamicStorage(getDest: (req: any) => string) {
+  return multer.diskStorage({
+    destination: (req, _file, cb) => cb(null, getDest(req)),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+    },
+  });
+}
+
+const uploadItemPhoto = multer({
+  storage: dynamicStorage((req) => {
+    // estimate-item-photos: используем projectId если есть, иначе item-{id}
+    const pid = req.body?.projectId || "misc";
+    const itemId = req.body?.estimateItemId;
+    const folder = itemId ? `item-${itemId}` : "general";
+    return subDir("projects", String(pid), "work-photos", folder);
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    file.mimetype.startsWith("image/") ? cb(null, true) : cb(new Error("Только изображения"));
   },
 });
 
 const uploadImage = multer({
-  storage: uploadStorage,
+  storage: dynamicStorage((req) => {
+    const pid = req.body?.projectId || req.params?.id || "misc";
+    return subDir("projects", String(pid), "work-photos");
+  }),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
@@ -46,7 +72,10 @@ const uploadImage = multer({
 });
 
 const uploadVideo = multer({
-  storage: uploadStorage,
+  storage: dynamicStorage((req) => {
+    const pid = req.body?.projectId || req.params?.id || "misc";
+    return subDir("projects", String(pid), "videos");
+  }),
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("video/")) {
@@ -66,15 +95,46 @@ const ALLOWED_DOC_MIMES = new Set([
   "text/plain",
 ]);
 
+function docFilter(_req: any, file: any, cb: any) {
+  if (ALLOWED_DOC_MIMES.has(file.mimetype) || file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Поддерживаются PDF, Word, Excel, изображения"));
+  }
+}
+
 const uploadDoc = multer({
-  storage: uploadStorage,
+  storage: dynamicStorage((req) => {
+    const pid = req.body?.projectId || req.params?.id || "misc";
+    return subDir("projects", String(pid), "documents");
+  }),
   limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: docFilter,
+});
+
+const uploadLandscape = multer({
+  storage: dynamicStorage((req) => {
+    const pid = req.body?.projectId || "misc";
+    return subDir("projects", String(pid), "landscape");
+  }),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: docFilter,
+});
+
+const uploadHousePlan = multer({
+  storage: dynamicStorage((req) => {
+    const pid = req.body?.projectId || "misc";
+    return subDir("projects", String(pid), "house-plan");
+  }),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: docFilter,
+});
+
+const uploadGallery = multer({
+  storage: dynamicStorage(() => subDir("gallery")),
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (ALLOWED_DOC_MIMES.has(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Поддерживаются PDF, Word, Excel"));
-    }
+    file.mimetype.startsWith("image/") ? cb(null, true) : cb(new Error("Только изображения"));
   },
 });
 
@@ -666,7 +726,7 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
-  app.post("/api/admin/estimate-item-photos/upload", requireAdmin, uploadImage.single("photo"), async (req, res) => {
+  app.post("/api/admin/estimate-item-photos/upload", requireAdmin, uploadItemPhoto.single("photo"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
@@ -678,7 +738,7 @@ export async function registerRoutes(
     if (!existing) {
       return res.status(404).json({ error: "Estimate item not found" });
     }
-    const url = `/uploads/${req.file.filename}`;
+    const url = "/uploads/" + path.relative(uploadsDir, req.file.path).replace(/\\/g, "/");
     const photo = await storage.createEstimateItemPhoto({ estimateItemId, url });
     res.json(photo);
   });
@@ -719,7 +779,7 @@ export async function registerRoutes(
       fs.unlink(req.file.path, () => {});
       return res.status(400).json({ error: "projectId, name и type обязательны" });
     }
-    const url = `/uploads/${req.file.filename}`;
+    const url = "/uploads/" + path.relative(uploadsDir, req.file.path).replace(/\\/g, "/");
     const doc = await storage.createDocument({
       projectId: parseInt(projectId),
       name: name.trim(),
@@ -752,7 +812,7 @@ export async function registerRoutes(
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
-    const url = `/uploads/${req.file.filename}`;
+    const url = "/uploads/" + path.relative(uploadsDir, req.file.path).replace(/\\/g, "/");
     const parsed = insertPhotoSchema.safeParse({
       projectId: parseInt(req.body.projectId),
       url,
@@ -788,7 +848,7 @@ export async function registerRoutes(
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
-    const url = `/uploads/${req.file.filename}`;
+    const url = "/uploads/" + path.relative(uploadsDir, req.file.path).replace(/\\/g, "/");
     const parsed = insertVideoSchema.safeParse({
       projectId: parseInt(req.body.projectId),
       url,
@@ -843,11 +903,11 @@ export async function registerRoutes(
     res.json(photos);
   });
 
-  app.post("/api/admin/gallery/upload", requireAdmin, uploadImage.single("photo"), async (req, res) => {
+  app.post("/api/admin/gallery/upload", requireAdmin, uploadGallery.single("photo"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
-    const url = `/uploads/${req.file.filename}`;
+    const url = "/uploads/" + path.relative(uploadsDir, req.file.path).replace(/\\/g, "/");
     const caption = req.body.caption || null;
     const category = req.body.category || "Общее";
     const photo = await storage.createGalleryPhoto({ url, caption, category });
@@ -1014,9 +1074,9 @@ export async function registerRoutes(
     res.json(files);
   });
 
-  app.post("/api/admin/landscape-files/upload", requireAdmin, uploadDoc.single("file"), async (req, res) => {
+  app.post("/api/admin/landscape-files/upload", requireAdmin, uploadLandscape.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    const url = `/uploads/${req.file.filename}`;
+    const url = "/uploads/" + path.relative(uploadsDir, req.file.path).replace(/\\/g, "/");
     const file = await storage.createLandscapeFile({
       projectId: parseInt(req.body.projectId),
       url,
@@ -1125,9 +1185,9 @@ export async function registerRoutes(
     res.json(files);
   });
 
-  app.post("/api/admin/house-plan-files/upload", requireAdmin, uploadDoc.single("file"), async (req, res) => {
+  app.post("/api/admin/house-plan-files/upload", requireAdmin, uploadHousePlan.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    const url = `/uploads/${req.file.filename}`;
+    const url = "/uploads/" + path.relative(uploadsDir, req.file.path).replace(/\\/g, "/");
     const file = await storage.createHousePlanFile({
       projectId: parseInt(req.body.projectId),
       url,
