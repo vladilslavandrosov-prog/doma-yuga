@@ -507,7 +507,9 @@ ${groupsSummary || "  - данные не указаны"}
 Пиши конкретно, без лишних вводных слов.`;
 
     try {
-      const response = await fetch("https://text.pollinations.ai/openai", {
+      // Пробуем POST endpoint
+      let text = "";
+      const tryPost = await fetch("https://text.pollinations.ai/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -517,10 +519,26 @@ ${groupsSummary || "  - данные не указаны"}
         }),
         signal: AbortSignal.timeout(45000),
       });
-      if (!response.ok) throw new Error(`AI status ${response.status}`);
-      const data = await response.json() as any;
-      const text: string = data?.choices?.[0]?.message?.content ?? "";
-      if (!text) throw new Error("Empty response");
+      if (tryPost.ok) {
+        const ct = tryPost.headers.get("content-type") ?? "";
+        if (ct.includes("application/json")) {
+          const d = await tryPost.json() as any;
+          text = d?.choices?.[0]?.message?.content ?? d?.content ?? "";
+        } else {
+          text = await tryPost.text();
+        }
+      }
+
+      // Fallback: GET endpoint
+      if (!text) {
+        const encPrompt = encodeURIComponent(prompt);
+        const getRes = await fetch(`https://text.pollinations.ai/${encPrompt}?model=openai&seed=42`, {
+          signal: AbortSignal.timeout(45000),
+        });
+        if (getRes.ok) text = await getRes.text();
+      }
+
+      if (!text) throw new Error("Empty response from AI");
       res.json({ analysis: text.trim() });
     } catch (err) {
       console.error("AI timeline error:", err);
