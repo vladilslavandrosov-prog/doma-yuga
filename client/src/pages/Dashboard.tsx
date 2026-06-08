@@ -1,4 +1,33 @@
 import { useState } from "react";
+
+interface WeatherDay { date: string; tmax: number; tmin: number; precip: number; code: number; }
+
+function weatherIcon(code: number): string {
+  if (code === 0) return "☀️";
+  if (code <= 2) return "🌤️";
+  if (code <= 3) return "☁️";
+  if (code <= 49) return "🌫️";
+  if (code <= 67) return "🌧️";
+  if (code <= 77) return "❄️";
+  if (code <= 82) return "🌦️";
+  if (code <= 99) return "⛈️";
+  return "🌡️";
+}
+
+function weatherLabel(code: number): string {
+  if (code === 0) return "Ясно";
+  if (code <= 2) return "Малооблачно";
+  if (code <= 3) return "Облачно";
+  if (code <= 49) return "Туман";
+  if (code <= 55) return "Морось";
+  if (code <= 67) return "Дождь";
+  if (code <= 77) return "Снег";
+  if (code <= 82) return "Ливень";
+  if (code <= 99) return "Гроза";
+  return "";
+}
+
+const DAY_NAMES = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -141,6 +170,7 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
   const { toast } = useToast();
   const [aiOpen, setAiOpen] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
+  const [weatherDays, setWeatherDays] = useState<WeatherDay[]>([]);
 
   const { data, isLoading, error } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard/project", projectId],
@@ -151,6 +181,7 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
     onSuccess: async (res) => {
       const json = await res.json();
       setAnalysis(json.analysis);
+      setWeatherDays(json.weather ?? []);
     },
     onError: () => toast({ title: "Не удалось получить анализ. Попробуйте позже.", variant: "destructive" }),
   });
@@ -338,22 +369,60 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
           {aiMutation.isPending ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm">AI анализирует данные проекта...</p>
-              <p className="text-xs">Обычно занимает 10–20 секунд</p>
+              <p className="text-sm">Анализирую проект и загружаю прогноз погоды...</p>
             </div>
           ) : analysis ? (
             <div className="space-y-4">
-              <div className="rounded-lg bg-muted/40 p-4 text-sm leading-relaxed whitespace-pre-wrap">
+              {/* Погода */}
+              {weatherDays.length > 0 && (
+                <div className="rounded-xl border bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">🌤️</span>
+                    <p className="text-sm font-semibold text-sky-800 dark:text-sky-300">Погода на объекте — 14 дней</p>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {weatherDays.slice(0, 14).map((d) => {
+                      const dt = new Date(d.date);
+                      const isRainy = d.precip > 5;
+                      const isFrost = d.tmin < 0;
+                      return (
+                        <div
+                          key={d.date}
+                          className={`flex flex-col items-center rounded-lg p-1.5 text-center text-[11px] ${
+                            isRainy ? "bg-blue-100 dark:bg-blue-900/40" :
+                            isFrost ? "bg-indigo-100 dark:bg-indigo-900/40" :
+                            "bg-white/60 dark:bg-white/10"
+                          }`}
+                        >
+                          <span className="text-[10px] text-muted-foreground font-medium">{DAY_NAMES[dt.getDay()]}</span>
+                          <span className="text-[10px] text-muted-foreground">{dt.getDate()}.{String(dt.getMonth()+1).padStart(2,"0")}</span>
+                          <span className="text-xl leading-tight my-0.5" title={weatherLabel(d.code)}>{weatherIcon(d.code)}</span>
+                          <span className="font-semibold text-orange-600 dark:text-orange-400">{d.tmax}°</span>
+                          <span className={`${d.tmin < 0 ? "text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>{d.tmin}°</span>
+                          {d.precip > 0 && (
+                            <span className="text-[10px] text-blue-500 mt-0.5">💧{d.precip}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-3 mt-2 text-[10px] text-muted-foreground">
+                    <span><span className="inline-block w-2 h-2 rounded-sm bg-blue-200 mr-1"/>осадки &gt;5мм</span>
+                    <span><span className="inline-block w-2 h-2 rounded-sm bg-indigo-200 mr-1"/>мороз</span>
+                    <span>💧 — осадки мм</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Текстовый анализ */}
+              <div className="rounded-lg bg-muted/40 p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono">
                 {analysis}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => { setAnalysis(null); aiMutation.mutate(); }}
-              >
+
+              <Button variant="outline" size="sm" className="w-full"
+                onClick={() => { setAnalysis(null); setWeatherDays([]); aiMutation.mutate(); }}>
                 <Sparkles className="w-4 h-4 mr-2" />
-                Запросить повторно
+                Обновить анализ
               </Button>
             </div>
           ) : null}

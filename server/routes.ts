@@ -494,6 +494,51 @@ export async function registerRoutes(
     const activeGroups = Object.entries(groups).filter(([, g]) => g.inProgress > 0).map(([n, g]) => `${n} (${g.inProgress})`);
     const slowGroups  = Object.entries(groups).filter(([, g]) => g.total >= 3 && g.completed / g.total < 0.3).map(([n]) => n);
 
+    // Прогноз погоды через Open-Meteo (бесплатно, без API-ключа)
+    let weather: any = null;
+    try {
+      // Геокодируем адрес
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(project.address)}&format=json&limit=1`,
+        { headers: { "Accept-Language": "ru", "User-Agent": "doma-yuga/1.0" }, signal: AbortSignal.timeout(8000) }
+      );
+      const geoData = await geoRes.json();
+      if (geoData[0]) {
+        const lat = parseFloat(geoData[0].lat);
+        const lon = parseFloat(geoData[0].lon);
+        const wRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=auto&forecast_days=14`,
+          { signal: AbortSignal.timeout(8000) }
+        );
+        if (wRes.ok) weather = await wRes.json();
+      }
+    } catch { /* погода необязательна */ }
+
+    // Формируем структурированные данные погоды для фронтенда
+    let weatherDays: Array<{date:string; tmax:number; tmin:number; precip:number; code:number}> = [];
+    if (weather?.daily) {
+      const d = weather.daily;
+      for (let i = 0; i < (d.time?.length ?? 0); i++) {
+        weatherDays.push({
+          date: d.time[i],
+          tmax: Math.round(d.temperature_2m_max[i]),
+          tmin: Math.round(d.temperature_2m_min[i]),
+          precip: Math.round(d.precipitation_sum[i] * 10) / 10,
+          code: d.weathercode[i],
+        });
+      }
+    }
+
+    // Текстовый анализ влияния погоды
+    const rainDays   = weatherDays.filter(d => d.precip > 5).length;
+    const frostDays  = weatherDays.filter(d => d.tmin < 0).length;
+    const heavyRain  = weatherDays.filter(d => d.precip > 15);
+    const weatherImpact = rainDays > 4
+      ? `⚠ В ближайшие 2 недели ожидается ${rainDays} дождливых дней — возможны задержки наружных работ.`
+      : frostDays > 3
+      ? `⚠ Ожидается ${frostDays} дней с отрицательной температурой — ограничения на бетонные и штукатурные работы.`
+      : `✓ Погодные условия благоприятны для строительства.`;
+
     let analysis = `**Текущий прогресс**\n`;
     analysis += `По проекту "${project.name}" выполнено ${completed} из ${allItems.length} позиций (${pct}%). `;
     analysis += `С начала работ (${project.startDate}) прошло ${daysElapsed} дней. `;
@@ -524,7 +569,14 @@ export async function registerRoutes(
       analysis += `\n**Рекомендация**\nРаботы на начальном этапе. Важно придерживаться графика с первых недель.`;
     }
 
-    res.json({ analysis });
+    if (weatherDays.length > 0) {
+      analysis += `\n\n**Погода на объекте**\n${weatherImpact}`;
+      if (heavyRain.length > 0) {
+        analysis += `\nОсобое внимание: сильные осадки (>${15}мм) ожидаются ${heavyRain.map(d => new Date(d.date).toLocaleDateString("ru-RU", {day:"numeric",month:"short"})).join(", ")}.`;
+      }
+    }
+
+    res.json({ analysis, weather: weatherDays });
   });
 
   app.get("/api/dashboard/:uid", async (req, res) => {
