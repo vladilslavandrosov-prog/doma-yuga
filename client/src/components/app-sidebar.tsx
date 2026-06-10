@@ -25,6 +25,7 @@ import {
   Inbox,
   Map,
   Leaf,
+  Presentation,
 } from "lucide-react";
 import {
   useSidebar,
@@ -50,6 +51,7 @@ const publicItems = [
   { title: "Почему выбирают нас", url: "/advantages", icon: Shield },
   { title: "Фото наших работ", url: "/gallery", icon: ImageIcon },
   { title: "Оставить заявку", url: "/contact", icon: ClipboardList },
+  { title: "Презентация", url: "/presentation", icon: Presentation },
 ];
 
 function getProjectItems(basePath: string) {

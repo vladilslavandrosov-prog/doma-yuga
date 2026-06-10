@@ -26,6 +26,7 @@ import About from "@/pages/About";
 import Advantages from "@/pages/Advantages";
 import PublicGallery from "@/pages/PublicGallery";
 import Contact from "@/pages/Contact";
+import Presentation from "@/pages/Presentation";
 import Login from "@/pages/Login";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -241,6 +242,7 @@ function Router() {
       <Route path="/advantages" component={Advantages} />
       <Route path="/gallery" component={PublicGallery} />
       <Route path="/contact" component={Contact} />
+      <Route path="/presentation" component={Presentation} />
 
       <Route path="/cabinet">{() => <CabinetLayout><CabinetHome /></CabinetLayout>}</Route>
 
