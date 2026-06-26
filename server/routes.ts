@@ -511,30 +511,67 @@ export async function registerRoutes(
     const inProgress = allItems.filter(i => i.status === "in_progress").length;
     const planned = allItems.filter(i => i.status === "planned").length;
 
-    const groups: Record<string, { total: number; completed: number; inProgress: number }> = {};
+    const groups: Record<string, { total: number; completed: number; inProgress: number; overdue: number }> = {};
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const overdueItems: Array<{ name: string; group: string; days: number }> = [];
+    let plannedByNow = 0;
+    let completedByNow = 0;
+    let slippageDaysTotal = 0;
+    let maxPlannedDate: Date | null = null;
+
     for (const item of allItems) {
       const g = item.workGroup ?? item.category ?? "Прочее";
-      if (!groups[g]) groups[g] = { total: 0, completed: 0, inProgress: 0 };
+      if (!groups[g]) groups[g] = { total: 0, completed: 0, inProgress: 0, overdue: 0 };
       groups[g].total++;
       if (item.status === "completed") groups[g].completed++;
       if (item.status === "in_progress") groups[g].inProgress++;
+
+      const itemDate = item.date ? new Date(item.date) : null;
+      if (itemDate && !isNaN(itemDate.getTime())) {
+        if (!maxPlannedDate || itemDate > maxPlannedDate) maxPlannedDate = itemDate;
+        if (itemDate <= today) {
+          plannedByNow++;
+          if (item.status === "completed") {
+            completedByNow++;
+          } else {
+            const daysLate = Math.round((today.getTime() - itemDate.getTime()) / 86400000);
+            groups[g].overdue++;
+            slippageDaysTotal += daysLate;
+            overdueItems.push({ name: item.name, group: g, days: daysLate });
+          }
+        }
+      }
     }
 
     const pct = allItems.length > 0 ? Math.round(completed / allItems.length * 100) : 0;
     const startDate = new Date(project.startDate);
-    const now = new Date();
     const daysElapsed = Math.max(1, Math.round((now.getTime() - startDate.getTime()) / 86400000));
     const weeksElapsed = daysElapsed / 7;
     const ratePerWeek = weeksElapsed > 0 && completed > 0 ? completed / weeksElapsed : 0;
     const remaining = planned + inProgress;
-    const weeksLeft = ratePerWeek > 0 ? Math.ceil(remaining / ratePerWeek) : null;
-    const estimatedEnd = weeksLeft != null ? new Date(now.getTime() + weeksLeft * 7 * 86400000) : null;
+
+    // Расписание по факту: если по сметам расставлены даты работ, считаем не темп,
+    // а реальное отставание от плановых дат (надёжнее линейной экстраполяции).
+    const scheduleAdherence = plannedByNow > 0 ? completedByNow / plannedByNow : null;
+    const avgSlippageDays = overdueItems.length > 0 ? Math.round(slippageDaysTotal / overdueItems.length) : 0;
+
+    let estimatedEnd: Date | null = null;
+    if (maxPlannedDate) {
+      estimatedEnd = new Date(maxPlannedDate.getTime() + avgSlippageDays * 86400000);
+    } else if (ratePerWeek > 0) {
+      const weeksLeft = Math.ceil(remaining / ratePerWeek);
+      estimatedEnd = new Date(now.getTime() + weeksLeft * 7 * 86400000);
+    }
+
     const monthNames = ["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"];
     const endStr = estimatedEnd
       ? `${monthNames[estimatedEnd.getMonth()]} ${estimatedEnd.getFullYear()} г.`
       : "сроки определятся после начала активных работ";
     const activeGroups = Object.entries(groups).filter(([, g]) => g.inProgress > 0).map(([n, g]) => `${n} (${g.inProgress})`);
-    const slowGroups  = Object.entries(groups).filter(([, g]) => g.total >= 3 && g.completed / g.total < 0.3).map(([n]) => n);
+    const slowGroups  = Object.entries(groups).filter(([, g]) => g.overdue > 0).map(([n, g]) => `${n} (${g.overdue})`);
+    const topOverdue = overdueItems.sort((a, b) => b.days - a.days).slice(0, 5);
 
     // Прогноз погоды через Open-Meteo (бесплатно, без API-ключа)
     let weather: any = null;
@@ -584,13 +621,21 @@ export async function registerRoutes(
     let analysis = `**Текущий прогресс**\n`;
     analysis += `По проекту "${project.name}" выполнено ${completed} из ${allItems.length} позиций (${pct}%). `;
     analysis += `С начала работ (${project.startDate}) прошло ${daysElapsed} дней. `;
-    analysis += ratePerWeek > 0 ? `Средний темп: ${ratePerWeek.toFixed(1)} позиций/неделю.\n\n` : `Активные работы ещё не начаты.\n\n`;
+    if (scheduleAdherence != null) {
+      analysis += `По плановому графику к этому моменту должно быть готово ${plannedByNow} позиций — фактически выполнено ${completedByNow} (${Math.round(scheduleAdherence * 100)}% графика).\n\n`;
+    } else {
+      analysis += ratePerWeek > 0 ? `Средний темп: ${ratePerWeek.toFixed(1)} позиций/неделю.\n\n` : `Активные работы ещё не начаты.\n\n`;
+    }
 
     analysis += `**Прогноз завершения**\n`;
     if (remaining === 0) {
       analysis += `Все работы выполнены — проект завершён.\n\n`;
     } else {
-      analysis += `При текущем темпе оставшиеся ${remaining} позиций будут выполнены ориентировочно в ${endStr}. `;
+      if (avgSlippageDays > 3) {
+        analysis += `С учётом текущего отставания (в среднем на ${avgSlippageDays} дн.) проект завершится ориентировочно в ${endStr} — позже первоначального плана. `;
+      } else {
+        analysis += `При сохранении графика оставшиеся ${remaining} позиций будут выполнены ориентировочно в ${endStr}. `;
+      }
       analysis += activeGroups.length > 0 ? `Сейчас в работе: ${activeGroups.join(", ")}.\n\n` : `Активных работ сейчас нет.\n\n`;
     }
 
@@ -602,13 +647,17 @@ export async function registerRoutes(
     }
 
     if (slowGroups.length > 0) {
-      analysis += `\n**⚠ Отстают от графика**\n${slowGroups.join(", ")} — рекомендуется усилить бригаду.`;
+      analysis += `\n**⚠ Отстают от графика**\n${slowGroups.join(", ")} — отстают от плановых дат.`;
+      if (topOverdue.length > 0) {
+        analysis += ` Сильнее всего просрочены: ${topOverdue.map(o => `«${o.name}» (${o.days} дн.)`).join(", ")}.`;
+      }
+      analysis += ` Рекомендуется усилить бригаду на этих участках.`;
     } else if (pct >= 80) {
       analysis += `\n**Итог**\nПроект близится к завершению. Финальный этап — контроль качества и сдача работ.`;
     } else if (pct >= 40) {
-      analysis += `\n**Рекомендация**\nДля ускорения можно вести несколько групп работ параллельно.`;
+      analysis += `\n**Рекомендация**\nГрафик соблюдается. Для ускорения можно вести несколько групп работ параллельно.`;
     } else {
-      analysis += `\n**Рекомендация**\nРаботы на начальном этапе. Важно придерживаться графика с первых недель.`;
+      analysis += `\n**Рекомендация**\nРаботы на начальном этапе и идут по графику. Важно придерживаться сроков с первых недель.`;
     }
 
     if (weatherDays.length > 0) {

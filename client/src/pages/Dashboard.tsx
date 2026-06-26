@@ -278,17 +278,26 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                 <span>Осталось: {progress.total - progress.completed}</span>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
+            <button
               onClick={() => { setAnalysis(null); setAiOpen(true); aiMutation.mutate(); }}
               disabled={aiMutation.isPending}
+              data-testid="button-ai-timeline"
+              className="w-full flex items-center gap-3 rounded-lg border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-3.5 py-2.5 text-left transition-colors hover-elevate disabled:opacity-70 disabled:cursor-default"
             >
-              {aiMutation.isPending
-                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Анализирую...</>
-                : <><Sparkles className="w-4 h-4 mr-2" />Расчёт сроков с AI</>}
-            </Button>
+              <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground shrink-0">
+                {aiMutation.isPending
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <Sparkles className="w-4 h-4" />}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold leading-tight">
+                  {aiMutation.isPending ? "Анализирую проект..." : "Расчёт сроков с AI"}
+                </p>
+                <p className="text-xs text-muted-foreground leading-tight">
+                  Прогресс по графику и прогноз погоды
+                </p>
+              </div>
+            </button>
           </CardContent>
         </Card>
 
