@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import {
+  Sun, CloudSun, Cloud, CloudFog, CloudRain, Snowflake, CloudDrizzle, CloudLightning, Thermometer,
+  BarChart3, CalendarDays, Building2, AlertTriangle, Lightbulb,
+} from "lucide-react";
 
 interface WeatherDay { date: string; tmax: number; tmin: number; precip: number; code: number; }
 
-function weatherIcon(code: number): string {
-  if (code === 0) return "☀️";
-  if (code <= 2) return "🌤️";
-  if (code <= 3) return "☁️";
-  if (code <= 49) return "🌫️";
-  if (code <= 67) return "🌧️";
-  if (code <= 77) return "❄️";
-  if (code <= 82) return "🌦️";
-  if (code <= 99) return "⛈️";
-  return "🌡️";
+function WeatherIcon({ code, className }: { code: number; className?: string }) {
+  if (code === 0) return <Sun className={className} />;
+  if (code <= 2) return <CloudSun className={className} />;
+  if (code <= 3) return <Cloud className={className} />;
+  if (code <= 49) return <CloudFog className={className} />;
+  if (code <= 67) return <CloudRain className={className} />;
+  if (code <= 77) return <Snowflake className={className} />;
+  if (code <= 82) return <CloudDrizzle className={className} />;
+  if (code <= 99) return <CloudLightning className={className} />;
+  return <Thermometer className={className} />;
 }
 
 function weatherLabel(code: number): string {
@@ -390,7 +394,7 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                 {weatherDays.length > 0 && (
                   <div className="px-6 pt-5 pb-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-base">⛅</span>
+                      <CloudSun className="w-4 h-4 text-primary" />
                       <p className="font-semibold text-sm">Погода на объекте — 14 дней</p>
                     </div>
                     <div className="grid grid-cols-7 gap-1.5">
@@ -408,7 +412,11 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                           }`}>
                             <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{DAY_NAMES[dt.getDay()]}</span>
                             <span className="text-[10px] text-muted-foreground mb-1">{dt.getDate()}.{String(dt.getMonth()+1).padStart(2,"0")}</span>
-                            <span className="text-2xl leading-none my-1" title={weatherLabel(d.code)}>{weatherIcon(d.code)}</span>
+                            <span className="my-1" title={weatherLabel(d.code)}>
+                              <WeatherIcon code={d.code} className={`w-6 h-6 ${
+                                isFrost ? "text-violet-500" : isRainy ? "text-blue-500" : "text-amber-500"
+                              }`} />
+                            </span>
                             <span className="text-sm font-bold text-foreground">{d.tmax > 0 ? "+" : ""}{d.tmax}°</span>
                             <span className={`text-xs font-medium ${d.tmin < 0 ? "text-violet-600 dark:text-violet-400" : "text-muted-foreground"}`}>{d.tmin > 0 ? "+" : ""}{d.tmin}°</span>
                             {d.precip > 0 ? (
@@ -436,17 +444,21 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                     const body = titleMatch ? block.replace(/^\*\*(.+?)\*\*\n?/, "") : block;
                     if (!body.trim()) return null;
 
-                    const icons: Record<string, string> = {
-                      "Текущий прогресс": "📊", "Прогноз завершения": "📅",
-                      "По группам работ": "🏗️", "Отстают от графика": "⚠️",
-                      "Итог": "✅", "Рекомендация": "💡", "Погода на объекте": "⛅",
+                    const icons: Record<string, ReactNode> = {
+                      "Текущий прогресс": <BarChart3 className="w-4 h-4 text-primary" />,
+                      "Прогноз завершения": <CalendarDays className="w-4 h-4 text-primary" />,
+                      "По группам работ": <Building2 className="w-4 h-4 text-primary" />,
+                      "Отстают от графика": <AlertTriangle className="w-4 h-4 text-amber-500" />,
+                      "Итог": <CheckCircle2 className="w-4 h-4 text-green-500" />,
+                      "Рекомендация": <Lightbulb className="w-4 h-4 text-amber-500" />,
+                      "Погода на объекте": <CloudSun className="w-4 h-4 text-primary" />,
                     };
 
                     return (
                       <div key={i} className="rounded-xl border bg-card">
                         {title && (
                           <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/30 rounded-t-xl">
-                            <span>{icons[title] ?? "•"}</span>
+                            {icons[title] ?? <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground inline-block" />}
                             <p className="text-sm font-semibold">{title}</p>
                           </div>
                         )}
