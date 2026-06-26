@@ -120,8 +120,9 @@ httpServer.listen(
 );
 
 (async () => {
-  const { seedDatabase } = await import("./seed");
+  const { seedDatabase, seedGalleryPhotos } = await import("./seed");
   await seedDatabase();
+  await seedGalleryPhotos();
 
   await registerRoutes(httpServer, app);
 

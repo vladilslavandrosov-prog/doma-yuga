@@ -2,8 +2,25 @@ import { db } from "./db";
 import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
+  galleryPhotos,
 } from "@shared/schema";
 import { hashPassword } from "./auth";
+
+const GALLERY_HOUSE_PHOTOS = [
+  { url: "/gallery/house-1.svg", caption: "Дом с гаражом", category: "Частные дома" },
+  { url: "/gallery/house-2.svg", caption: "Классический двухэтажный дом", category: "Частные дома" },
+  { url: "/gallery/house-3.svg", caption: "Коттедж с крытой террасой", category: "Частные дома" },
+  { url: "/gallery/house-4.svg", caption: "Дом в современном минималистичном стиле", category: "Частные дома" },
+];
+
+export async function seedGalleryPhotos() {
+  const existing = await db.select().from(galleryPhotos);
+  const existingUrls = new Set(existing.map((p) => p.url));
+  const missing = GALLERY_HOUSE_PHOTOS.filter((p) => !existingUrls.has(p.url));
+  if (missing.length === 0) return;
+  await db.insert(galleryPhotos).values(missing);
+  console.log(`✓ added ${missing.length} gallery house illustration(s)`);
+}
 
 export async function seedDatabase() {
   const existingUsers = await db.select().from(users);
