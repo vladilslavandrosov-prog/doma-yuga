@@ -1,4 +1,5 @@
 import { Switch, Route, useParams, Link } from "wouter";
+import { Suspense, lazy } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,23 +9,23 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider, ThemeToggle } from "@/components/ThemeProvider";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import NotFound from "@/pages/not-found";
-import Dashboard from "@/pages/Dashboard";
-import Projects from "@/pages/Projects";
-import Estimates from "@/pages/Estimates";
-import WorkExecution from "@/pages/WorkExecution";
-import Payments from "@/pages/Payments";
-import Documents from "@/pages/Documents";
-import Photos from "@/pages/Photos";
-import Videos from "@/pages/Videos";
-import Chat from "@/pages/Chat";
-import Settings from "@/pages/Settings";
-import Clients from "@/pages/Clients";
-import About from "@/pages/About";
-import Advantages from "@/pages/Advantages";
-import PublicGallery from "@/pages/PublicGallery";
-import Contact from "@/pages/Contact";
-import Presentation from "@/pages/Presentation";
-import Login from "@/pages/Login";
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Projects = lazy(() => import("@/pages/Projects"));
+const Estimates = lazy(() => import("@/pages/Estimates"));
+const WorkExecution = lazy(() => import("@/pages/WorkExecution"));
+const Payments = lazy(() => import("@/pages/Payments"));
+const Documents = lazy(() => import("@/pages/Documents"));
+const Photos = lazy(() => import("@/pages/Photos"));
+const Videos = lazy(() => import("@/pages/Videos"));
+const Chat = lazy(() => import("@/pages/Chat"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const Clients = lazy(() => import("@/pages/Clients"));
+const About = lazy(() => import("@/pages/About"));
+const Advantages = lazy(() => import("@/pages/Advantages"));
+const PublicGallery = lazy(() => import("@/pages/PublicGallery"));
+const Contact = lazy(() => import("@/pages/Contact"));
+const Presentation = lazy(() => import("@/pages/Presentation"));
+const Login = lazy(() => import("@/pages/Login"));
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, Loader2 } from "lucide-react";
@@ -286,7 +287,15 @@ function AppContent() {
             <ThemeToggle />
           </header>
           <main className="flex-1 overflow-auto">
-            <Router />
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-64">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              }
+            >
+              <Router />
+            </Suspense>
           </main>
         </div>
       </div>
