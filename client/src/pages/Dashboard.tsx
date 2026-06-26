@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import {
   Sun, CloudSun, Cloud, CloudFog, CloudRain, Snowflake, CloudDrizzle, CloudLightning, Thermometer,
-  BarChart3, CalendarDays, Building2, AlertTriangle, Lightbulb,
+  BarChart3, CalendarDays, Building2, AlertTriangle, Lightbulb, Zap,
 } from "lucide-react";
 
 interface WeatherDay { date: string; tmax: number; tmin: number; precip: number; code: number; }
@@ -473,23 +473,31 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                         )}
                         <div className="px-4 py-3">
                           {title === "По группам работ" ? (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {body.trim().split("\n").filter(Boolean).map((line, j) => {
-                                const m = line.match(/^(.+?):\s*(█+░*)\s*(\d+)%\s*\((\d+)\/(\d+)\)(.*)?$/);
+                                const m = line.match(/^(.+?):\s*(█+░*)\s*(\d+)%\s*\((\d+)\/(\d+)\)(?:\s*⚡(\d+))?$/);
                                 if (!m) return <p key={j} className="text-sm text-muted-foreground">{line}</p>;
-                                const [, name,, pct, done, total, extra] = m;
+                                const [, name,, pct, done, total, inProgressCount] = m;
                                 const pctNum = parseInt(pct);
+                                const barColor = pctNum === 100 ? "bg-chart-2" : pctNum > 0 ? "bg-primary" : "bg-muted-foreground/30";
                                 return (
-                                  <div key={j}>
-                                    <div className="flex items-center justify-between mb-1">
-                                      <span className="text-sm font-medium">{name.trim()}</span>
-                                      <span className="text-xs text-muted-foreground">{done}/{total}{extra}</span>
+                                  <div key={j} className="rounded-lg border bg-background px-3 py-2.5">
+                                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                                      <span className="text-sm font-medium truncate">{name.trim()}</span>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        {inProgressCount && (
+                                          <span className="flex items-center gap-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 rounded-full px-1.5 py-0.5">
+                                            <Zap className="w-3 h-3" />{inProgressCount}
+                                          </span>
+                                        )}
+                                        <span className={`text-xs font-semibold tabular-nums ${pctNum === 100 ? "text-chart-2" : "text-foreground"}`}>{pctNum}%</span>
+                                      </div>
                                     </div>
-                                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                                      <div className="h-full rounded-full transition-all" style={{
-                                        width: `${pctNum}%`,
-                                        backgroundColor: pctNum === 100 ? "#22c55e" : pctNum > 50 ? "#f97316" : pctNum > 0 ? "#3b82f6" : "#e2e8f0"
-                                      }}/>
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-2.5 flex-1 rounded-full bg-muted overflow-hidden">
+                                        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pctNum}%` }} />
+                                      </div>
+                                      <span className="text-xs text-muted-foreground tabular-nums shrink-0">{done}/{total}</span>
                                     </div>
                                   </div>
                                 );
