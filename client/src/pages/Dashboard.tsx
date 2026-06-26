@@ -18,8 +18,6 @@ import {
   BrainCircuit,
   AlertTriangle,
   ShieldCheck,
-  Map,
-  Leaf,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
@@ -128,8 +126,6 @@ function getQuickLinks(basePath: string) {
     { title: "Оплата", url: `${basePath}/payments`, icon: CreditCard, description: "История платежей" },
     { title: "Документы", url: `${basePath}/documents`, icon: FileText, description: "Файлы проекта" },
     { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera, description: "Фото с объекта" },
-    { title: "Карта объекта", url: `${basePath}/map`, icon: Map, description: "Расположение и кадастр" },
-    { title: "Ландшафтный дизайн", url: `${basePath}/landscape`, icon: Leaf, description: "ЕГРН и концепция участка" },
     { title: "Чат", url: `${basePath}/chat`, icon: MessageCircle, description: "Связь с компанией" },
   ];
 }
