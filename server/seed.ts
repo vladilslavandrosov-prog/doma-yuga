@@ -173,7 +173,7 @@ export async function seedDatabase() {
   ]);
 
   const [pwAdmin, pwClient, pwPetrov] = await Promise.all([
-    hashPassword("Wlad2193@"),
+    hashPassword(process.env.ADMIN_PASSWORD || "Wlad2193@"),
     hashPassword("client123"),
     hashPassword("petrov123"),
   ]);

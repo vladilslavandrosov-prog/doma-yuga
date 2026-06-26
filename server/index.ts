@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import path from "path";
+import crypto from "crypto";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -58,7 +59,13 @@ app.use(
       pool,
       createTableIfMissing: true,
     }),
-    secret: process.env.SESSION_SECRET || "doma-yuga-session-secret",
+    secret: process.env.SESSION_SECRET || (() => {
+      if (isProd) {
+        console.warn("SESSION_SECRET is not set! Falling back to a random per-restart secret — set SESSION_SECRET in production to keep sessions valid across restarts.");
+        return crypto.randomBytes(32).toString("hex");
+      }
+      return "dev-only-session-secret";
+    })(),
     resave: false,
     saveUninitialized: false,
     cookie: {

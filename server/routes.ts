@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
+import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
 import { hashPassword, verifyPassword, isHashedPassword } from "./auth";
 import {
@@ -172,12 +173,28 @@ function deleteUploadedFile(url: string): void {
   });
 }
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Слишком много попыток входа. Попробуйте позже." },
+});
+
+const leadsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Слишком много заявок. Попробуйте позже или позвоните нам." },
+});
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", loginLimiter, async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: "Username and password required" });
@@ -1039,7 +1056,7 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
-  app.post("/api/leads", async (req, res) => {
+  app.post("/api/leads", leadsLimiter, async (req, res) => {
     try {
       const data = insertLeadSchema.parse(req.body);
       const lead = await storage.createLead(data);
