@@ -175,58 +175,6 @@ export const insertMessageSchema = createInsertSchema(messages).omit({ id: true 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 
-export const landscapeFiles = pgTable("landscape_files", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  url: text("url").notNull(),
-  name: text("name").notNull(),
-  type: text("type").notNull().default("egrn"),
-  createdAt: text("created_at").notNull(),
-});
-
-export const insertLandscapeFileSchema = createInsertSchema(landscapeFiles).omit({ id: true });
-export type InsertLandscapeFile = z.infer<typeof insertLandscapeFileSchema>;
-export type LandscapeFile = typeof landscapeFiles.$inferSelect;
-
-export const landscapeDesigns = pgTable("landscape_designs", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  questionnaire: text("questionnaire").notNull(),
-  generatedImageUrl: text("generated_image_url"),
-  status: text("status").notNull().default("pending"),
-  createdAt: text("created_at").notNull(),
-});
-
-export const insertLandscapeDesignSchema = createInsertSchema(landscapeDesigns).omit({ id: true });
-export type InsertLandscapeDesign = z.infer<typeof insertLandscapeDesignSchema>;
-export type LandscapeDesign = typeof landscapeDesigns.$inferSelect;
-
-export const housePlanFiles = pgTable("house_plan_files", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  url: text("url").notNull(),
-  name: text("name").notNull(),
-  type: text("type").notNull().default("cadastral"),
-  createdAt: text("created_at").notNull(),
-});
-
-export const insertHousePlanFileSchema = createInsertSchema(housePlanFiles).omit({ id: true });
-export type InsertHousePlanFile = z.infer<typeof insertHousePlanFileSchema>;
-export type HousePlanFile = typeof housePlanFiles.$inferSelect;
-
-export const housePlans = pgTable("house_plans", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().unique(),
-  cadastralNumber: text("cadastral_number"),
-  communicationsNotes: text("communications_notes"),
-  communicationsGeojson: text("communications_geojson"),
-  updatedAt: text("updated_at").notNull(),
-});
-
-export const insertHousePlanSchema = createInsertSchema(housePlans).omit({ id: true });
-export type InsertHousePlan = z.infer<typeof insertHousePlanSchema>;
-export type HousePlan = typeof housePlans.$inferSelect;
-
 export const leads = pgTable("leads", {
   id: serial("id").primaryKey(),
   services: text("services").notNull(),

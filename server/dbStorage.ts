@@ -4,7 +4,6 @@ import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
   estimateItemPhotos, galleryPhotos, dayComments, leads,
-  landscapeFiles, landscapeDesigns, housePlanFiles, housePlans,
 } from "@shared/schema";
 import type {
   Client, InsertClient,
@@ -22,10 +21,6 @@ import type {
   GalleryPhoto, InsertGalleryPhoto,
   DayComment, InsertDayComment,
   Lead, InsertLead,
-  LandscapeFile, InsertLandscapeFile,
-  LandscapeDesign, InsertLandscapeDesign,
-  HousePlanFile, InsertHousePlanFile,
-  HousePlan, InsertHousePlan,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -294,54 +289,4 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async getLandscapeFilesByProjectId(projectId: number): Promise<LandscapeFile[]> {
-    return db.select().from(landscapeFiles).where(eq(landscapeFiles.projectId, projectId));
-  }
-  async createLandscapeFile(file: InsertLandscapeFile): Promise<LandscapeFile> {
-    const [row] = await db.insert(landscapeFiles).values(file).returning();
-    return row;
-  }
-  async deleteLandscapeFile(id: number): Promise<string | undefined> {
-    const [row] = await db.delete(landscapeFiles).where(eq(landscapeFiles.id, id)).returning();
-    return row?.url;
-  }
-  async getLandscapeDesignsByProjectId(projectId: number): Promise<LandscapeDesign[]> {
-    return db.select().from(landscapeDesigns).where(eq(landscapeDesigns.projectId, projectId)).orderBy(desc(landscapeDesigns.id));
-  }
-  async createLandscapeDesign(design: InsertLandscapeDesign): Promise<LandscapeDesign> {
-    const [row] = await db.insert(landscapeDesigns).values(design).returning();
-    return row;
-  }
-  async updateLandscapeDesign(id: number, data: Partial<LandscapeDesign>): Promise<LandscapeDesign | undefined> {
-    const [row] = await db.update(landscapeDesigns).set(data).where(eq(landscapeDesigns.id, id)).returning();
-    return row;
-  }
-  async deleteLandscapeDesign(id: number): Promise<boolean> {
-    const result = await db.delete(landscapeDesigns).where(eq(landscapeDesigns.id, id)).returning();
-    return result.length > 0;
-  }
-  async getHousePlanFilesByProjectId(projectId: number): Promise<HousePlanFile[]> {
-    return db.select().from(housePlanFiles).where(eq(housePlanFiles.projectId, projectId));
-  }
-  async createHousePlanFile(file: InsertHousePlanFile): Promise<HousePlanFile> {
-    const [row] = await db.insert(housePlanFiles).values(file).returning();
-    return row;
-  }
-  async deleteHousePlanFile(id: number): Promise<string | undefined> {
-    const [row] = await db.delete(housePlanFiles).where(eq(housePlanFiles.id, id)).returning();
-    return row?.url;
-  }
-  async getHousePlanByProjectId(projectId: number): Promise<HousePlan | undefined> {
-    const [row] = await db.select().from(housePlans).where(eq(housePlans.projectId, projectId));
-    return row;
-  }
-  async upsertHousePlan(plan: InsertHousePlan): Promise<HousePlan> {
-    const existing = await this.getHousePlanByProjectId(plan.projectId);
-    if (existing) {
-      const [row] = await db.update(housePlans).set({ cadastralNumber: plan.cadastralNumber, communicationsNotes: plan.communicationsNotes, communicationsGeojson: plan.communicationsGeojson ?? existing.communicationsGeojson, updatedAt: plan.updatedAt }).where(eq(housePlans.id, existing.id)).returning();
-      return row;
-    }
-    const [row] = await db.insert(housePlans).values(plan).returning();
-    return row;
-  }
 }

@@ -22,8 +22,7 @@ import {
   Settings,
   ImageIcon,
   ClipboardList,
-  Leaf,
-  Map,
+  Presentation,
 } from "lucide-react";
 import {
   useSidebar,
@@ -49,6 +48,7 @@ const publicItems = [
   { title: "Почему выбирают нас", url: "/advantages", icon: Shield },
   { title: "Фото наших работ", url: "/gallery", icon: ImageIcon },
   { title: "Оставить заявку", url: "/contact", icon: ClipboardList },
+  { title: "Презентация", url: "/presentation", icon: Presentation },
 ];
 
 function getProjectItems(basePath: string) {
@@ -60,8 +60,6 @@ function getProjectItems(basePath: string) {
     { title: "Документы", url: `${basePath}/documents`, icon: FileText },
     { title: "Фотоотчёт", url: `${basePath}/photos`, icon: Camera },
     { title: "Видео", url: `${basePath}/videos`, icon: Video },
-    { title: "Ландшафтный дизайн", url: `${basePath}/landscape`, icon: Leaf },
-    { title: "План дома", url: `${basePath}/houseplan`, icon: Map },
     { title: "Чат", url: `${basePath}/chat`, icon: MessageCircle },
   ];
 }

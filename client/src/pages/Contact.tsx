@@ -2,14 +2,25 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Home, Wrench, Paintbrush, MessageCircle,
+  CheckCircle2, Zap, ClipboardCheck, ShieldCheck,
+} from "lucide-react";
 
 type Step = 1 | 2 | 3 | 4;
 
 const SERVICES = [
-  { v: "build",   icon: "🏠", name: "Строительство дома",    hint: "Проект, фундамент, коробка, под ключ" },
-  { v: "repair",  icon: "🔧", name: "Ремонт / реконструкция", hint: "Капитальный ремонт, перепланировка" },
-  { v: "finish",  icon: "🖌️", name: "Отделка помещений",      hint: "Черновая и чистовая отделка" },
-  { v: "consult", icon: "💬", name: "Консультация",            hint: "Смета, проект, материалы" },
+  { v: "build",   icon: Home,         name: "Строительство дома",    hint: "Проект, фундамент, коробка, под ключ" },
+  { v: "repair",  icon: Wrench,       name: "Ремонт / реконструкция", hint: "Капитальный ремонт, перепланировка" },
+  { v: "finish",  icon: Paintbrush,   name: "Отделка помещений",      hint: "Черновая и чистовая отделка" },
+  { v: "consult", icon: MessageCircle, name: "Консультация",            hint: "Смета, проект, материалы" },
+];
+
+const BENEFITS = [
+  { icon: CheckCircle2, text: "Бесплатный выезд на объект" },
+  { icon: Zap, text: "Смета за 24 часа" },
+  { icon: ClipboardCheck, text: "Фиксированная цена в договоре" },
+  { icon: ShieldCheck, text: "Гарантия на все виды работ" },
 ];
 
 const CONTACT_METHODS = ["Звонок", "WhatsApp", "Telegram", "Email"];
@@ -25,7 +36,7 @@ const s = {
   desc:   { color: "rgba(255,255,255,.6)", fontSize: 14, lineHeight: 1.7, maxWidth: 280 },
   ben:    { display: "flex" as const, flexDirection: "column" as const, gap: 14, marginTop: "2rem" },
   benRow: { display: "flex" as const, gap: 12, alignItems: "flex-start" },
-  benIcon:{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,.08)", display: "flex" as const, alignItems: "center", justifyContent: "center", flexShrink: 0 as const, fontSize: 14 },
+  benIcon:{ width: 32, height: 32, borderRadius: "50%", background: "rgba(244,123,37,.16)", color: "#F47B25", display: "flex" as const, alignItems: "center", justifyContent: "center", flexShrink: 0 as const },
   benTxt: { color: "rgba(255,255,255,.7)", fontSize: 13, lineHeight: 1.5 },
   foot:   { color: "rgba(255,255,255,.3)", fontSize: 12, lineHeight: 1.6 },
 
@@ -37,6 +48,8 @@ const s = {
   card:  { border: "1.5px solid #DDD8CF", borderRadius: 12, padding: "1rem 1.1rem", cursor: "pointer", transition: "all .18s", background: "#fff", display: "flex" as const, gap: 12, alignItems: "flex-start" },
   cardOn:{ border: "1.5px solid #F47B25", background: "#FEF0E2" },
   cards: { display: "grid" as const, gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: "2rem" },
+  svcIcon:  { width: 36, height: 36, borderRadius: 8, background: "rgba(244,123,37,.12)", color: "#F47B25", display: "flex" as const, alignItems: "center", justifyContent: "center", flexShrink: 0 as const },
+  svcIconOn:{ background: "#F47B25", color: "#fff" },
 
   label: { fontSize: 13, fontWeight: 500, color: "#6B6B6B", display: "block", marginBottom: 6 },
   input: { width: "100%", fontSize: 14, padding: "10px 14px", border: "1.5px solid #DDD8CF", borderRadius: 8, background: "#FDFCFA", color: "#1A1A1A", fontFamily: "inherit", outline: "none" },
@@ -144,7 +157,9 @@ export default function ContactPage() {
 
   if (step === 4) return (
     <div style={{ ...s.wrap, alignItems: "center", justifyContent: "center", flexDirection: "column", textAlign: "center", padding: "2rem" }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+      <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(244,123,37,.12)", color: "#F47B25", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+        <CheckCircle2 size={36} />
+      </div>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }} data-testid="text-lead-success">Заявка отправлена!</h1>
       <p style={{ color: "#6B6B6B", fontSize: 16, lineHeight: 1.7, maxWidth: 360 }}>
         Спасибо! Мы получили вашу анкету и свяжемся с вами в течение рабочего дня.
@@ -165,15 +180,10 @@ export default function ContactPage() {
           <div style={s.accent} />
           <p style={s.desc}>Расскажите о проекте — бесплатно рассчитаем стоимость и выедем на осмотр.</p>
           <div style={s.ben}>
-            {[
-              ["✅", "Бесплатный выезд на объект"],
-              ["⚡", "Смета за 24 часа"],
-              ["📋", "Фиксированная цена в договоре"],
-              ["🛡️", "Гарантия на все виды работ"],
-            ].map(([ic, t]) => (
-              <div key={t} style={s.benRow}>
-                <div style={s.benIcon}>{ic}</div>
-                <div style={s.benTxt}>{t}</div>
+            {BENEFITS.map(({ icon: Icon, text }) => (
+              <div key={text} style={s.benRow}>
+                <div style={s.benIcon}><Icon size={15} /></div>
+                <div style={s.benTxt}>{text}</div>
               </div>
             ))}
           </div>
@@ -202,19 +212,23 @@ export default function ContactPage() {
             <div style={s.sec}>Чем мы можем помочь?</div>
             <div style={s.sub}>Можно выбрать несколько вариантов</div>
             <div style={{ ...s.cards, ...grid1 }}>
-              {SERVICES.map((svc) => (
-                <div key={svc.v}
-                  data-testid={`card-service-${svc.v}`}
-                  style={{ ...s.card, ...(services.includes(svc.v) ? s.cardOn : {}) }}
-                  onClick={() => setServices(toggleArr(services, svc.v))}>
-                  <span style={{ fontSize: 22 }}>{svc.icon}</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3,
-                      color: services.includes(svc.v) ? "#C2410C" : "#1A1A1A" }}>{svc.name}</div>
-                    <div style={{ fontSize: 12, color: "#888", lineHeight: 1.4 }}>{svc.hint}</div>
+              {SERVICES.map((svc) => {
+                const Icon = svc.icon;
+                const active = services.includes(svc.v);
+                return (
+                  <div key={svc.v}
+                    data-testid={`card-service-${svc.v}`}
+                    style={{ ...s.card, ...(active ? s.cardOn : {}) }}
+                    onClick={() => setServices(toggleArr(services, svc.v))}>
+                    <div style={{ ...s.svcIcon, ...(active ? s.svcIconOn : {}) }}><Icon size={18} /></div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3,
+                        color: active ? "#C2410C" : "#1A1A1A" }}>{svc.name}</div>
+                      <div style={{ fontSize: 12, color: "#888", lineHeight: 1.4 }}>{svc.hint}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {errors.services && <p style={s.err}>{errors.services}</p>}
             <div style={s.btns}>
@@ -327,7 +341,7 @@ export default function ContactPage() {
             <div style={s.btns}>
               <button style={s.btnB} onClick={() => setStep(2)} data-testid="button-step3-back">← Назад</button>
               <button style={{ ...s.btnN, opacity: loading ? .7 : 1 }} onClick={submit} disabled={loading} data-testid="button-submit-lead">
-                {loading ? "Отправка..." : "Отправить заявку ✓"}
+                {loading ? "Отправка..." : "Отправить заявку"}
               </button>
             </div>
           </div>
