@@ -106,7 +106,7 @@ export default function ContactPage() {
       await apiRequest("POST", "/api/leads", {
         services: JSON.stringify(services),
         objectType: objType || null,
-        area: area ? Number(area) : null,
+        area: area && !isNaN(Number(area)) ? Number(area) : null,
         budget: budget || null,
         timeline: timeline || null,
         city: city || null,
