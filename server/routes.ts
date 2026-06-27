@@ -1313,25 +1313,6 @@ export async function registerRoutes(
     res.json({ available: isFaqBotConfigured() });
   });
 
-  // Temporary diagnostic route to check outbound network connectivity from the
-  // hosting environment to openrouter.ai. Remove once the FAQ bot is confirmed working.
-  app.get("/api/faq-chat/diagnose", async (_req, res) => {
-    const started = Date.now();
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const r = await fetch("https://openrouter.ai/api/v1/models", { signal: controller.signal });
-      clearTimeout(timeout);
-      const data = await r.json();
-      const freeModels = Array.isArray(data?.data)
-        ? data.data.filter((m: any) => typeof m.id === "string" && m.id.endsWith(":free")).map((m: any) => m.id)
-        : [];
-      res.json({ ok: true, status: r.status, ms: Date.now() - started, freeModels });
-    } catch (err) {
-      res.json({ ok: false, error: err instanceof Error ? err.message : String(err), ms: Date.now() - started });
-    }
-  });
-
   app.post("/api/faq-chat", faqChatLimiter, async (req, res) => {
     const { messages } = req.body;
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 20) {
