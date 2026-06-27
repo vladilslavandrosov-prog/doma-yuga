@@ -70,6 +70,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
 import { HelpCircle } from "lucide-react";
+import { formatCurrency, formatDate } from "@/lib/format";
 
 interface DashboardData {
   client: {
@@ -103,15 +104,6 @@ interface DashboardData {
   heroPhoto: string | null;
 }
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 function getStatusBadge(status: string) {
   switch (status) {
     case "active":
@@ -123,15 +115,6 @@ function getStatusBadge(status: string) {
     default:
       return <Badge variant="secondary" data-testid="badge-project-status">{status}</Badge>;
   }
-}
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 function daysSince(dateStr: string): number {

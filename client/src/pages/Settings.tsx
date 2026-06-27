@@ -20,8 +20,8 @@ export default function Settings() {
       toast({ title: "Ошибка", description: "Пароли не совпадают", variant: "destructive" });
       return;
     }
-    if (newPassword.length < 4) {
-      toast({ title: "Ошибка", description: "Пароль должен быть не менее 4 символов", variant: "destructive" });
+    if (newPassword.length < 8) {
+      toast({ title: "Ошибка", description: "Пароль должен быть не менее 8 символов", variant: "destructive" });
       return;
     }
     setIsPending(true);

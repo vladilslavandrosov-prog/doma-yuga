@@ -13,14 +13,7 @@ import { CreditCard, Wallet, TrendingUp, Plus, Pencil, Trash2, Loader2 } from "l
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", minimumFractionDigits: 0 }).format(value);
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-}
+import { formatCurrency, formatDate } from "@/lib/format";
 
 function PaymentsSkeleton() {
   return (

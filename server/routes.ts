@@ -234,6 +234,14 @@ const leadsLimiter = rateLimit({
   message: { error: "Слишком много заявок. Попробуйте позже или позвоните нам." },
 });
 
+const changePasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Слишком много попыток. Попробуйте позже." },
+});
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -280,13 +288,13 @@ export async function registerRoutes(
     res.json({ id: user.id, username: user.username, role: user.role, clientId: user.clientId });
   });
 
-  app.post("/api/auth/change-password", requireAuth, async (req, res) => {
+  app.post("/api/auth/change-password", requireAuth, changePasswordLimiter, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ error: "Current and new passwords required" });
     }
-    if (newPassword.length < 4) {
-      return res.status(400).json({ error: "Password must be at least 4 characters" });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
     }
     const user = await storage.getUserById(req.session.userId!);
     if (!user) {

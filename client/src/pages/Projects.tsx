@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatDate } from "@/lib/format";
 import {
   Select,
   SelectContent,
@@ -46,14 +47,6 @@ function getStatusBadge(status: string) {
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 function ProjectCard({ project, isAdmin, onEdit, onDelete }: { project: Project; isAdmin: boolean; onEdit: (p: Project) => void; onDelete: (p: Project) => void }) {

@@ -13,10 +13,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-}
+import { formatDate } from "@/lib/format";
 
 function VideosSkeleton() {
   return (
