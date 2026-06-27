@@ -43,6 +43,16 @@ async function main() {
   `);
   console.log("✓ таблица work_groups готова");
 
+  const backfill = await pool.query(`
+    INSERT INTO work_groups (name)
+    SELECT DISTINCT work_group FROM estimate_items
+    WHERE work_group IS NOT NULL AND trim(work_group) <> ''
+    ON CONFLICT (name) DO NOTHING
+  `);
+  if (backfill.rowCount) {
+    console.log(`✓ перенесено ${backfill.rowCount} групп работ из существующих смет`);
+  }
+
   await pool.end();
 }
 
