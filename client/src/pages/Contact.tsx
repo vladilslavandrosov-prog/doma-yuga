@@ -26,6 +26,23 @@ const BENEFITS = [
 const CONTACT_METHODS = ["Звонок", "WhatsApp", "Telegram", "Email"];
 const CALL_TIMES = ["Утром 9–12", "Днём 12–17", "Вечером 17–20", "В любое время"];
 
+function formatPhone(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("8")) digits = "7" + digits.slice(1);
+  if (!digits.startsWith("7")) digits = "7" + digits;
+  digits = digits.slice(0, 11);
+
+  const local = digits.slice(1);
+  let result = "+7";
+  if (local.length > 0) result += ` (${local.slice(0, 3)}`;
+  if (local.length >= 3) result += `)`;
+  if (local.length > 3) result += ` ${local.slice(3, 6)}`;
+  if (local.length > 6) result += `-${local.slice(6, 8)}`;
+  if (local.length > 8) result += `-${local.slice(8, 10)}`;
+  return result;
+}
+
 const s = {
   wrap:   { fontFamily: "'Geologica','Segoe UI',sans-serif", minHeight: "100vh", background: "#F7F4EF", display: "flex" as const },
   left:   { background: "#262B36", padding: "4rem 3rem", width: 380, flexShrink: 0 as const, display: "flex" as const, flexDirection: "column" as const, justifyContent: "space-between" },
@@ -302,7 +319,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <label style={s.label}>Телефон <span style={s.req}>*</span></label>
-                <input style={inp(errors.phone)} type="tel" placeholder="+7 (___) ___-__-__" value={phone} onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: "" })); }} data-testid="input-phone" />
+                <input style={inp(errors.phone)} type="tel" placeholder="+7 (___) ___-__-__" value={phone} onChange={(e) => { setPhone(formatPhone(e.target.value)); setErrors((p) => ({ ...p, phone: "" })); }} data-testid="input-phone" />
                 {errors.phone && <p style={s.err}>{errors.phone}</p>}
               </div>
             </div>
