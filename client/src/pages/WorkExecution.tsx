@@ -365,6 +365,7 @@ function ItemPhotos({
             <img
               src={photo.url}
               alt=""
+              loading="lazy"
               className="w-16 h-16 object-cover rounded-md border cursor-pointer hover:opacity-80 transition-opacity"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
             />
