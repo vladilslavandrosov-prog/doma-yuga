@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { CreditCard, Wallet, TrendingUp, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", minimumFractionDigits: 0 }).format(value);
@@ -37,6 +38,7 @@ function PaymentsSkeleton() {
 
 export default function Payments({ projectId }: { projectId: number }) {
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
   const [addOpen, setAddOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
@@ -68,11 +70,13 @@ export default function Payments({ projectId }: { projectId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
+      toast({ title: "Платёж добавлен" });
       setAddOpen(false);
       setAmount("");
       setDate("");
       setDescription("");
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
@@ -87,8 +91,10 @@ export default function Payments({ projectId }: { projectId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
+      toast({ title: "Платёж обновлён" });
       setEditingPayment(null);
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -98,7 +104,9 @@ export default function Payments({ projectId }: { projectId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
+      toast({ title: "Платёж удалён" });
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   function openEdit(payment: Payment) {

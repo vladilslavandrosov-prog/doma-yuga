@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, X, Plus, Pencil, Trash2, Loader2, Upload } f
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
@@ -42,6 +43,7 @@ export default function Photos({ projectId }: { projectId: number }) {
   const [editDate, setEditDate] = useState("");
 
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
 
   const { data: photos, isLoading, error } = useQuery<Photo[]>({
     queryKey: ["/api/project", projectId, "photos"],
@@ -68,12 +70,14 @@ export default function Photos({ projectId }: { projectId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "photos"] });
+      toast({ title: "Фото добавлено" });
       setAddOpen(false);
       setFile(null);
       setPreview(null);
       setCaption("");
       setDate(new Date().toISOString().slice(0, 10));
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -87,7 +91,9 @@ export default function Photos({ projectId }: { projectId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "photos"] });
+      toast({ title: "Фото удалено" });
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
@@ -100,8 +106,10 @@ export default function Photos({ projectId }: { projectId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "photos"] });
+      toast({ title: "Фото обновлено" });
       setEditingPhoto(null);
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   function openEdit(photo: Photo) {
