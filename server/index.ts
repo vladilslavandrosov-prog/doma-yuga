@@ -53,19 +53,37 @@ const isProd = process.env.NODE_ENV === "production";
 if (isProd) {
   app.set("trust proxy", 1);
 }
+
+function getSessionSecret(): string {
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  if (!isProd) return "dev-only-session-secret";
+
+  // No SESSION_SECRET configured — persist a generated one on the mounted
+  // /data volume so sessions survive restarts instead of being invalidated
+  // (a random-per-restart secret was silently logging admins out on deploy).
+  const fs = require("fs");
+  const secretPath = "/data/.session-secret";
+  try {
+    if (fs.existsSync(secretPath)) {
+      return fs.readFileSync(secretPath, "utf-8").trim();
+    }
+    const generated = crypto.randomBytes(32).toString("hex");
+    fs.writeFileSync(secretPath, generated, { mode: 0o600 });
+    console.warn("SESSION_SECRET is not set — generated and persisted a secret to /data/.session-secret. Set SESSION_SECRET explicitly for production.");
+    return generated;
+  } catch (err) {
+    console.warn("SESSION_SECRET is not set and /data is not writable — falling back to a random per-restart secret, sessions will not survive restarts:", err);
+    return crypto.randomBytes(32).toString("hex");
+  }
+}
+
 app.use(
   session({
     store: new PgSession({
       pool,
       createTableIfMissing: true,
     }),
-    secret: process.env.SESSION_SECRET || (() => {
-      if (isProd) {
-        console.warn("SESSION_SECRET is not set! Falling back to a random per-restart secret — set SESSION_SECRET in production to keep sessions valid across restarts.");
-        return crypto.randomBytes(32).toString("hex");
-      }
-      return "dev-only-session-secret";
-    })(),
+    secret: getSessionSecret(),
     resave: false,
     saveUninitialized: false,
     cookie: {
