@@ -24,7 +24,16 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
-import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter } from "lucide-react";
+import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter, HelpCircle } from "lucide-react";
+import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
+
+const PROJECTS_TOUR_STEPS: TourStep[] = [
+  { target: "text-projects-title", title: "Объекты", description: "Здесь собраны все строительные объекты компании — карточки, статусы и быстрый доступ к каждому из них." },
+  { target: "button-add-project", title: "Новый объект", description: "Создайте новый объект, привязав его к клиенту, адресу и дате начала работ." },
+  { target: "input-search-projects", title: "Поиск", description: "Быстро найдите нужный объект по названию." },
+  { target: "select-status-filter", title: "Фильтр по статусу", description: "Показывайте только активные объекты или все сразу." },
+  { target: "grid-projects", title: "Карточки объектов", description: "Кликните по карточке, чтобы открыть личный кабинет объекта — прогресс, оплаты, документы и переписку." },
+];
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -310,13 +319,21 @@ export default function Projects() {
             Список всех строительных объектов
           </p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => { resetForm(); setAddOpen(true); }} data-testid="button-add-project">
-            <Plus className="h-4 w-4 mr-2" />
-            Новый объект
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button size="icon" variant="outline" onClick={startOnboardingTour} aria-label="Показать инструкцию" data-testid="button-show-tour">
+              <HelpCircle className="w-4 h-4" />
+            </Button>
+          )}
+          {isAdmin && (
+            <Button onClick={() => { resetForm(); setAddOpen(true); }} data-testid="button-add-project">
+              <Plus className="h-4 w-4 mr-2" />
+              Новый объект
+            </Button>
+          )}
+        </div>
       </div>
+      {isAdmin && <OnboardingTour steps={PROJECTS_TOUR_STEPS} storageKey="tour-admin-projects-v1" />}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -348,7 +365,7 @@ export default function Projects() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-projects">
           {sortedAndFiltered.map((project) => (
             <ProjectCard key={project.id} project={project} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} />
           ))}

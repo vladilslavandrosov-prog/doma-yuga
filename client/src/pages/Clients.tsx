@@ -21,8 +21,15 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil, Trash2 } from "lucide-react";
+import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil, Trash2, HelpCircle } from "lucide-react";
 import type { Project } from "@shared/schema";
+import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
+
+const CLIENTS_TOUR_STEPS: TourStep[] = [
+  { target: "text-page-title", title: "Клиенты", description: "Список всех клиентов с доступом в личный кабинет и привязкой к их объектам." },
+  { target: "button-add-client", title: "Добавить клиента", description: "Создайте учётную запись клиента и привяжите её к объекту." },
+  { target: "grid-clients", title: "Карточки клиентов", description: "Здесь можно посмотреть контакты, сменить пароль или удалить клиента." },
+];
 
 interface ClientWithAccount {
   id: number;
@@ -171,11 +178,17 @@ export default function Clients() {
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Клиенты</h1>
-        <Button onClick={() => { resetForm(); setAddOpen(true); }} data-testid="button-add-client">
-          <UserPlus className="h-4 w-4 mr-2" />
-          Добавить клиента
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="icon" variant="outline" onClick={startOnboardingTour} aria-label="Показать инструкцию" data-testid="button-show-tour">
+            <HelpCircle className="w-4 h-4" />
+          </Button>
+          <Button onClick={() => { resetForm(); setAddOpen(true); }} data-testid="button-add-client">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Добавить клиента
+          </Button>
+        </div>
       </div>
+      <OnboardingTour steps={CLIENTS_TOUR_STEPS} storageKey="tour-admin-clients-v1" />
 
       {!clients || clients.length === 0 ? (
         <Card>
@@ -184,7 +197,7 @@ export default function Clients() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="grid-clients">
           {clients.map((client) => (
             <Card key={client.id} data-testid={`card-client-${client.id}`}>
               <CardHeader className="pb-2">

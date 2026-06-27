@@ -6,8 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ListTree, Plus, Trash2, Pencil, Search, Loader2, X, Check } from "lucide-react";
+import { ListTree, Plus, Trash2, Pencil, Search, Loader2, X, Check, HelpCircle } from "lucide-react";
 import type { WorkGroup } from "@shared/schema";
+import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
+
+const WORKGROUPS_TOUR_STEPS: TourStep[] = [
+  { target: "text-page-title", title: "Группы работ", description: "Единый справочник групп работ, который используется во всех сметах и графиках выполнения." },
+  { target: "input-new-work-group", title: "Новая группа", description: "Добавьте новую группу работ — она сразу появится при создании смет." },
+  { target: "input-search-work-groups", title: "Поиск", description: "Быстро найдите нужную группу в списке." },
+];
 
 export default function WorkGroups() {
   const { toast } = useToast();
@@ -96,14 +103,20 @@ export default function WorkGroups() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-2xl">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-page-title">
-          Группы работ
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Справочник групп работ для смет и выполнения — единый список на все объекты
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-page-title">
+            Группы работ
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Справочник групп работ для смет и выполнения — единый список на все объекты
+          </p>
+        </div>
+        <Button size="icon" variant="outline" onClick={startOnboardingTour} aria-label="Показать инструкцию" data-testid="button-show-tour">
+          <HelpCircle className="w-4 h-4" />
+        </Button>
       </div>
+      <OnboardingTour steps={WORKGROUPS_TOUR_STEPS} storageKey="tour-admin-workgroups-v1" />
 
       <Card>
         <CardHeader className="pb-2">

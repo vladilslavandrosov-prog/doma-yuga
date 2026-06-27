@@ -194,6 +194,17 @@ const DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
 ];
 
+const ADMIN_DASHBOARD_TOUR_STEPS: TourStep[] = [
+  { target: "card-hero", title: "Объект", description: "Название, адрес, дата начала и текущий статус объекта. Здесь же можно вернуться к списку объектов." },
+  { target: "card-progress", title: "Прогресс работ", description: "Доля выполненных позиций сметы по данным бригады — обновляется по ходу работ." },
+  { target: "card-financial", title: "Оплата", description: "Сколько клиент уже оплатил по смете." },
+  { target: "card-remaining", title: "Остаток к оплате", description: "Сумма, которую клиенту осталось доплатить." },
+  { target: "card-work-groups", title: "Группы работ", description: "Детальный прогресс по каждому этапу — фундамент, стены, крыша и т.д." },
+  { target: "card-activity", title: "Последние события", description: "Лента всех изменений по объекту: фото, платежи, выполненные позиции, сообщения клиента." },
+  { target: "card-ai-insight", title: "AI-анализ сроков", description: "AI оценивает темпы строительства с учётом прогноза погоды и подсказывает, успеваете ли вы по графику." },
+  { target: "card-quick-links", title: "Быстрый доступ", description: "Управляйте сметой, ходом работ, документами, фото и чатом с клиентом из одного места." },
+];
+
 function getQuickLinks(basePath: string) {
   return [
     { title: "Сметы", url: `${basePath}/estimates`, icon: FileSpreadsheet, description: "Работы и материалы" },
@@ -331,17 +342,15 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {!isAdmin && (
-                  <Button
-                    size="icon"
-                    variant={data.heroPhoto ? "secondary" : "outline"}
-                    onClick={startOnboardingTour}
-                    aria-label="Показать инструкцию"
-                    data-testid="button-show-tour"
-                  >
-                    <HelpCircle className="w-4 h-4" />
-                  </Button>
-                )}
+                <Button
+                  size="icon"
+                  variant={data.heroPhoto ? "secondary" : "outline"}
+                  onClick={startOnboardingTour}
+                  aria-label="Показать инструкцию"
+                  data-testid="button-show-tour"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                </Button>
                 {getStatusBadge(project.status)}
               </div>
             </div>
@@ -349,7 +358,11 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
         </div>
       </div>
 
-      {!isAdmin && <OnboardingTour steps={DASHBOARD_TOUR_STEPS} storageKey="tour-dashboard-v1" />}
+      {isAdmin ? (
+        <OnboardingTour steps={ADMIN_DASHBOARD_TOUR_STEPS} storageKey="tour-admin-dashboard-v1" />
+      ) : (
+        <OnboardingTour steps={DASHBOARD_TOUR_STEPS} storageKey="tour-dashboard-v1" />
+      )}
 
       {/* Stat tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

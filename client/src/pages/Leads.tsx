@@ -16,6 +16,12 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Inbox, Phone, Mail, MapPin, Ruler, Wallet, Clock, Loader2, Home, Wrench, Paintbrush, MessageCircle, HelpCircle, Trash2 } from "lucide-react";
 import type { Lead } from "@shared/schema";
+import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
+
+const LEADS_TOUR_STEPS: TourStep[] = [
+  { target: "text-page-title", title: "Заявки", description: "Все заявки с сайта собираются здесь — контакты клиента, параметры объекта и статус обработки." },
+  { target: "select-lead-status-filter", title: "Фильтр по статусу", description: "Отслеживайте заявки на каждом этапе — от новых до закрытых." },
+];
 
 const SERVICE_INFO: Record<string, { label: string; icon: typeof Home }> = {
   build: { label: "Строительство дома", icon: Home },
@@ -269,18 +275,24 @@ export default function Leads() {
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Заявки</h1>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-44" data-testid="select-lead-status-filter">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Button size="icon" variant="outline" onClick={startOnboardingTour} aria-label="Показать инструкцию" data-testid="button-show-tour">
+            <HelpCircle className="w-4 h-4" />
+          </Button>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-44" data-testid="select-lead-status-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все статусы</SelectItem>
+              {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+      <OnboardingTour steps={LEADS_TOUR_STEPS} storageKey="tour-admin-leads-v1" />
 
       {filtered.length === 0 ? (
         <Card>
