@@ -40,8 +40,29 @@ async function syncProjectStatusWithProgress(projectId: number): Promise<void> {
   const allCompleted = items.every((i) => i.status === "completed");
   if (allCompleted && project.status !== "completed") {
     await storage.updateProject(projectId, { status: "completed" });
+    const { notifyProjectCompleted } = await import("./telegram");
+    notifyProjectCompleted(project.name);
   } else if (!allCompleted && project.status === "completed") {
     await storage.updateProject(projectId, { status: "active" });
+  }
+}
+
+// Раз в сутки шлёт в Telegram напоминание по активным проектам, где есть
+// неоплаченный остаток — чтобы менеджер не упускал из виду долги клиентов.
+export async function checkOverduePayments(): Promise<void> {
+  const { notifyOverduePayment } = await import("./telegram");
+  const projects = await storage.getAllProjects();
+  for (const project of projects) {
+    if (project.status !== "active") continue;
+    const estimates = await storage.getEstimatesByProjectId(project.id);
+    const items = await storage.getEstimateItemsByEstimateIds(estimates.map((e) => e.id));
+    const totalEstimateSum = items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
+    const payments = await storage.getPaymentsByProjectId(project.id);
+    const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    const remaining = totalEstimateSum - totalPaid;
+    if (remaining > 0) {
+      await notifyOverduePayment(project.name, remaining);
+    }
   }
 }
 
@@ -894,6 +915,14 @@ export async function registerRoutes(
     }
     const url = "/uploads/" + path.relative(uploadsDir, req.file.path).replace(/\\/g, "/");
     const photo = await storage.createEstimateItemPhoto({ estimateItemId, url });
+    const estimate = await storage.getEstimateById(existing.estimateId);
+    if (estimate) {
+      const project = await storage.getProjectById(estimate.projectId);
+      if (project) {
+        const { notifyNewPhoto } = await import("./telegram");
+        notifyNewPhoto(project.name, existing.name);
+      }
+    }
     res.json(photo);
   });
 
@@ -912,6 +941,11 @@ export async function registerRoutes(
       return res.status(400).json({ error: parsed.error });
     }
     const payment = await storage.createPayment(parsed.data);
+    const project = await storage.getProjectById(payment.projectId);
+    if (project) {
+      const { notifyPaymentReceived } = await import("./telegram");
+      notifyPaymentReceived(project.name, Number(payment.amount));
+    }
     res.json(payment);
   });
 
