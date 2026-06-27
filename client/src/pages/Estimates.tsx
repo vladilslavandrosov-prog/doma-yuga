@@ -144,7 +144,7 @@ function MobileCard({ item, index, isAdmin, onDelete, onEdit }: MobileCardProps)
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-destructive"
-                  onClick={() => onDelete(item.id)}
+                  onClick={() => { if (confirm("Удалить эту позицию сметы?")) onDelete(item.id); }}
                   data-testid={`button-delete-item-${item.id}`}
                   aria-label="Удалить позицию"
                 >
@@ -567,7 +567,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive"
-                                onClick={() => deleteMutation.mutate(item.id)}
+                                onClick={() => { if (confirm("Удалить эту позицию сметы?")) deleteMutation.mutate(item.id); }}
                                 data-testid={`button-delete-item-${item.id}`}
                                 aria-label="Удалить позицию"
                               >

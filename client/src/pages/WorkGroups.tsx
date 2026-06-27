@@ -209,7 +209,7 @@ export default function WorkGroups() {
                         size="icon"
                         variant="ghost"
                         disabled={deleteMutation.isPending}
-                        onClick={() => deleteMutation.mutate(g.id)}
+                        onClick={() => { if (confirm(`Удалить группу работ «${g.name}»?`)) deleteMutation.mutate(g.id); }}
                         data-testid={`button-delete-work-group-${g.id}`}
                       >
                         <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />

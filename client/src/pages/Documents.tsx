@@ -429,7 +429,7 @@ export default function Documents({ projectId }: { projectId: number }) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => deleteMutation.mutate(doc.id)}
+                          onClick={() => { if (confirm(`Удалить документ «${doc.name}»?`)) deleteMutation.mutate(doc.id); }}
                           disabled={deleteMutation.isPending}
                           data-testid={`button-delete-doc-${doc.id}`}
                           aria-label="Удалить документ"

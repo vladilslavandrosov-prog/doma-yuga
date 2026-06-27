@@ -197,7 +197,7 @@ export default function Videos({ projectId }: { projectId: number }) {
                     data-testid={`button-delete-video-${video.id}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteMutation.mutate(video.id);
+                      if (confirm(`Удалить видео «${video.title}»?`)) deleteMutation.mutate(video.id);
                     }}
                     aria-label="Удалить видео"
                   >
