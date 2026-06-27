@@ -26,6 +26,25 @@ import {
 const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
+// Автоматически переводит проект в "completed", когда все позиции смет выполнены,
+// и возвращает обратно в "active", если позиция переоткрыта. Статус "paused" не трогаем —
+// это осознанное решение администратора.
+async function syncProjectStatusWithProgress(projectId: number): Promise<void> {
+  const project = await storage.getProjectById(projectId);
+  if (!project || project.status === "paused") return;
+
+  const estimates = await storage.getEstimatesByProjectId(projectId);
+  const items = await storage.getEstimateItemsByEstimateIds(estimates.map((e) => e.id));
+  if (items.length === 0) return;
+
+  const allCompleted = items.every((i) => i.status === "completed");
+  if (allCompleted && project.status !== "completed") {
+    await storage.updateProject(projectId, { status: "completed" });
+  } else if (!allCompleted && project.status === "completed") {
+    await storage.updateProject(projectId, { status: "active" });
+  }
+}
+
 // Возвращает путь к подпапке, создаёт если нет
 function subDir(...parts: string[]): string {
   const dir = path.join(uploadsDir, ...parts);
@@ -150,7 +169,7 @@ async function requireProjectAccess(req: Request, res: Response, next: NextFunct
   // Администратор → без ограничений
   if (req.session.role === "admin") return next();
   // Клиент → проверяем владельца
-  const rawId = req.params.id ?? req.params.projectId;
+  const rawId = (req.params.id ?? req.params.projectId) as string;
   const projectId = parseInt(rawId);
   if (isNaN(projectId)) {
     return res.status(400).json({ error: "Invalid project ID" });
@@ -301,7 +320,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/clients/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const { name, phone, email } = req.body;
     const updateData: Record<string, unknown> = {};
     if (name !== undefined) updateData.name = name;
@@ -315,7 +334,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/clients/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
@@ -346,7 +365,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/projects/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const { name, address, startDate, status, clientId } = req.body;
     const updates: Record<string, any> = {};
     if (name !== undefined) updates.name = name;
@@ -362,7 +381,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/projects/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
@@ -423,7 +442,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/project/:id", requireProjectAccess, async (req, res) => {
-    const project = await storage.getProjectById(parseInt(req.params.id));
+    const project = await storage.getProjectById(parseInt(req.params.id as string));
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -431,7 +450,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/project/:id/client", requireProjectAccess, async (req, res) => {
-    const project = await storage.getProjectById(parseInt(req.params.id));
+    const project = await storage.getProjectById(parseInt(req.params.id as string));
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -440,7 +459,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/project/:id/estimates", requireProjectAccess, async (req, res) => {
-    const projectId = parseInt(req.params.id);
+    const projectId = parseInt(req.params.id as string);
     const estimates = await storage.getEstimatesByProjectId(projectId);
     const allItems = await storage.getEstimateItemsByEstimateIds(estimates.map(e => e.id));
     const itemIds = allItems.map(i => i.id);
@@ -457,37 +476,37 @@ export async function registerRoutes(
   });
 
   app.get("/api/project/:id/payments", requireProjectAccess, async (req, res) => {
-    const payments = await storage.getPaymentsByProjectId(parseInt(req.params.id));
+    const payments = await storage.getPaymentsByProjectId(parseInt(req.params.id as string));
     res.json(payments);
   });
 
   app.get("/api/project/:id/documents", requireProjectAccess, async (req, res) => {
-    const documents = await storage.getDocumentsByProjectId(parseInt(req.params.id));
+    const documents = await storage.getDocumentsByProjectId(parseInt(req.params.id as string));
     res.json(documents);
   });
 
   app.get("/api/project/:id/photos", requireProjectAccess, async (req, res) => {
-    const photos = await storage.getPhotosByProjectId(parseInt(req.params.id));
+    const photos = await storage.getPhotosByProjectId(parseInt(req.params.id as string));
     res.json(photos);
   });
 
   app.get("/api/project/:id/videos", requireProjectAccess, async (req, res) => {
-    const videos = await storage.getVideosByProjectId(parseInt(req.params.id));
+    const videos = await storage.getVideosByProjectId(parseInt(req.params.id as string));
     res.json(videos);
   });
 
   app.get("/api/project/:id/non-working-days", requireProjectAccess, async (req, res) => {
-    const days = await storage.getNonWorkingDaysByProjectId(parseInt(req.params.id));
+    const days = await storage.getNonWorkingDaysByProjectId(parseInt(req.params.id as string));
     res.json(days);
   });
 
   app.get("/api/project/:id/messages", requireProjectAccess, async (req, res) => {
-    const messages = await storage.getMessagesByProjectId(parseInt(req.params.id));
+    const messages = await storage.getMessagesByProjectId(parseInt(req.params.id as string));
     res.json(messages);
   });
 
   app.post("/api/project/:id/messages", requireAuth, requireProjectAccess, async (req, res) => {
-    const projectId = parseInt(req.params.id);
+    const projectId = parseInt(req.params.id as string);
     const sender = req.session.role === "admin" ? "admin" : "client";
     const parsed = insertMessageSchema.safeParse({
       ...req.body,
@@ -518,21 +537,21 @@ export async function registerRoutes(
   });
 
   app.post("/api/project/:id/messages/read", requireAuth, requireProjectAccess, async (req, res) => {
-    const projectId = parseInt(req.params.id);
+    const projectId = parseInt(req.params.id as string);
     const senderToMark = req.session.role === "admin" ? "client" : "admin";
     await storage.markMessagesAsRead(projectId, senderToMark);
     res.json({ ok: true });
   });
 
   app.get("/api/project/:id/unread", requireProjectAccess, async (req, res) => {
-    const projectId = parseInt(req.params.id);
+    const projectId = parseInt(req.params.id as string);
     const unreadSender = req.session.role === "admin" ? "client" : "admin";
     const count = await storage.getUnreadCount(projectId, unreadSender);
     res.json({ count });
   });
 
   app.get("/api/dashboard/project/:id", requireProjectAccess, async (req, res) => {
-    const projectId = parseInt(req.params.id);
+    const projectId = parseInt(req.params.id as string);
     const project = await storage.getProjectById(projectId);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -599,7 +618,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/project/:id/ai-timeline", requireProjectAccess, async (req, res) => {
-    const projectId = parseInt(req.params.id);
+    const projectId = parseInt(req.params.id as string);
     const project = await storage.getProjectById(projectId);
     if (!project) return res.status(404).json({ error: "Not found" });
 
@@ -836,15 +855,19 @@ export async function registerRoutes(
     for (const key of allowed) {
       if (req.body[key] !== undefined) filtered[key] = req.body[key];
     }
-    const item = await storage.updateEstimateItem(parseInt(req.params.id), filtered);
+    const item = await storage.updateEstimateItem(parseInt(req.params.id as string), filtered);
     if (!item) {
       return res.status(404).json({ error: "Item not found" });
+    }
+    if (filtered.status !== undefined) {
+      const estimate = await storage.getEstimateById(item.estimateId);
+      if (estimate) await syncProjectStatusWithProgress(estimate.projectId);
     }
     res.json(item);
   });
 
   app.delete("/api/admin/estimate-items/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const photos = await storage.getPhotosByEstimateItemId(id);
     for (const photo of photos) {
       const url = await storage.deleteEstimateItemPhoto(photo.id);
@@ -875,7 +898,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/estimate-item-photos/:id", requireAdmin, async (req, res) => {
-    const url = await storage.deleteEstimateItemPhoto(parseInt(req.params.id));
+    const url = await storage.deleteEstimateItemPhoto(parseInt(req.params.id as string));
     if (!url) {
       return res.status(404).json({ error: "Photo not found" });
     }
@@ -893,7 +916,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/payments/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
@@ -909,7 +932,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/payments/:id", requireAdmin, async (req, res) => {
-    const ok = await storage.deletePayment(parseInt(req.params.id));
+    const ok = await storage.deletePayment(parseInt(req.params.id as string));
     if (!ok) {
       return res.status(404).json({ error: "Payment not found" });
     }
@@ -947,7 +970,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/documents/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
@@ -963,7 +986,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/documents/:id", requireAdmin, async (req, res) => {
-    const url = await storage.deleteDocument(parseInt(req.params.id));
+    const url = await storage.deleteDocument(parseInt(req.params.id as string));
     if (!url) {
       return res.status(404).json({ error: "Document not found" });
     }
@@ -999,7 +1022,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/photos/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
@@ -1015,7 +1038,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/photos/:id", requireAdmin, async (req, res) => {
-    const url = await storage.deletePhoto(parseInt(req.params.id));
+    const url = await storage.deletePhoto(parseInt(req.params.id as string));
     if (!url) {
       return res.status(404).json({ error: "Photo not found" });
     }
@@ -1052,7 +1075,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/videos/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
@@ -1068,7 +1091,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/videos/:id", requireAdmin, async (req, res) => {
-    const url = await storage.deleteVideo(parseInt(req.params.id));
+    const url = await storage.deleteVideo(parseInt(req.params.id as string));
     if (!url) {
       return res.status(404).json({ error: "Video not found" });
     }
@@ -1086,7 +1109,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/non-working-days/:id", requireAdmin, async (req, res) => {
-    const ok = await storage.deleteNonWorkingDay(parseInt(req.params.id));
+    const ok = await storage.deleteNonWorkingDay(parseInt(req.params.id as string));
     if (!ok) {
       return res.status(404).json({ error: "Non-working day not found" });
     }
@@ -1110,7 +1133,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/gallery/:id", requireAdmin, async (req, res) => {
-    const url = await storage.deleteGalleryPhoto(parseInt(req.params.id));
+    const url = await storage.deleteGalleryPhoto(parseInt(req.params.id as string));
     if (!url) {
       return res.status(404).json({ error: "Gallery photo not found" });
     }
@@ -1119,12 +1142,12 @@ export async function registerRoutes(
   });
 
   app.get("/api/project/:id/day-comments", requireProjectAccess, async (req, res) => {
-    const comments = await storage.getDayCommentsByProjectId(parseInt(req.params.id));
+    const comments = await storage.getDayCommentsByProjectId(parseInt(req.params.id as string));
     res.json(comments);
   });
 
   app.post("/api/project/:projectId/day-comments", requireAuth, requireProjectAccess, async (req, res) => {
-    const projectId = parseInt(req.params.projectId);
+    const projectId = parseInt(req.params.projectId as string);
     const { date, text } = req.body;
     if (!date || !text?.trim()) {
       return res.status(400).json({ error: "date and text required" });
@@ -1162,8 +1185,8 @@ export async function registerRoutes(
   });
 
   app.patch("/api/project/:projectId/day-comments/:id", requireAuth, requireProjectAccess, async (req, res) => {
-    const id = parseInt(req.params.id);
-    const projectId = parseInt(req.params.projectId);
+    const id = parseInt(req.params.id as string);
+    const projectId = parseInt(req.params.projectId as string);
     const { text } = req.body;
     if (!text?.trim()) {
       return res.status(400).json({ error: "text required" });
@@ -1196,7 +1219,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/project/:projectId/day-comments/:id", requireAuth, requireProjectAccess, async (req, res) => {
-    const ok = await storage.deleteDayComment(parseInt(req.params.id));
+    const ok = await storage.deleteDayComment(parseInt(req.params.id as string));
     if (!ok) {
       return res.status(404).json({ error: "Comment not found" });
     }
@@ -1242,7 +1265,7 @@ export async function registerRoutes(
 
   const LEAD_STATUSES = ["new", "called", "working", "done", "declined"];
   app.patch("/api/admin/leads/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
@@ -1264,7 +1287,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/leads/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
@@ -1295,7 +1318,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/work-groups/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
@@ -1316,7 +1339,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/work-groups/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
