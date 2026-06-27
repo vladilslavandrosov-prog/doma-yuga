@@ -1,5 +1,17 @@
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.1-8b-instruct:free";
+
+// OpenRouter periodically retires/renames free model slugs. Try the configured
+// model first (if set), then fall back through a list of currently-known free
+// models so the bot keeps working without a manual env var update.
+const FALLBACK_FREE_MODELS = [
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "qwen/qwen-2.5-7b-instruct:free",
+  "mistralai/mistral-7b-instruct:free",
+  "google/gemini-2.0-flash-exp:free",
+];
+const CANDIDATE_MODELS = process.env.OPENROUTER_MODEL
+  ? [process.env.OPENROUTER_MODEL, ...FALLBACK_FREE_MODELS]
+  : FALLBACK_FREE_MODELS;
 
 const SYSTEM_PROMPT = `Ты — консультант строительной компании «Дома Юга» на сайте компании.
 Отвечай кратко (2-4 предложения), вежливо и по-русски. Помогай посетителям сайта с вопросами
@@ -26,12 +38,8 @@ export function isFaqBotConfigured(): boolean {
   return !!OPENROUTER_API_KEY;
 }
 
-export async function askFaqBot(history: FaqChatMessage[]): Promise<string> {
-  if (!OPENROUTER_API_KEY) {
-    throw new Error("FAQ bot is not configured");
-  }
-
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+async function callOpenRouter(model: string, history: FaqChatMessage[]): Promise<Response> {
+  return fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -40,22 +48,45 @@ export async function askFaqBot(history: FaqChatMessage[]): Promise<string> {
       "X-Title": "Doma Yuga FAQ Bot",
     },
     body: JSON.stringify({
-      model: OPENROUTER_MODEL,
+      model,
       messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
       temperature: 0.4,
       max_tokens: 400,
     }),
   });
+}
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OpenRouter request failed: ${response.status} ${text}`);
+export async function askFaqBot(history: FaqChatMessage[]): Promise<string> {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error("FAQ bot is not configured");
   }
 
-  const data = await response.json();
-  const reply = data?.choices?.[0]?.message?.content;
-  if (typeof reply !== "string" || !reply.trim()) {
-    throw new Error("Empty response from FAQ bot");
+  let lastError: Error | null = null;
+  for (const model of CANDIDATE_MODELS) {
+    let response: Response;
+    try {
+      response = await callOpenRouter(model, history);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      continue;
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      lastError = new Error(`OpenRouter request failed for ${model}: ${response.status} ${text}`);
+      // 404/400 usually means the model slug is retired/invalid — try the next candidate.
+      if (response.status === 404 || response.status === 400) continue;
+      throw lastError;
+    }
+
+    const data = await response.json();
+    const reply = data?.choices?.[0]?.message?.content;
+    if (typeof reply !== "string" || !reply.trim()) {
+      lastError = new Error(`Empty response from FAQ bot for model ${model}`);
+      continue;
+    }
+    return reply.trim();
   }
-  return reply.trim();
+
+  throw lastError ?? new Error("All FAQ bot models failed");
 }
