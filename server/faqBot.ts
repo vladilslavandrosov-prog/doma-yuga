@@ -81,8 +81,9 @@ export async function askFaqBot(history: FaqChatMessage[]): Promise<string> {
     if (!response.ok) {
       const text = await response.text();
       lastError = new Error(`OpenRouter request failed for ${model}: ${response.status} ${text}`);
-      // 404/400 usually means the model slug is retired/invalid — try the next candidate.
-      if (response.status === 404 || response.status === 400) continue;
+      // 404/400: model slug retired/invalid. 429: this free model is rate-limited upstream.
+      // Either way, try the next candidate instead of failing the whole request.
+      if (response.status === 404 || response.status === 400 || response.status === 429) continue;
       throw lastError;
     }
 
