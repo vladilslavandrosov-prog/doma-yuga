@@ -3,7 +3,7 @@ import { db } from "./db";
 import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
-  estimateItemPhotos, galleryPhotos, dayComments, leads,
+  estimateItemPhotos, galleryPhotos, dayComments, leads, workGroups,
 } from "@shared/schema";
 import type {
   Client, InsertClient,
@@ -21,6 +21,7 @@ import type {
   GalleryPhoto, InsertGalleryPhoto,
   DayComment, InsertDayComment,
   Lead, InsertLead,
+  WorkGroup, InsertWorkGroup,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -292,6 +293,20 @@ export class DatabaseStorage implements IStorage {
   async updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined> {
     const [row] = await db.update(leads).set(data).where(eq(leads.id, id)).returning();
     return row;
+  }
+
+  async getWorkGroups(): Promise<WorkGroup[]> {
+    return db.select().from(workGroups).orderBy(workGroups.name);
+  }
+
+  async createWorkGroup(group: InsertWorkGroup): Promise<WorkGroup> {
+    const [row] = await db.insert(workGroups).values(group).returning();
+    return row;
+  }
+
+  async deleteWorkGroup(id: number): Promise<boolean> {
+    const result = await db.delete(workGroups).where(eq(workGroups.id, id)).returning();
+    return result.length > 0;
   }
 
 }

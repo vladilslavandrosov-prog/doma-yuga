@@ -200,3 +200,12 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 });
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Lead = typeof leads.$inferSelect;
+
+export const workGroups = pgTable("work_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+});
+
+export const insertWorkGroupSchema = createInsertSchema(workGroups).omit({ id: true });
+export type InsertWorkGroup = z.infer<typeof insertWorkGroupSchema>;
+export type WorkGroup = typeof workGroups.$inferSelect;

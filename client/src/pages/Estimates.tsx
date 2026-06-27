@@ -31,9 +31,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, ArrowUpDown, ArrowUp, ArrowDown, Plus, Trash2, Loader2 } from "lucide-react";
+import { Search, ArrowUpDown, ArrowUp, ArrowDown, Plus, Trash2, Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Estimate, EstimateItem } from "@shared/schema";
+import type { Estimate, EstimateItem, WorkGroup } from "@shared/schema";
 
 type EstimateWithItems = Estimate & { items: EstimateItem[] };
 
@@ -115,9 +115,10 @@ interface MobileCardProps {
   index: number;
   isAdmin: boolean;
   onDelete: (id: number) => void;
+  onEdit: (item: EstimateItem) => void;
 }
 
-function MobileCard({ item, index, isAdmin, onDelete }: MobileCardProps) {
+function MobileCard({ item, index, isAdmin, onDelete, onEdit }: MobileCardProps) {
   return (
     <Card data-testid={`card-estimate-item-${item.id}`}>
       <CardContent className="p-4 space-y-2">
@@ -128,16 +129,28 @@ function MobileCard({ item, index, isAdmin, onDelete }: MobileCardProps) {
           <div className="flex items-center gap-2">
             <StatusBadge status={item.status} />
             {isAdmin && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-destructive"
-                onClick={() => onDelete(item.id)}
-                data-testid={`button-delete-item-${item.id}`}
-                aria-label="Удалить позицию"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => onEdit(item)}
+                  data-testid={`button-edit-item-${item.id}`}
+                  aria-label="Редактировать позицию"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-destructive"
+                  onClick={() => onDelete(item.id)}
+                  data-testid={`button-delete-item-${item.id}`}
+                  aria-label="Удалить позицию"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -167,6 +180,8 @@ export default function Estimates({ projectId }: { projectId: number }) {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<EstimateItem | null>(null);
 
   const [formDate, setFormDate] = useState("");
   const [formName, setFormName] = useState("");
@@ -196,14 +211,14 @@ export default function Estimates({ projectId }: { projectId: number }) {
       .flatMap((e) => e.items);
   }, [estimates, categoryKey]);
 
-  const existingWorkGroups = useMemo(() => {
-    if (!estimates) return [];
-    const groups = new Set<string>();
-    estimates.flatMap((e) => e.items).forEach((item) => {
-      if (item.workGroup) groups.add(item.workGroup);
-    });
-    return Array.from(groups).sort();
-  }, [estimates]);
+  const { data: workGroupsDirectory } = useQuery<WorkGroup[]>({
+    queryKey: ["/api/work-groups"],
+  });
+
+  const existingWorkGroups = useMemo(
+    () => (workGroupsDirectory ?? []).map((g) => g.name),
+    [workGroupsDirectory],
+  );
 
   const filteredItems = useMemo(() => {
     let items = allItems;
@@ -258,6 +273,19 @@ export default function Estimates({ projectId }: { projectId: number }) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) => {
+      await apiRequest("PATCH", `/api/admin/estimate-items/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
+      setEditOpen(false);
+      setEditingItem(null);
+      resetForm();
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/admin/estimate-items/${id}`);
@@ -276,6 +304,38 @@ export default function Estimates({ projectId }: { projectId: number }) {
     setFormUnitPrice("");
     setFormStatus("planned");
     setFormWorkGroup("");
+  }
+
+  function openEdit(item: EstimateItem) {
+    setEditingItem(item);
+    setFormDate(item.date);
+    setFormName(item.name);
+    setFormQuantity(item.quantity);
+    setFormUnit(item.unit);
+    setFormUnitPrice(item.unitPrice);
+    setFormStatus(item.status);
+    setFormWorkGroup(item.workGroup || "");
+    setEditOpen(true);
+  }
+
+  function handleUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingItem) return;
+    const qty = parseFloat(formQuantity);
+    const price = parseFloat(formUnitPrice);
+    updateMutation.mutate({
+      id: editingItem.id,
+      data: {
+        date: formDate,
+        name: formName,
+        quantity: formQuantity,
+        unit: formUnit,
+        unitPrice: formUnitPrice,
+        totalPrice: String(qty * price),
+        status: formStatus,
+        workGroup: formWorkGroup.trim() || null,
+      },
+    });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -389,6 +449,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
                   index={index}
                   isAdmin={isAdmin}
                   onDelete={(id) => deleteMutation.mutate(id)}
+                  onEdit={(item) => openEdit(item)}
                 />
               ))}
               <Card>
@@ -491,16 +552,28 @@ export default function Estimates({ projectId }: { projectId: number }) {
                         </TableCell>
                         {isAdmin && (
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => deleteMutation.mutate(item.id)}
-                              data-testid={`button-delete-item-${item.id}`}
-                              aria-label="Удалить позицию"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => openEdit(item)}
+                                data-testid={`button-edit-item-${item.id}`}
+                                aria-label="Редактировать позицию"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => deleteMutation.mutate(item.id)}
+                                data-testid={`button-delete-item-${item.id}`}
+                                aria-label="Удалить позицию"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>
@@ -616,6 +689,106 @@ export default function Estimates({ projectId }: { projectId: number }) {
             </div>
             <Button type="submit" className="w-full" disabled={createMutation.isPending} data-testid="button-submit-estimate-item">
               {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Добавить"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open);
+          if (!open) {
+            setEditingItem(null);
+            resetForm();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать позицию</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Дата</Label>
+              <Input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                required
+                max="2100-12-31"
+                data-testid="input-edit-item-date"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Наименование</Label>
+              <Input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Название работы или материала"
+                required
+                data-testid="input-edit-item-name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Количество</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={formQuantity}
+                  onChange={(e) => setFormQuantity(e.target.value)}
+                  required
+                  data-testid="input-edit-item-quantity"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Ед. измерения</Label>
+                <Input
+                  value={formUnit}
+                  onChange={(e) => setFormUnit(e.target.value)}
+                  placeholder="м², шт, кг"
+                  required
+                  data-testid="input-edit-item-unit"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Цена за единицу</Label>
+              <Input
+                type="number"
+                step="any"
+                value={formUnitPrice}
+                onChange={(e) => setFormUnitPrice(e.target.value)}
+                required
+                data-testid="input-edit-item-unit-price"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Статус</Label>
+              <Select value={formStatus} onValueChange={setFormStatus}>
+                <SelectTrigger data-testid="select-edit-item-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planned">Запланировано</SelectItem>
+                  <SelectItem value="in_progress">В работе</SelectItem>
+                  <SelectItem value="completed">Выполнено</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Группа работ</Label>
+              <Input
+                value={formWorkGroup}
+                onChange={(e) => setFormWorkGroup(e.target.value)}
+                placeholder="Например, Фундамент"
+                list="estimate-work-groups"
+                data-testid="input-edit-item-work-group"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={updateMutation.isPending} data-testid="button-submit-edit-estimate-item">
+              {updateMutation.isPending ? <Loader2 className="animate-spin" /> : "Сохранить"}
             </Button>
           </form>
         </DialogContent>

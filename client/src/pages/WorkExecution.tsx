@@ -51,7 +51,7 @@ import {
 } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Textarea } from "@/components/ui/textarea";
-import type { Estimate, EstimateItem, NonWorkingDay, EstimateItemPhoto, DayComment } from "@shared/schema";
+import type { Estimate, EstimateItem, NonWorkingDay, EstimateItemPhoto, DayComment, WorkGroup } from "@shared/schema";
 
 type EstimateItemWithPhotos = EstimateItem & { photos?: EstimateItemPhoto[] };
 type EstimateWithItems = Estimate & { items: EstimateItemWithPhotos[] };
@@ -1133,14 +1133,14 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
       .flatMap((e) => e.items);
   }, [estimates, category]);
 
-  const existingGroups = useMemo(() => {
-    if (!estimates) return [];
-    const groups = new Set<string>();
-    estimates.flatMap((e) => e.items).forEach((item) => {
-      if (item.workGroup) groups.add(item.workGroup);
-    });
-    return Array.from(groups).sort();
-  }, [estimates]);
+  const { data: workGroupsDirectory } = useQuery<WorkGroup[]>({
+    queryKey: ["/api/work-groups"],
+  });
+
+  const existingGroups = useMemo(
+    () => (workGroupsDirectory ?? []).map((g) => g.name),
+    [workGroupsDirectory],
+  );
 
   const dayGroups = useMemo(() => {
     const groups = new Map<string, EstimateItemWithPhotos[]>();

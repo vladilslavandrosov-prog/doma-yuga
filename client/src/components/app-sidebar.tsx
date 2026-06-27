@@ -24,6 +24,7 @@ import {
   ClipboardList,
   Presentation,
   Inbox,
+  ListTree,
 } from "lucide-react";
 import {
   useSidebar,
@@ -79,7 +80,7 @@ export function AppSidebar() {
   const inCabinet = location.startsWith("/cabinet");
   const projectIdFromUrl = extractProjectId(location);
   const inProject = projectIdFromUrl !== null;
-  const adminPages = ["/cabinet", "/cabinet/clients", "/cabinet/leads", "/cabinet/settings"];
+  const adminPages = ["/cabinet", "/cabinet/clients", "/cabinet/leads", "/cabinet/work-groups", "/cabinet/settings"];
   const inAdminPanel = isAdmin && inCabinet && !inProject && adminPages.includes(location);
 
   const isClient = !!user && user.role === "client";
@@ -236,6 +237,19 @@ export function AppSidebar() {
                       {newLeadsCount}
                     </SidebarMenuBadge>
                   )}
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/cabinet/work-groups"}
+                    tooltip="Группы работ"
+                    data-testid="link-nav-work-groups"
+                  >
+                    <Link href="/cabinet/work-groups" onClick={closeMobile}>
+                      <ListTree />
+                      <span>Группы работ</span>
+                    </Link>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton

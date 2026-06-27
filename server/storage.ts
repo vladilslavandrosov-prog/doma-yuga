@@ -14,6 +14,7 @@ import {
   type GalleryPhoto, type InsertGalleryPhoto,
   type DayComment, type InsertDayComment,
   type Lead, type InsertLead,
+  type WorkGroup, type InsertWorkGroup,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -72,6 +73,9 @@ export interface IStorage {
   getLeads(): Promise<Lead[]>;
   createLead(lead: InsertLead): Promise<Lead>;
   updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined>;
+  getWorkGroups(): Promise<WorkGroup[]>;
+  createWorkGroup(group: InsertWorkGroup): Promise<WorkGroup>;
+  deleteWorkGroup(id: number): Promise<boolean>;
 }
 
 import { DatabaseStorage } from "./dbStorage";

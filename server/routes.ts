@@ -20,6 +20,7 @@ import {
   insertGalleryPhotoSchema,
   insertDayCommentSchema,
   insertLeadSchema,
+  insertWorkGroupSchema,
 } from "@shared/schema";
 
 const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
@@ -1149,6 +1150,36 @@ export async function registerRoutes(
     res.json(lead);
   });
 
+  app.get("/api/work-groups", async (_req, res) => {
+    const groups = await storage.getWorkGroups();
+    res.json(groups);
+  });
+
+  app.post("/api/admin/work-groups", requireAdmin, async (req, res) => {
+    const parsed = insertWorkGroupSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    try {
+      const group = await storage.createWorkGroup(parsed.data);
+      res.status(201).json(group);
+    } catch (err) {
+      console.error("create work group error:", err);
+      res.status(400).json({ error: "Такая группа уже существует" });
+    }
+  });
+
+  app.delete("/api/admin/work-groups/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const ok = await storage.deleteWorkGroup(id);
+    if (!ok) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+    res.status(204).end();
+  });
 
   return httpServer;
 }

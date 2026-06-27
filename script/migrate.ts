@@ -35,6 +35,14 @@ async function main() {
   `);
   console.log("✓ таблица leads готова");
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS work_groups (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE
+    )
+  `);
+  console.log("✓ таблица work_groups готова");
+
   await pool.end();
 }
 
