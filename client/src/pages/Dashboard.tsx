@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 
 interface WeatherDay { date: string; tmax: number; tmin: number; precip: number; code: number; }
+interface AiWorkGroup { name: string; completed: number; total: number; inProgress: number; percentage: number; }
 
 function WeatherIcon({ code, className }: { code: number; className?: string }) {
   if (code === 0) return <Sun className={className} />;
@@ -246,6 +247,7 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
   const [aiOpen, setAiOpen] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [weatherDays, setWeatherDays] = useState<WeatherDay[]>([]);
+  const [aiGroups, setAiGroups] = useState<AiWorkGroup[]>([]);
 
   const { data, isLoading, error } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard/project", projectId],
@@ -257,6 +259,7 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
       const json = await res.json();
       setAnalysis(json.analysis);
       setWeatherDays(json.weather ?? []);
+      setAiGroups(json.groups ?? []);
     },
     onError: () => toast({ title: "Не удалось получить анализ. Попробуйте позже.", variant: "destructive" }),
   });
@@ -503,12 +506,16 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
       <Dialog open={aiOpen} onOpenChange={setAiOpen}>
         <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-[90vh] flex flex-col">
           {/* Шапка */}
-          <div className="flex items-center gap-3 px-6 py-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 shrink-0">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary" />
+          <div className="relative flex items-center gap-3 px-6 py-4 border-b border-primary/20 bg-gradient-to-r from-violet-600/10 via-primary/10 to-cyan-500/10 shrink-0 overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,theme(colors.primary/25),transparent_55%)] pointer-events-none" />
+            <div className="relative w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-[0_0_16px_-2px_theme(colors.primary)] animate-pulse">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <p className="font-semibold text-base">Анализ проекта</p>
+            <div className="relative">
+              <p className="font-semibold text-base flex items-center gap-1.5">
+                Анализ проекта
+                <span className="text-[10px] font-mono uppercase tracking-widest text-primary/80 bg-primary/10 border border-primary/30 rounded px-1.5 py-0.5">AI</span>
+              </p>
               <p className="text-xs text-muted-foreground">Прогресс, сроки и прогноз погоды</p>
             </div>
           </div>
@@ -517,13 +524,14 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
             {aiMutation.isPending ? (
               <div className="flex flex-col items-center justify-center py-16 gap-4">
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500/30 to-cyan-500/30 blur-xl animate-pulse" />
+                  <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-violet-500/20 to-cyan-500/20 border border-primary/30 flex items-center justify-center">
                     <Loader2 className="w-7 h-7 animate-spin text-primary" />
                   </div>
                 </div>
                 <div className="text-center">
                   <p className="font-medium">Анализирую проект...</p>
-                  <p className="text-sm text-muted-foreground mt-1">Загружаю данные и прогноз погоды</p>
+                  <p className="text-sm text-muted-foreground mt-1 font-mono">Загружаю данные и прогноз погоды</p>
                 </div>
               </div>
             ) : analysis ? (
@@ -574,6 +582,47 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
 
                 <div className="border-t mx-6"/>
 
+                {/* По группам работ */}
+                {aiGroups.length > 0 && (
+                  <div className="px-6 pt-5 pb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Building2 className="w-4 h-4 text-primary" />
+                      <p className="font-semibold text-sm">По группам работ</p>
+                    </div>
+                    <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-violet-500/5 via-card to-cyan-500/5 overflow-hidden">
+                      {aiGroups.map((g, i) => (
+                        <div
+                          key={g.name}
+                          className={`flex items-center gap-3 px-4 py-2.5 ${i > 0 ? "border-t border-primary/10" : ""}`}
+                          data-testid={`row-ai-group-${i}`}
+                        >
+                          <span className="text-sm font-medium flex-1 min-w-0 truncate">{g.name}</span>
+                          {g.inProgress > 0 && (
+                            <span className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-1.5 py-0.5 shrink-0">
+                              <Zap className="w-3 h-3" />
+                              {g.inProgress}
+                            </span>
+                          )}
+                          <div className="w-28 h-1.5 rounded-full bg-muted-foreground/15 overflow-hidden shrink-0">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                g.percentage >= 100
+                                  ? "bg-gradient-to-r from-emerald-500 to-cyan-500"
+                                  : g.percentage > 0
+                                  ? "bg-gradient-to-r from-violet-500 to-primary"
+                                  : "bg-muted-foreground/20"
+                              }`}
+                              style={{ width: `${Math.min(100, g.percentage)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-mono text-muted-foreground w-10 text-right shrink-0">{g.percentage}%</span>
+                          <span className="text-xs text-muted-foreground w-10 text-right shrink-0">{g.completed}/{g.total}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Анализ по секциям */}
                 <div className="px-6 py-4 space-y-4">
                   {analysis.split(/\n\n+/).map((block, i) => {
@@ -585,7 +634,6 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                     const icons: Record<string, ReactNode> = {
                       "Текущий прогресс": <BarChart3 className="w-4 h-4 text-primary" />,
                       "Прогноз завершения": <CalendarDays className="w-4 h-4 text-primary" />,
-                      "По группам работ": <Building2 className="w-4 h-4 text-primary" />,
                       "Отстают от графика": <AlertTriangle className="w-4 h-4 text-amber-500" />,
                       "Итог": <CheckCircle2 className="w-4 h-4 text-green-500" />,
                       "Рекомендация": <Lightbulb className="w-4 h-4 text-amber-500" />,
@@ -601,40 +649,7 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                           </div>
                         )}
                         <div className="px-4 py-3">
-                          {title === "По группам работ" ? (
-                            <div className="space-y-3">
-                              {body.trim().split("\n").filter(Boolean).map((line, j) => {
-                                const m = line.match(/^(.+?):\s*(█+░*)\s*(\d+)%\s*\((\d+)\/(\d+)\)(?:\s*⚡(\d+))?$/);
-                                if (!m) return <p key={j} className="text-sm text-muted-foreground">{line}</p>;
-                                const [, name,, pct, done, total, inProgressCount] = m;
-                                const pctNum = parseInt(pct);
-                                const barColor = pctNum === 100 ? "bg-chart-2" : pctNum > 0 ? "bg-primary" : "bg-muted-foreground/30";
-                                return (
-                                  <div key={j} className="rounded-lg border bg-background px-3 py-2.5">
-                                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                                      <span className="text-sm font-medium truncate">{name.trim()}</span>
-                                      <div className="flex items-center gap-1.5 shrink-0">
-                                        {inProgressCount && (
-                                          <span className="flex items-center gap-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 rounded-full px-1.5 py-0.5">
-                                            <Zap className="w-3 h-3" />{inProgressCount}
-                                          </span>
-                                        )}
-                                        <span className={`text-xs font-semibold tabular-nums ${pctNum === 100 ? "text-chart-2" : "text-foreground"}`}>{pctNum}%</span>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-2.5 flex-1 rounded-full bg-muted overflow-hidden">
-                                        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pctNum}%` }} />
-                                      </div>
-                                      <span className="text-xs text-muted-foreground tabular-nums shrink-0">{done}/{total}</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="text-sm leading-relaxed text-foreground/90">{body.trim()}</p>
-                          )}
+                          <p className="text-sm leading-relaxed text-foreground/90">{body.trim()}</p>
                         </div>
                       </div>
                     );
@@ -643,7 +658,7 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
 
                 <div className="px-6 pb-5">
                   <Button variant="outline" className="w-full"
-                    onClick={() => { setAnalysis(null); setWeatherDays([]); aiMutation.mutate(); }}>
+                    onClick={() => { setAnalysis(null); setWeatherDays([]); setAiGroups([]); aiMutation.mutate(); }}>
                     <Sparkles className="w-4 h-4 mr-2" />
                     Обновить анализ
                   </Button>

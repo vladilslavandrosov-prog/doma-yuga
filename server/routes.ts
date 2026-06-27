@@ -740,12 +740,13 @@ export async function registerRoutes(
       analysis += activeGroups.length > 0 ? `Сейчас в работе: ${activeGroups.join(", ")}.\n\n` : `Активных работ сейчас нет.\n\n`;
     }
 
-    analysis += `**По группам работ**\n`;
-    for (const [name, g] of Object.entries(groups)) {
-      const gp = Math.round(g.completed / g.total * 100);
-      const bar = "█".repeat(Math.round(gp / 10)) + "░".repeat(10 - Math.round(gp / 10));
-      analysis += `${name}: ${bar} ${gp}% (${g.completed}/${g.total})${g.inProgress > 0 ? ` ⚡${g.inProgress}` : ""}\n`;
-    }
+    const groupsBreakdown = Object.entries(groups).map(([name, g]) => ({
+      name,
+      completed: g.completed,
+      total: g.total,
+      inProgress: g.inProgress,
+      percentage: g.total > 0 ? Math.round(g.completed / g.total * 100) : 0,
+    }));
 
     if (slowGroups.length > 0) {
       analysis += `\n**⚠ Отстают от графика**\n${slowGroups.join(", ")} — отстают от плановых дат.`;
@@ -768,7 +769,7 @@ export async function registerRoutes(
       }
     }
 
-    res.json({ analysis, weather: weatherDays });
+    res.json({ analysis, weather: weatherDays, groups: groupsBreakdown });
   });
 
   app.get("/api/dashboard/:uid", async (req, res) => {
