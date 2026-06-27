@@ -304,6 +304,11 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
+  async updateWorkGroup(id: number, group: InsertWorkGroup): Promise<WorkGroup | undefined> {
+    const [row] = await db.update(workGroups).set(group).where(eq(workGroups.id, id)).returning();
+    return row;
+  }
+
   async deleteWorkGroup(id: number): Promise<boolean> {
     const result = await db.delete(workGroups).where(eq(workGroups.id, id)).returning();
     return result.length > 0;

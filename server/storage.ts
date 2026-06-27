@@ -75,6 +75,7 @@ export interface IStorage {
   updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined>;
   getWorkGroups(): Promise<WorkGroup[]>;
   createWorkGroup(group: InsertWorkGroup): Promise<WorkGroup>;
+  updateWorkGroup(id: number, group: InsertWorkGroup): Promise<WorkGroup | undefined>;
   deleteWorkGroup(id: number): Promise<boolean>;
 }
 

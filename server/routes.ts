@@ -1169,6 +1169,27 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/admin/work-groups/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const parsed = insertWorkGroupSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    try {
+      const group = await storage.updateWorkGroup(id, parsed.data);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+      res.json(group);
+    } catch (err) {
+      console.error("update work group error:", err);
+      res.status(400).json({ error: "Такая группа уже существует" });
+    }
+  });
+
   app.delete("/api/admin/work-groups/:id", requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
     if (Number.isNaN(id)) {
