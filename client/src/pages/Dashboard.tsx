@@ -51,6 +51,10 @@ import {
   HardHat,
   Sparkles,
   Loader2,
+  Image as ImageIcon,
+  Banknote,
+  PackageCheck,
+  ArrowRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +94,9 @@ interface DashboardData {
     remaining: number;
   };
   unreadMessages: number;
+  workGroups: { name: string; total: number; completed: number; percentage: number }[];
+  activity: { type: "photo" | "payment" | "item" | "message"; date: string; title: string; subtitle?: string; url?: string }[];
+  heroPhoto: string | null;
 }
 
 function formatCurrency(value: number): string {
@@ -122,6 +129,23 @@ function formatDate(dateStr: string): string {
     year: "numeric",
   });
 }
+
+function daysSince(dateStr: string): number {
+  const start = new Date(dateStr);
+  const now = new Date();
+  return Math.max(0, Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function formatShortDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+}
+
+const ACTIVITY_ICON: Record<string, ReactNode> = {
+  photo: <ImageIcon className="w-4 h-4" />,
+  payment: <Banknote className="w-4 h-4" />,
+  item: <PackageCheck className="w-4 h-4" />,
+  message: <MessageCircle className="w-4 h-4" />,
+};
 
 function getQuickLinks(basePath: string) {
   return [
@@ -221,153 +245,196 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
     ? Math.round((financial.totalPaid / financial.totalEstimate) * 100)
     : 0;
 
+  const projectAge = daysSince(project.startDate);
+
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-welcome">
-          {client.name}
-        </h1>
-        <p className="text-sm text-muted-foreground" data-testid="text-project-subtitle">
-          Клиентский портал проекта
-        </p>
+      {/* Hero */}
+      <div
+        className="relative overflow-hidden rounded-xl border"
+        style={data.heroPhoto ? {
+          backgroundImage: `linear-gradient(to top, rgba(0,0,0,.75), rgba(0,0,0,.25)), url(${data.heroPhoto})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        } : undefined}
+        data-testid="card-hero"
+      >
+        <div className={data.heroPhoto ? "text-white" : ""}>
+          <div className={data.heroPhoto ? "p-5 md:p-7" : "p-5 md:p-7 bg-muted/30"}>
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="space-y-1.5">
+                <p className={`text-xs uppercase tracking-wide ${data.heroPhoto ? "text-white/70" : "text-muted-foreground"}`} data-testid="text-project-subtitle">
+                  {client.name}
+                </p>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight" data-testid="text-project-name">
+                  {project.name}
+                </h1>
+                <div className={`flex items-center gap-2 text-sm flex-wrap ${data.heroPhoto ? "text-white/85" : "text-muted-foreground"}`}>
+                  <MapPin className="w-4 h-4 shrink-0" />
+                  <span data-testid="text-project-address">{project.address}</span>
+                </div>
+                <div className={`flex items-center gap-2 text-sm flex-wrap ${data.heroPhoto ? "text-white/85" : "text-muted-foreground"}`}>
+                  <Calendar className="w-4 h-4 shrink-0" />
+                  <span data-testid="text-project-start-date">
+                    С {formatDate(project.startDate)} · {projectAge}-й день проекта
+                  </span>
+                </div>
+              </div>
+              {getStatusBadge(project.status)}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card data-testid="card-project-info">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">Проект</CardTitle>
-            {getStatusBadge(project.status)}
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <p className="text-lg font-semibold" data-testid="text-project-name">{project.name}</p>
-            </div>
-            <div className="flex items-start gap-2 text-sm text-muted-foreground">
-              <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-              <span data-testid="text-project-address">{project.address}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4 shrink-0" />
-              <span data-testid="text-project-start-date">Начало: {formatDate(project.startDate)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
+      {/* Stat tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card data-testid="card-progress">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">Прогресс работ</CardTitle>
-            <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-end justify-between gap-2">
-              <span className="text-3xl font-bold" data-testid="text-progress-percentage">
-                {progress.percentage}%
-              </span>
-              <span className="text-sm text-muted-foreground" data-testid="text-progress-count">
-                {progress.completed} из {progress.total} позиций
-              </span>
+          <CardContent className="p-4 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <TrendingUp className="w-3.5 h-3.5" /> Прогресс работ
             </div>
-            <Progress value={progress.percentage} className="h-2" data-testid="progress-bar-works" />
-            <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-chart-2" />
-                <span>Выполнено: {progress.completed}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-chart-4" />
-                <span>Осталось: {progress.total - progress.completed}</span>
-              </div>
-            </div>
-            <button
-              onClick={() => { setAnalysis(null); setAiOpen(true); aiMutation.mutate(); }}
-              disabled={aiMutation.isPending}
-              data-testid="button-ai-timeline"
-              className="w-full flex items-center gap-3 rounded-lg border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-3.5 py-2.5 text-left transition-colors hover-elevate disabled:opacity-70 disabled:cursor-default"
-            >
-              <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground shrink-0">
-                {aiMutation.isPending
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <Sparkles className="w-4 h-4" />}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold leading-tight">
-                  {aiMutation.isPending ? "Анализирую проект..." : "Расчёт сроков с AI"}
-                </p>
-                <p className="text-xs text-muted-foreground leading-tight">
-                  Прогресс по графику и прогноз погоды
-                </p>
-              </div>
-            </button>
+            <p className="text-2xl font-bold" data-testid="text-progress-percentage">{progress.percentage}%</p>
+            <p className="text-xs text-muted-foreground" data-testid="text-progress-count">{progress.completed} из {progress.total} позиций</p>
+            <Progress value={progress.percentage} className="h-1.5 mt-1" data-testid="progress-bar-works" />
           </CardContent>
         </Card>
 
         <Card data-testid="card-financial">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">Финансы</CardTitle>
-            <Wallet className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-sm text-muted-foreground">Сумма сметы</span>
-                <span className="text-sm font-medium" data-testid="text-total-estimate">
-                  {formatCurrency(financial.totalEstimate)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-sm text-muted-foreground">Оплачено</span>
-                <span className="text-sm font-medium text-chart-2" data-testid="text-total-paid">
-                  {formatCurrency(financial.totalPaid)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-sm text-muted-foreground">Остаток</span>
-                <span className="text-sm font-medium" data-testid="text-remaining">
-                  {formatCurrency(financial.remaining)}
-                </span>
-              </div>
+          <CardContent className="p-4 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Wallet className="w-3.5 h-3.5" /> Оплачено
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">Оплата</span>
-                <span className="text-xs text-muted-foreground" data-testid="text-payment-percentage">
-                  {paymentPercentage}%
-                </span>
-              </div>
-              <Progress value={paymentPercentage} className="h-2" data-testid="progress-bar-payments" />
-            </div>
+            <p className="text-2xl font-bold" data-testid="text-payment-percentage">{paymentPercentage}%</p>
+            <p className="text-xs text-muted-foreground" data-testid="text-total-paid">{formatCurrency(financial.totalPaid)}</p>
+            <Progress value={paymentPercentage} className="h-1.5 mt-1" data-testid="progress-bar-payments" />
           </CardContent>
         </Card>
+
+        <Card data-testid="card-remaining">
+          <CardContent className="p-4 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Banknote className="w-3.5 h-3.5" /> Остаток к оплате
+            </div>
+            <p className="text-2xl font-bold" data-testid="text-remaining">{formatCurrency(financial.remaining)}</p>
+            <p className="text-xs text-muted-foreground" data-testid="text-total-estimate">из {formatCurrency(financial.totalEstimate)}</p>
+          </CardContent>
+        </Card>
+
+        <Link href={`${linkBase}/chat`}>
+          <Card className="hover-elevate cursor-pointer h-full" data-testid="card-unread">
+            <CardContent className="p-4 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <MessageCircle className="w-3.5 h-3.5" /> Сообщения
+              </div>
+              <p className="text-2xl font-bold">{unreadMessages > 0 ? unreadMessages : "—"}</p>
+              <p className="text-xs text-muted-foreground">{unreadMessages > 0 ? "непрочитанных" : "всё прочитано"}</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Быстрый доступ</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {getQuickLinks(linkBase).map((link) => (
-            <Link key={link.url} href={link.url}>
-              <Card
-                className="hover-elevate cursor-pointer h-full"
-                data-testid={`card-quick-${link.title.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                <CardContent className="p-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary/10 text-primary">
-                      <link.icon className="w-5 h-5" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left: work groups + activity */}
+        <div className="lg:col-span-2 space-y-4">
+          {data.workGroups.length > 0 && (
+            <Card data-testid="card-work-groups">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">По группам работ</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {data.workGroups.slice(0, 6).map((g) => (
+                  <div key={g.name} data-testid={`row-workgroup-${g.name}`}>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-sm font-medium truncate">{g.name}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums shrink-0">{g.completed}/{g.total} · {g.percentage}%</span>
                     </div>
+                    <Progress value={g.percentage} className="h-1.5" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card data-testid="card-activity">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium">Последние события</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {data.activity.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6" data-testid="text-no-activity">Пока нет событий по проекту</p>
+              ) : (
+                <div className="space-y-3">
+                  {data.activity.map((a, i) => (
+                    <div key={i} className="flex items-start gap-3" data-testid={`row-activity-${i}`}>
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
+                        {ACTIVITY_ICON[a.type]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{a.title}</p>
+                        {a.subtitle && <p className="text-xs text-muted-foreground truncate">{a.subtitle}</p>}
+                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0">{formatShortDate(a.date)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: AI insight + quick links */}
+        <div className="space-y-4">
+          <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent" data-testid="card-ai-insight">
+            <CardContent className="p-4">
+              <button
+                onClick={() => { setAnalysis(null); setAiOpen(true); aiMutation.mutate(); }}
+                disabled={aiMutation.isPending}
+                data-testid="button-ai-timeline"
+                className="w-full flex items-center gap-3 text-left disabled:opacity-70 disabled:cursor-default"
+              >
+                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground shrink-0">
+                  {aiMutation.isPending
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Sparkles className="w-4 h-4" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-tight">
+                    {aiMutation.isPending ? "Анализирую проект..." : "Расчёт сроков с AI"}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-tight">
+                    Прогресс по графику и прогноз погоды
+                  </p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+              </button>
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-quick-links">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium">Быстрый доступ</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2">
+              {getQuickLinks(linkBase).map((link) => (
+                <Link key={link.url} href={link.url}>
+                  <div
+                    className="flex items-center gap-3 rounded-md px-2.5 py-2 hover-elevate cursor-pointer"
+                    data-testid={`card-quick-${link.title.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary/10 text-primary shrink-0">
+                      <link.icon className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-medium flex-1 min-w-0 truncate">{link.title}</span>
                     {link.url.endsWith("/chat") && unreadMessages > 0 && (
                       <Badge variant="default" className="text-xs" data-testid="badge-quick-unread">
                         {unreadMessages}
                       </Badge>
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{link.title}</p>
-                    <p className="text-xs text-muted-foreground">{link.description}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </div>
 

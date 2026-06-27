@@ -173,6 +173,10 @@ function deleteUploadedFile(url: string): void {
   });
 }
 
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(value) + " ₽";
+}
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -314,8 +318,13 @@ export async function registerRoutes(
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.message });
     }
-    const project = await storage.createProject(parsed.data);
-    res.json(project);
+    try {
+      const project = await storage.createProject(parsed.data);
+      res.json(project);
+    } catch (err) {
+      console.error("Не удалось создать объект:", err);
+      res.status(500).json({ error: "Не удалось создать объект" });
+    }
   });
 
   app.patch("/api/admin/projects/:id", requireAdmin, async (req, res) => {
@@ -493,6 +502,33 @@ export async function registerRoutes(
     const unreadSender = req.session.role === "admin" ? "client" : "admin";
     const unreadCount = await storage.getUnreadCount(project.id, unreadSender);
 
+    const estimateTitleById = new Map(estimates.map(e => [e.id, e.title]));
+    const groupTotals = new Map<string, { total: number; completed: number }>();
+    for (const item of allEstimateItems) {
+      const group = item.workGroup || estimateTitleById.get(item.estimateId) || "Без категории";
+      const g = groupTotals.get(group) ?? { total: 0, completed: 0 };
+      g.total += 1;
+      if (item.status === "completed") g.completed += 1;
+      groupTotals.set(group, g);
+    }
+    const workGroups = Array.from(groupTotals.entries()).map(([name, g]) => ({
+      name,
+      total: g.total,
+      completed: g.completed,
+      percentage: g.total > 0 ? Math.round((g.completed / g.total) * 100) : 0,
+    })).sort((a, b) => b.total - a.total);
+
+    const photos = await storage.getPhotosByProjectId(project.id);
+    const messages = await storage.getMessagesByProjectId(project.id);
+
+    type Activity = { type: "photo" | "payment" | "item" | "message"; date: string; title: string; subtitle?: string; url?: string };
+    const activity: Activity[] = [
+      ...photos.map(p => ({ type: "photo" as const, date: p.date, title: p.caption || "Новое фото", url: p.url })),
+      ...payments.map(p => ({ type: "payment" as const, date: p.date, title: `Платёж ${formatMoney(parseFloat(p.amount))}`, subtitle: p.description })),
+      ...allEstimateItems.filter(i => i.status === "completed").map(i => ({ type: "item" as const, date: i.date, title: i.name, subtitle: estimateTitleById.get(i.estimateId) })),
+      ...messages.map(m => ({ type: "message" as const, date: m.createdAt, title: m.sender === "client" ? "Сообщение от клиента" : "Сообщение от компании", subtitle: m.text })),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 8);
+
     res.json({
       client: client ?? { id: 0, name: "Неизвестный", phone: null, email: null, uid: "" },
       project,
@@ -507,6 +543,9 @@ export async function registerRoutes(
         remaining: totalEstimateSum - totalPaid,
       },
       unreadMessages: unreadCount,
+      workGroups,
+      activity,
+      heroPhoto: photos.length > 0 ? photos.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].url : null,
     });
   });
 

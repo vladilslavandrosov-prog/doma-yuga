@@ -212,7 +212,6 @@ export default function Projects() {
     setFormName("");
     setFormAddress("");
     setFormStartDate("");
-    setFormEndDate("");
     setFormStatus("active");
     setFormClientId("");
   }

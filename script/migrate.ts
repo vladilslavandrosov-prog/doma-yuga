@@ -11,6 +11,30 @@ const pool = new Pool({ connectionString: url });
 async function main() {
   await pool.query("SELECT 1");
   console.log("✓ соединение с БД установлено");
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS leads (
+      id SERIAL PRIMARY KEY,
+      services TEXT NOT NULL,
+      object_type TEXT,
+      area INTEGER,
+      budget TEXT,
+      timeline TEXT,
+      city TEXT,
+      description TEXT,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      email TEXT,
+      contact_methods TEXT NOT NULL,
+      call_times TEXT,
+      source TEXT,
+      status TEXT NOT NULL DEFAULT 'new',
+      notes TEXT,
+      created_at TEXT NOT NULL
+    )
+  `);
+  console.log("✓ таблица leads готова");
+
   await pool.end();
 }
 
