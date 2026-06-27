@@ -135,6 +135,11 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
+  async updatePayment(id: number, data: Partial<InsertPayment>): Promise<Payment | undefined> {
+    const [row] = await db.update(payments).set(data).where(eq(payments.id, id)).returning();
+    return row;
+  }
+
   async deletePayment(id: number): Promise<boolean> {
     const result = await db.delete(payments).where(eq(payments.id, id)).returning();
     return result.length > 0;
@@ -145,6 +150,11 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
+  async updateDocument(id: number, data: Partial<InsertDocument>): Promise<Document | undefined> {
+    const [row] = await db.update(documents).set(data).where(eq(documents.id, id)).returning();
+    return row;
+  }
+
   async deleteDocument(id: number): Promise<string | undefined> {
     const [row] = await db.delete(documents).where(eq(documents.id, id)).returning();
     return row?.url;
@@ -152,6 +162,11 @@ export class DatabaseStorage implements IStorage {
 
   async createPhoto(photo: InsertPhoto): Promise<Photo> {
     const [row] = await db.insert(photos).values(photo).returning();
+    return row;
+  }
+
+  async updatePhoto(id: number, data: Partial<InsertPhoto>): Promise<Photo | undefined> {
+    const [row] = await db.update(photos).set(data).where(eq(photos.id, id)).returning();
     return row;
   }
 
@@ -166,6 +181,11 @@ export class DatabaseStorage implements IStorage {
 
   async createVideo(video: InsertVideo): Promise<Video> {
     const [row] = await db.insert(videos).values(video).returning();
+    return row;
+  }
+
+  async updateVideo(id: number, data: Partial<InsertVideo>): Promise<Video | undefined> {
+    const [row] = await db.update(videos).set(data).where(eq(videos.id, id)).returning();
     return row;
   }
 
@@ -184,6 +204,11 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
+  async deleteProject(id: number): Promise<boolean> {
+    const result = await db.delete(projects).where(eq(projects.id, id)).returning();
+    return result.length > 0;
+  }
+
   async createClient(client: InsertClient): Promise<Client> {
     const [row] = await db.insert(clients).values(client).returning();
     return row;
@@ -198,6 +223,11 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
+  async deleteClient(id: number): Promise<boolean> {
+    const result = await db.delete(clients).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+
   async createUser(user: InsertUser): Promise<User> {
     const [row] = await db.insert(users).values(user).returning();
     return row;
@@ -210,6 +240,10 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return db.select().from(users);
+  }
+
+  async deleteUsersByClientId(clientId: number): Promise<void> {
+    await db.delete(users).where(eq(users.clientId, clientId));
   }
 
   async getNonWorkingDaysByProjectId(projectId: number): Promise<NonWorkingDay[]> {
@@ -293,6 +327,11 @@ export class DatabaseStorage implements IStorage {
   async updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined> {
     const [row] = await db.update(leads).set(data).where(eq(leads.id, id)).returning();
     return row;
+  }
+
+  async deleteLead(id: number): Promise<boolean> {
+    const result = await db.delete(leads).where(eq(leads.id, id)).returning();
+    return result.length > 0;
   }
 
   async getWorkGroups(): Promise<WorkGroup[]> {

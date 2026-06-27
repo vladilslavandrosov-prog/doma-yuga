@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Wallet, TrendingUp, Plus, Trash2, Loader2 } from "lucide-react";
+import { CreditCard, Wallet, TrendingUp, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -41,6 +41,10 @@ export default function Payments({ projectId }: { projectId: number }) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   const { data: payments, isLoading, error } = useQuery<Payment[]>({
     queryKey: ["/api/project", projectId, "payments"],
@@ -71,6 +75,22 @@ export default function Payments({ projectId }: { projectId: number }) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingPayment) return;
+      await apiRequest("PATCH", `/api/admin/payments/${editingPayment.id}`, {
+        amount: editAmount,
+        date: editDate,
+        description: editDescription,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
+      setEditingPayment(null);
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/admin/payments/${id}`);
@@ -80,6 +100,13 @@ export default function Payments({ projectId }: { projectId: number }) {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
     },
   });
+
+  function openEdit(payment: Payment) {
+    setEditingPayment(payment);
+    setEditAmount(payment.amount);
+    setEditDate(payment.date);
+    setEditDescription(payment.description);
+  }
 
   if (isLoading) {
     return <PaymentsSkeleton />;
@@ -235,15 +262,26 @@ export default function Payments({ projectId }: { projectId: number }) {
                   <TableCell className="text-right font-medium">{formatCurrency(parseFloat(payment.amount))}</TableCell>
                   {isAdmin && (
                     <TableCell>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => deleteMutation.mutate(payment.id)}
-                        data-testid={`button-delete-payment-${payment.id}`}
-                        aria-label="Удалить платёж"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => openEdit(payment)}
+                          data-testid={`button-edit-payment-${payment.id}`}
+                          aria-label="Редактировать платёж"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteMutation.mutate(payment.id)}
+                          data-testid={`button-delete-payment-${payment.id}`}
+                          aria-label="Удалить платёж"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
@@ -258,6 +296,57 @@ export default function Payments({ projectId }: { projectId: number }) {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!editingPayment} onOpenChange={(open) => !open && setEditingPayment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать платёж</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              updateMutation.mutate();
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="edit-payment-amount">Сумма</Label>
+              <Input
+                id="edit-payment-amount"
+                type="number"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+                data-testid="input-edit-payment-amount"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-payment-date">Дата</Label>
+              <Input
+                id="edit-payment-date"
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                max="2100-12-31"
+                data-testid="input-edit-payment-date"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-payment-description">Описание</Label>
+              <Input
+                id="edit-payment-description"
+                type="text"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                data-testid="input-edit-payment-description"
+              />
+            </div>
+            <Button type="submit" disabled={updateMutation.isPending} data-testid="button-submit-edit-payment">
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Сохранить
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

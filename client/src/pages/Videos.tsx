@@ -8,10 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Loader2, Upload, Play } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Upload, Play } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useAuth } from "@/lib/auth";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
@@ -38,6 +38,11 @@ export default function Videos({ projectId }: { projectId: number }) {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [editingVideo, setEditingVideo] = useState<Video | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editDate, setEditDate] = useState("");
 
   const { isAdmin } = useAuth();
 
@@ -85,6 +90,28 @@ export default function Videos({ projectId }: { projectId: number }) {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "videos"] });
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingVideo) return;
+      await apiRequest("PATCH", `/api/admin/videos/${editingVideo.id}`, {
+        title: editTitle,
+        description: editDescription,
+        date: editDate,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "videos"] });
+      setEditingVideo(null);
+    },
+  });
+
+  function openEdit(video: Video) {
+    setEditingVideo(video);
+    setEditTitle(video.title);
+    setEditDescription(video.description ?? "");
+    setEditDate(video.date);
+  }
 
   if (isLoading) return <VideosSkeleton />;
 
@@ -141,19 +168,34 @@ export default function Videos({ projectId }: { projectId: number }) {
                 </div>
               </div>
               {isAdmin && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 z-10 text-white bg-black/50"
-                  data-testid={`button-delete-video-${video.id}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteMutation.mutate(video.id);
-                  }}
-                  aria-label="Удалить видео"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white bg-black/50"
+                    data-testid={`button-edit-video-${video.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEdit(video);
+                    }}
+                    aria-label="Редактировать видео"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white bg-black/50"
+                    data-testid={`button-delete-video-${video.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteMutation.mutate(video.id);
+                    }}
+                    aria-label="Удалить видео"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
             </div>
             <CardContent className="p-3 space-y-1">
@@ -260,6 +302,53 @@ export default function Videos({ projectId }: { projectId: number }) {
                 <Upload className="mr-2 h-4 w-4" />
               )}
               Загрузить
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingVideo} onOpenChange={(open) => !open && setEditingVideo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать видео</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="edit-video-title">Название</Label>
+              <Input
+                id="edit-video-title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                data-testid="input-edit-video-title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-video-description">Описание</Label>
+              <Textarea
+                id="edit-video-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={2}
+                data-testid="input-edit-video-description"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-video-date">Дата</Label>
+              <Input
+                id="edit-video-date"
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                max="2100-12-31"
+                data-testid="input-edit-video-date"
+              />
+            </div>
+            <Button type="submit" disabled={updateMutation.isPending} data-testid="button-submit-edit-video">
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Сохранить
             </Button>
           </form>
         </DialogContent>

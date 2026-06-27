@@ -314,6 +314,23 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  app.delete("/api/admin/clients/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const projects = await storage.getProjectsByClientId(id);
+    if (projects.length > 0) {
+      return res.status(400).json({ error: "У клиента есть объекты — сначала отвяжите или удалите их" });
+    }
+    await storage.deleteUsersByClientId(id);
+    const ok = await storage.deleteClient(id);
+    if (!ok) {
+      return res.status(404).json({ error: "Клиент не найден" });
+    }
+    res.status(204).end();
+  });
+
   app.post("/api/admin/projects", requireAdmin, async (req, res) => {
     const parsed = insertProjectSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -342,6 +359,18 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Project not found" });
     }
     res.json(updated);
+  });
+
+  app.delete("/api/admin/projects/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const ok = await storage.deleteProject(id);
+    if (!ok) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    res.status(204).end();
   });
 
   app.get("/api/client-projects", requireAuth, async (req, res) => {
@@ -843,6 +872,22 @@ export async function registerRoutes(
     res.json(payment);
   });
 
+  app.patch("/api/admin/payments/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const parsed = insertPaymentSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    const payment = await storage.updatePayment(id, parsed.data);
+    if (!payment) {
+      return res.status(404).json({ error: "Payment not found" });
+    }
+    res.json(payment);
+  });
+
   app.delete("/api/admin/payments/:id", requireAdmin, async (req, res) => {
     const ok = await storage.deletePayment(parseInt(req.params.id));
     if (!ok) {
@@ -878,6 +923,22 @@ export async function registerRoutes(
       return res.status(400).json({ error: parsed.error });
     }
     const doc = await storage.createDocument(parsed.data);
+    res.json(doc);
+  });
+
+  app.patch("/api/admin/documents/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const parsed = insertDocumentSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    const doc = await storage.updateDocument(id, parsed.data);
+    if (!doc) {
+      return res.status(404).json({ error: "Document not found" });
+    }
     res.json(doc);
   });
 
@@ -917,6 +978,22 @@ export async function registerRoutes(
     res.json(photo);
   });
 
+  app.patch("/api/admin/photos/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const parsed = insertPhotoSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    const photo = await storage.updatePhoto(id, parsed.data);
+    if (!photo) {
+      return res.status(404).json({ error: "Photo not found" });
+    }
+    res.json(photo);
+  });
+
   app.delete("/api/admin/photos/:id", requireAdmin, async (req, res) => {
     const url = await storage.deletePhoto(parseInt(req.params.id));
     if (!url) {
@@ -951,6 +1028,22 @@ export async function registerRoutes(
       return res.status(400).json({ error: parsed.error });
     }
     const video = await storage.createVideo(parsed.data);
+    res.json(video);
+  });
+
+  app.patch("/api/admin/videos/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const parsed = insertVideoSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    const video = await storage.updateVideo(id, parsed.data);
+    if (!video) {
+      return res.status(404).json({ error: "Video not found" });
+    }
     res.json(video);
   });
 
@@ -1148,6 +1241,18 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Lead not found" });
     }
     res.json(lead);
+  });
+
+  app.delete("/api/admin/leads/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const ok = await storage.deleteLead(id);
+    if (!ok) {
+      return res.status(404).json({ error: "Lead not found" });
+    }
+    res.status(204).end();
   });
 
   app.get("/api/work-groups", async (_req, res) => {

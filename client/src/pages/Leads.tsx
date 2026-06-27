@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Inbox, Phone, Mail, MapPin, Ruler, Wallet, Clock, Loader2, Home, Wrench, Paintbrush, MessageCircle, HelpCircle } from "lucide-react";
+import { Inbox, Phone, Mail, MapPin, Ruler, Wallet, Clock, Loader2, Home, Wrench, Paintbrush, MessageCircle, HelpCircle, Trash2 } from "lucide-react";
 import type { Lead } from "@shared/schema";
 
 const SERVICE_INFO: Record<string, { label: string; icon: typeof Home }> = {
@@ -77,6 +77,25 @@ function LeadCard({ lead }: { lead: Lead }) {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/admin/leads/${lead.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/leads"] });
+      toast({ title: "Готово", description: "Заявка удалена" });
+    },
+    onError: () => {
+      toast({ title: "Ошибка", description: "Не удалось удалить заявку", variant: "destructive" });
+    },
+  });
+
+  function handleDelete() {
+    if (confirm(`Удалить заявку от «${lead.name}»? Это действие нельзя отменить.`)) {
+      deleteMutation.mutate();
+    }
+  }
+
   const services = parseJsonArray(lead.services);
   const contactMethods = parseJsonArray(lead.contactMethods);
   const callTimes = parseJsonArray(lead.callTimes);
@@ -93,6 +112,17 @@ function LeadCard({ lead }: { lead: Lead }) {
             <span className="text-xs text-muted-foreground" data-testid={`text-lead-date-${lead.id}`}>
               {formatDate(lead.createdAt)}
             </span>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              data-testid={`button-delete-lead-${lead.id}`}
+              aria-label="Удалить заявку"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </CardTitle>
       </CardHeader>

@@ -7,10 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, X, Plus, Trash2, Loader2, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Plus, Pencil, Trash2, Loader2, Upload } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useAuth } from "@/lib/auth";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
@@ -36,6 +36,10 @@ export default function Photos({ projectId }: { projectId: number }) {
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
+  const [editCaption, setEditCaption] = useState("");
+  const [editDate, setEditDate] = useState("");
 
   const { isAdmin } = useAuth();
 
@@ -85,6 +89,26 @@ export default function Photos({ projectId }: { projectId: number }) {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "photos"] });
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingPhoto) return;
+      await apiRequest("PATCH", `/api/admin/photos/${editingPhoto.id}`, {
+        caption: editCaption,
+        date: editDate,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "photos"] });
+      setEditingPhoto(null);
+    },
+  });
+
+  function openEdit(photo: Photo) {
+    setEditingPhoto(photo);
+    setEditCaption(photo.caption);
+    setEditDate(photo.date);
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] ?? null;
@@ -174,21 +198,36 @@ export default function Photos({ projectId }: { projectId: number }) {
               <p className="text-sm font-medium" data-testid={`text-photo-caption-${photo.id}`}>{photo.caption}</p>
               <p className="text-xs text-muted-foreground" data-testid={`text-photo-date-${photo.id}`}>{formatDate(photo.date)}</p>
               {isAdmin && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="w-full"
-                  data-testid={`button-delete-photo-${photo.id}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm("Удалить это фото?")) {
-                      deleteMutation.mutate(photo.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Удалить
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    data-testid={`button-edit-photo-${photo.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEdit(photo);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Изменить
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex-1"
+                    data-testid={`button-delete-photo-${photo.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm("Удалить это фото?")) {
+                        deleteMutation.mutate(photo.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Удалить
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -317,6 +356,43 @@ export default function Photos({ projectId }: { projectId: number }) {
                 <Upload className="mr-2 h-4 w-4" />
               )}
               Загрузить
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingPhoto} onOpenChange={(open) => !open && setEditingPhoto(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать фото</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="edit-photo-caption">Описание</Label>
+              <Input
+                id="edit-photo-caption"
+                value={editCaption}
+                onChange={(e) => setEditCaption(e.target.value)}
+                data-testid="input-edit-photo-caption"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-photo-date">Дата</Label>
+              <Input
+                id="edit-photo-date"
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                max="2100-12-31"
+                data-testid="input-edit-photo-date"
+              />
+            </div>
+            <Button type="submit" disabled={updateMutation.isPending} data-testid="button-submit-edit-photo">
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Сохранить
             </Button>
           </form>
         </DialogContent>

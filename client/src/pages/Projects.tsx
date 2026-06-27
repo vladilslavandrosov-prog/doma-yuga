@@ -24,7 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
-import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Search, Filter } from "lucide-react";
+import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter } from "lucide-react";
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -47,7 +47,7 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function ProjectCard({ project, isAdmin, onEdit }: { project: Project; isAdmin: boolean; onEdit: (p: Project) => void }) {
+function ProjectCard({ project, isAdmin, onEdit, onDelete }: { project: Project; isAdmin: boolean; onEdit: (p: Project) => void; onDelete: (p: Project) => void }) {
   const { data: client } = useQuery<Client>({
     queryKey: ["/api/project", project.id, "client"],
   });
@@ -55,17 +55,26 @@ function ProjectCard({ project, isAdmin, onEdit }: { project: Project; isAdmin: 
   return (
     <Card className="hover-elevate h-full relative" data-testid={`card-project-${project.id}`}>
       {isAdmin && (
-        <button
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-md hover:bg-muted transition-colors"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(project); }}
-          data-testid={`button-edit-project-${project.id}`}
-        >
-          <Pencil className="w-4 h-4 text-muted-foreground hover:text-primary" />
-        </button>
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+          <button
+            className="p-1.5 rounded-md hover:bg-muted transition-colors"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(project); }}
+            data-testid={`button-edit-project-${project.id}`}
+          >
+            <Pencil className="w-4 h-4 text-muted-foreground hover:text-primary" />
+          </button>
+          <button
+            className="p-1.5 rounded-md hover:bg-muted transition-colors"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(project); }}
+            data-testid={`button-delete-project-${project.id}`}
+          >
+            <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+          </button>
+        </div>
       )}
       <Link href={`/cabinet/project/${project.id}`}>
         <div className="cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 pr-10">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 pr-16">
             <CardTitle className="text-base font-medium truncate" data-testid={`text-project-name-${project.id}`}>
               {project.name}
             </CardTitle>
@@ -216,6 +225,29 @@ export default function Projects() {
     setFormClientId("");
   }
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/projects/${id}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Ошибка удаления");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({ title: "Готово", description: "Объект удалён" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    },
+  });
+
+  function handleDelete(project: Project) {
+    if (confirm(`Удалить объект «${project.name}»? Это действие нельзя отменить.`)) {
+      deleteMutation.mutate(project.id);
+    }
+  }
+
   function openEdit(project: Project) {
     setEditingProject(project);
     setFormName(project.name);
@@ -318,7 +350,7 @@ export default function Projects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedAndFiltered.map((project) => (
-            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} onEdit={openEdit} />
+            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} />
           ))}
         </div>
       )}

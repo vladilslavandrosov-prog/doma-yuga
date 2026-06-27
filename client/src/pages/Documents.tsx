@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   FileText, FileCheck, FileSpreadsheet, Shield, ScrollText,
-  Download, Plus, Trash2, Loader2, Upload, Link2, File,
+  Download, Plus, Pencil, Trash2, Loader2, Upload, Link2, File,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -78,6 +78,11 @@ export default function Documents({ projectId }: { projectId: number }) {
   const [url, setUrl]         = useState("");
   const [urlType, setUrlType] = useState("");
 
+  // ── Редактирование ────────────────────────────────────────
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editType, setEditType] = useState("");
+
   const { data: documents, isLoading, error } = useQuery<Document[]>({
     queryKey: ["/api/project", projectId, "documents"],
   });
@@ -124,6 +129,23 @@ export default function Documents({ projectId }: { projectId: number }) {
     onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
+  // ── Редактирование ────────────────────────────────────────
+  const updateMutation = useMutation({
+    mutationFn: () => {
+      if (!editingDoc) throw new Error("Документ не выбран");
+      return apiRequest("PATCH", `/api/admin/documents/${editingDoc.id}`, {
+        name: editName.trim(),
+        type: editType,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "documents"] });
+      toast({ title: "Документ обновлён" });
+      setEditingDoc(null);
+    },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
+  });
+
   // ── Удаление ──────────────────────────────────────────────
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/documents/${id}`),
@@ -132,6 +154,12 @@ export default function Documents({ projectId }: { projectId: number }) {
       toast({ title: "Документ удалён" });
     },
   });
+
+  function openEdit(doc: Document) {
+    setEditingDoc(doc);
+    setEditName(doc.name);
+    setEditType(doc.type);
+  }
 
   function closeDialog() {
     setAddOpen(false);
@@ -388,16 +416,27 @@ export default function Documents({ projectId }: { projectId: number }) {
                       </a>
                     </Button>
                     {isAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteMutation.mutate(doc.id)}
-                        disabled={deleteMutation.isPending}
-                        data-testid={`button-delete-doc-${doc.id}`}
-                        aria-label="Удалить документ"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(doc)}
+                          data-testid={`button-edit-doc-${doc.id}`}
+                          aria-label="Редактировать документ"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteMutation.mutate(doc.id)}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-doc-${doc.id}`}
+                          aria-label="Удалить документ"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -414,6 +453,52 @@ export default function Documents({ projectId }: { projectId: number }) {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!editingDoc} onOpenChange={(open) => !open && setEditingDoc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать документ</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="edit-doc-name">Название</Label>
+              <Input
+                id="edit-doc-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                data-testid="input-edit-doc-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Тип</Label>
+              <Select value={editType} onValueChange={setEditType}>
+                <SelectTrigger data-testid="select-edit-doc-type">
+                  <SelectValue placeholder="Выберите тип" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contract">Договор</SelectItem>
+                  <SelectItem value="project">Проект</SelectItem>
+                  <SelectItem value="estimate">Смета</SelectItem>
+                  <SelectItem value="act">Акт</SelectItem>
+                  <SelectItem value="permit">Разрешение</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={updateMutation.isPending || !editName.trim() || !editType}
+              data-testid="button-submit-edit-document"
+            >
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Сохранить
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

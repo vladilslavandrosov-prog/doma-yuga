@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil } from "lucide-react";
+import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil, Trash2 } from "lucide-react";
 import type { Project } from "@shared/schema";
 
 interface ClientWithAccount {
@@ -94,6 +94,29 @@ export default function Clients() {
       toast({ title: "Ошибка", description: err.message, variant: "destructive" });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/clients/${id}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Ошибка удаления");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/clients"] });
+      toast({ title: "Готово", description: "Клиент удалён" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    },
+  });
+
+  function handleDelete(client: ClientWithAccount) {
+    if (confirm(`Удалить клиента «${client.name}»? Это действие нельзя отменить.`)) {
+      deleteMutation.mutate(client.id);
+    }
+  }
 
   function resetForm() {
     setFormName("");
@@ -185,6 +208,16 @@ export default function Clients() {
                       aria-label="Редактировать клиента"
                     >
                       <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => handleDelete(client)}
+                      data-testid={`button-delete-client-${client.id}`}
+                      aria-label="Удалить клиента"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </CardTitle>
