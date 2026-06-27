@@ -270,6 +270,7 @@ export default function PublicGallery() {
                 className="absolute top-3 right-3 text-white hover:bg-white/20 z-50"
                 onClick={closeLightbox}
                 data-testid="button-lightbox-close"
+                aria-label="Закрыть"
               >
                 <X className="w-5 h-5" />
               </Button>
@@ -280,6 +281,7 @@ export default function PublicGallery() {
                   className="absolute top-3 right-14 text-red-400 hover:bg-red-500/20 z-50"
                   onClick={() => deleteMut.mutate(flatPhotos[lightboxIndex].id)}
                   data-testid="button-lightbox-delete"
+                  aria-label="Удалить фото"
                 >
                   <Trash2 className="w-5 h-5" />
                 </Button>
@@ -290,6 +292,7 @@ export default function PublicGallery() {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-50"
                 onClick={prevPhoto}
                 data-testid="button-lightbox-prev"
+                aria-label="Предыдущее фото"
               >
                 <ChevronLeft className="w-6 h-6" />
               </Button>
@@ -299,6 +302,7 @@ export default function PublicGallery() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-50"
                 onClick={nextPhoto}
                 data-testid="button-lightbox-next"
+                aria-label="Следующее фото"
               >
                 <ChevronRight className="w-6 h-6" />
               </Button>

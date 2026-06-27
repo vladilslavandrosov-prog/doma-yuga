@@ -259,6 +259,7 @@ function PhotoLightbox({
             className="absolute top-2 right-2 text-white hover:bg-white/20"
             onClick={onClose}
             data-testid="button-lightbox-close"
+            aria-label="Закрыть"
           >
             <X />
           </Button>
@@ -270,6 +271,7 @@ function PhotoLightbox({
                 className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
                 onClick={(e) => { e.stopPropagation(); onPrev(); }}
                 data-testid="button-lightbox-prev"
+                aria-label="Предыдущее фото"
               >
                 <ChevronRight className="rotate-180" />
               </Button>
@@ -279,6 +281,7 @@ function PhotoLightbox({
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
                 onClick={(e) => { e.stopPropagation(); onNext(); }}
                 data-testid="button-lightbox-next"
+                aria-label="Следующее фото"
               >
                 <ChevronRight />
               </Button>
@@ -370,6 +373,7 @@ function ItemPhotos({
                 className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => { e.stopPropagation(); deleteMut.mutate(photo.id); }}
                 data-testid={`button-delete-item-photo-${photo.id}`}
+                aria-label="Удалить фото"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -878,10 +882,10 @@ function DayCard({
                     <p className="text-sm font-medium">{item.name}</p>
                     {isAdmin && (
                       <div className="flex gap-1 shrink-0">
-                        <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} data-testid={`button-edit-item-${item.id}`}>
+                        <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} data-testid={`button-edit-item-${item.id}`} aria-label="Редактировать">
                           <Pencil className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} data-testid={`button-delete-item-${item.id}`}>
+                        <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} data-testid={`button-delete-item-${item.id}`} aria-label="Удалить">
                           <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
                         </button>
                       </div>
@@ -932,10 +936,10 @@ function DayCard({
                       {isAdmin && (
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)} data-testid={`button-edit-item-${item.id}`}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)} data-testid={`button-edit-item-${item.id}`} aria-label="Редактировать">
                               <Pencil className="w-3.5 h-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(item.id)} data-testid={`button-delete-item-${item.id}`}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(item.id)} data-testid={`button-delete-item-${item.id}`} aria-label="Удалить">
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>
@@ -1014,10 +1018,10 @@ function WorkGroupCard({
                       <StatusBadge status={item.status} />
                       {isAdmin && (
                         <div className="flex gap-1">
-                          <button onClick={() => onEdit(item)} data-testid={`button-edit-group-item-${item.id}`}>
+                          <button onClick={() => onEdit(item)} data-testid={`button-edit-group-item-${item.id}`} aria-label="Редактировать">
                             <Pencil className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
                           </button>
-                          <button onClick={() => onDelete(item.id)} data-testid={`button-delete-group-item-${item.id}`}>
+                          <button onClick={() => onDelete(item.id)} data-testid={`button-delete-group-item-${item.id}`} aria-label="Удалить">
                             <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
                           </button>
                         </div>
@@ -1066,10 +1070,10 @@ function WorkGroupCard({
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)} data-testid={`button-edit-group-item-${item.id}`}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)} data-testid={`button-edit-group-item-${item.id}`} aria-label="Редактировать">
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(item.id)} data-testid={`button-delete-group-item-${item.id}`}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(item.id)} data-testid={`button-delete-group-item-${item.id}`} aria-label="Удалить">
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
@@ -1479,10 +1483,10 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                                   <StatusBadge status={item.status} />
                                   {isAdmin && (
                                     <div className="flex gap-1">
-                                      <button onClick={() => handleEdit(item)} data-testid={`button-edit-all-item-${item.id}`}>
+                                      <button onClick={() => handleEdit(item)} data-testid={`button-edit-all-item-${item.id}`} aria-label="Редактировать">
                                         <Pencil className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
                                       </button>
-                                      <button onClick={() => handleDelete(item.id)} data-testid={`button-delete-all-item-${item.id}`}>
+                                      <button onClick={() => handleDelete(item.id)} data-testid={`button-delete-all-item-${item.id}`} aria-label="Удалить">
                                         <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
                                       </button>
                                     </div>
@@ -1529,10 +1533,10 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
                                 {isAdmin && (
                                   <TableCell>
                                     <div className="flex gap-1">
-                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)} data-testid={`button-edit-all-item-${item.id}`}>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)} data-testid={`button-edit-all-item-${item.id}`} aria-label="Редактировать">
                                         <Pencil className="w-3.5 h-3.5" />
                                       </Button>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(item.id)} data-testid={`button-delete-all-item-${item.id}`}>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(item.id)} data-testid={`button-delete-all-item-${item.id}`} aria-label="Удалить">
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </Button>
                                     </div>

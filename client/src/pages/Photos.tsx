@@ -220,6 +220,7 @@ export default function Photos({ projectId }: { projectId: number }) {
                 className="absolute top-2 right-2 text-white"
                 onClick={closeLightbox}
                 data-testid="button-lightbox-close"
+                aria-label="Закрыть"
               >
                 <X />
               </Button>
@@ -232,6 +233,7 @@ export default function Photos({ projectId }: { projectId: number }) {
                     className="absolute left-2 top-1/2 -translate-y-1/2 text-white"
                     onClick={(e) => { e.stopPropagation(); goPrev(); }}
                     data-testid="button-lightbox-prev"
+                    aria-label="Предыдущее фото"
                   >
                     <ChevronLeft />
                   </Button>
@@ -241,6 +243,7 @@ export default function Photos({ projectId }: { projectId: number }) {
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-white"
                     onClick={(e) => { e.stopPropagation(); goNext(); }}
                     data-testid="button-lightbox-next"
+                    aria-label="Следующее фото"
                   >
                     <ChevronRight />
                   </Button>

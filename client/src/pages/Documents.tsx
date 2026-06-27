@@ -382,7 +382,7 @@ export default function Documents({ projectId }: { projectId: number }) {
                     </span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" asChild data-testid={`button-download-${doc.id}`}>
+                    <Button variant="ghost" size="icon" asChild data-testid={`button-download-${doc.id}`} aria-label="Скачать документ">
                       <a href={doc.url} target="_blank" rel="noopener noreferrer" download>
                         <Download className="h-4 w-4" />
                       </a>
@@ -394,6 +394,7 @@ export default function Documents({ projectId }: { projectId: number }) {
                         onClick={() => deleteMutation.mutate(doc.id)}
                         disabled={deleteMutation.isPending}
                         data-testid={`button-delete-doc-${doc.id}`}
+                        aria-label="Удалить документ"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

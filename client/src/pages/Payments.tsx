@@ -239,6 +239,7 @@ export default function Payments({ projectId }: { projectId: number }) {
                         variant="ghost"
                         onClick={() => deleteMutation.mutate(payment.id)}
                         data-testid={`button-delete-payment-${payment.id}`}
+                        aria-label="Удалить платёж"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

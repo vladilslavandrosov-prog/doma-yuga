@@ -182,6 +182,7 @@ export default function Clients() {
                       className="h-7 w-7"
                       onClick={() => openEdit(client)}
                       data-testid={`button-edit-client-${client.id}`}
+                      aria-label="Редактировать клиента"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>

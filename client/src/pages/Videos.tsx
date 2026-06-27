@@ -150,6 +150,7 @@ export default function Videos({ projectId }: { projectId: number }) {
                     e.stopPropagation();
                     deleteMutation.mutate(video.id);
                   }}
+                  aria-label="Удалить видео"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

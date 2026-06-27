@@ -169,6 +169,7 @@ export default function Chat({ projectId }: { projectId: number }) {
                 disabled={!text.trim() || sendMutation.isPending}
                 size="icon"
                 data-testid="button-send-message"
+                aria-label="Отправить сообщение"
               >
                 <Send />
               </Button>

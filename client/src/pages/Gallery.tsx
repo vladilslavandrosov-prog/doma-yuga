@@ -284,6 +284,7 @@ export default function Gallery({ projectId }: { projectId: number }) {
                 className="absolute top-2 right-2 text-white hover:bg-white/20"
                 onClick={() => { setLightboxIndex(null); setLightboxGroup(null); }}
                 data-testid="button-gallery-lightbox-close"
+                aria-label="Закрыть"
               >
                 <X />
               </Button>
@@ -298,6 +299,7 @@ export default function Gallery({ projectId }: { projectId: number }) {
                       setLightboxIndex((lightboxIndex! - 1 + currentLightboxPhotos.length) % currentLightboxPhotos.length);
                     }}
                     data-testid="button-gallery-lightbox-prev"
+                    aria-label="Предыдущее фото"
                   >
                     <ChevronLeft />
                   </Button>
@@ -310,6 +312,7 @@ export default function Gallery({ projectId }: { projectId: number }) {
                       setLightboxIndex((lightboxIndex! + 1) % currentLightboxPhotos.length);
                     }}
                     data-testid="button-gallery-lightbox-next"
+                    aria-label="Следующее фото"
                   >
                     <ChevronRight />
                   </Button>

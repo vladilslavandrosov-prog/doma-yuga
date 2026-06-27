@@ -134,6 +134,7 @@ function MobileCard({ item, index, isAdmin, onDelete }: MobileCardProps) {
                 className="h-7 w-7 text-destructive"
                 onClick={() => onDelete(item.id)}
                 data-testid={`button-delete-item-${item.id}`}
+                aria-label="Удалить позицию"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -484,6 +485,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
                               className="h-8 w-8 text-destructive"
                               onClick={() => deleteMutation.mutate(item.id)}
                               data-testid={`button-delete-item-${item.id}`}
+                              aria-label="Удалить позицию"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
