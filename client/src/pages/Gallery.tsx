@@ -165,6 +165,7 @@ export default function Gallery({ projectId }: { projectId: number }) {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
       toast({ title: "Фото удалено" });
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, Plus, Trash2, Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import type { Estimate, EstimateItem, WorkGroup } from "@shared/schema";
 
 type EstimateWithItems = Estimate & { items: EstimateItem[] };
@@ -174,6 +175,7 @@ function MobileCard({ item, index, isAdmin, onDelete, onEdit }: MobileCardProps)
 
 export default function Estimates({ projectId }: { projectId: number }) {
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
   const [category, setCategory] = useState<string>("works");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -270,7 +272,9 @@ export default function Estimates({ projectId }: { projectId: number }) {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
       setAddOpen(false);
       resetForm();
+      toast({ title: "Позиция добавлена" });
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
@@ -283,7 +287,9 @@ export default function Estimates({ projectId }: { projectId: number }) {
       setEditOpen(false);
       setEditingItem(null);
       resetForm();
+      toast({ title: "Позиция обновлена" });
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -293,7 +299,9 @@ export default function Estimates({ projectId }: { projectId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/project", projectId] });
+      toast({ title: "Позиция удалена" });
     },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
   });
 
   function resetForm() {
