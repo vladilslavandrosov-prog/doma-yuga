@@ -74,11 +74,11 @@ function ProjectCard({ project, isAdmin, onEdit, onDelete }: { project: Project;
       )}
       <Link href={`/cabinet/project/${project.id}`}>
         <div className="cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 pr-16">
-            <CardTitle className="text-base font-medium truncate" data-testid={`text-project-name-${project.id}`}>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 pr-20">
+            <CardTitle className="text-base font-medium truncate min-w-0" data-testid={`text-project-name-${project.id}`}>
               {project.name}
             </CardTitle>
-            {getStatusBadge(project.status)}
+            <div className="shrink-0">{getStatusBadge(project.status)}</div>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-start gap-2 text-sm text-muted-foreground">
