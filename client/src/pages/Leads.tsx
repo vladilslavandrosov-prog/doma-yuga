@@ -14,8 +14,15 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Inbox, Phone, Mail, MapPin, Ruler, Wallet, Clock, Loader2 } from "lucide-react";
+import { Inbox, Phone, Mail, MapPin, Ruler, Wallet, Clock, Loader2, Home, Wrench, Paintbrush, MessageCircle, HelpCircle } from "lucide-react";
 import type { Lead } from "@shared/schema";
+
+const SERVICE_INFO: Record<string, { label: string; icon: typeof Home }> = {
+  build: { label: "Строительство дома", icon: Home },
+  repair: { label: "Ремонт / реконструкция", icon: Wrench },
+  finish: { label: "Отделка помещений", icon: Paintbrush },
+  consult: { label: "Консультация", icon: MessageCircle },
+};
 
 const STATUS_LABELS: Record<string, string> = {
   new: "Новая",
@@ -129,9 +136,16 @@ function LeadCard({ lead }: { lead: Lead }) {
 
         {services.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {services.map((s) => (
-              <Badge key={s} variant="secondary">{s}</Badge>
-            ))}
+            {services.map((s) => {
+              const info = SERVICE_INFO[s];
+              const Icon = info?.icon || HelpCircle;
+              return (
+                <Badge key={s} variant="secondary" className="flex items-center gap-1">
+                  <Icon className="h-3 w-3" />
+                  {info?.label || s}
+                </Badge>
+              );
+            })}
           </div>
         )}
 
