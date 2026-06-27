@@ -1,4 +1,4 @@
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { eq, and, inArray, desc, count } from "drizzle-orm";
 import { db } from "./db";
 import {
   clients, projects, estimates, estimateItems, payments,
@@ -128,10 +128,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUnreadCount(projectId: number, sender: string): Promise<number> {
-    const rows = await db.select().from(messages).where(
+    const [row] = await db.select({ count: count() }).from(messages).where(
       and(eq(messages.projectId, projectId), eq(messages.sender, sender), eq(messages.isRead, false))
     );
-    return rows.length;
+    return row?.count ?? 0;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
