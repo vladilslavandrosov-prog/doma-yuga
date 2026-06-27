@@ -1322,7 +1322,11 @@ export async function registerRoutes(
       const timeout = setTimeout(() => controller.abort(), 8000);
       const r = await fetch("https://openrouter.ai/api/v1/models", { signal: controller.signal });
       clearTimeout(timeout);
-      res.json({ ok: true, status: r.status, ms: Date.now() - started });
+      const data = await r.json();
+      const freeModels = Array.isArray(data?.data)
+        ? data.data.filter((m: any) => typeof m.id === "string" && m.id.endsWith(":free")).map((m: any) => m.id)
+        : [];
+      res.json({ ok: true, status: r.status, ms: Date.now() - started, freeModels });
     } catch (err) {
       res.json({ ok: false, error: err instanceof Error ? err.message : String(err), ms: Date.now() - started });
     }
