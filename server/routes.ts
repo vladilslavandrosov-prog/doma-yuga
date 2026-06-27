@@ -366,10 +366,29 @@ export async function registerRoutes(
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: "Invalid id" });
     }
+
+    const estimates = await storage.getEstimatesByProjectId(id);
+    const estimateIds = estimates.map((e) => e.id);
+    const estimateItems = await storage.getEstimateItemsByEstimateIds(estimateIds);
+    const itemIds = estimateItems.map((i) => i.id);
+    const itemPhotoUrls = await storage.deleteEstimateItemPhotosByEstimateItemIds(itemIds);
+    await storage.deleteEstimateItemsByEstimateIds(estimateIds);
+    await storage.deleteEstimatesByProjectId(id);
+
+    await storage.deletePaymentsByProjectId(id);
+    const documentUrls = await storage.deleteDocumentsByProjectId(id);
+    const photoUrls = await storage.deletePhotosByProjectId(id);
+    const videoUrls = await storage.deleteVideosByProjectId(id);
+    await storage.deleteMessagesByProjectId(id);
+    await storage.deleteNonWorkingDaysByProjectId(id);
+    await storage.deleteDayCommentsByProjectId(id);
+
     const ok = await storage.deleteProject(id);
     if (!ok) {
       return res.status(404).json({ error: "Project not found" });
     }
+
+    [...itemPhotoUrls, ...documentUrls, ...photoUrls, ...videoUrls].forEach(deleteUploadedFile);
     res.status(204).end();
   });
 

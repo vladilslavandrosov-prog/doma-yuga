@@ -62,20 +62,53 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(estimateItems).where(inArray(estimateItems.estimateId, estimateIds));
   }
 
+  async deleteEstimatesByProjectId(projectId: number): Promise<void> {
+    await db.delete(estimates).where(eq(estimates.projectId, projectId));
+  }
+
+  async deleteEstimateItemsByEstimateIds(estimateIds: number[]): Promise<void> {
+    if (estimateIds.length === 0) return;
+    await db.delete(estimateItems).where(inArray(estimateItems.estimateId, estimateIds));
+  }
+
+  async deleteEstimateItemPhotosByEstimateItemIds(estimateItemIds: number[]): Promise<string[]> {
+    if (estimateItemIds.length === 0) return [];
+    const rows = await db.delete(estimateItemPhotos).where(inArray(estimateItemPhotos.estimateItemId, estimateItemIds)).returning();
+    return rows.map((r) => r.url);
+  }
+
   async getPaymentsByProjectId(projectId: number): Promise<Payment[]> {
     return db.select().from(payments).where(eq(payments.projectId, projectId));
+  }
+
+  async deletePaymentsByProjectId(projectId: number): Promise<void> {
+    await db.delete(payments).where(eq(payments.projectId, projectId));
   }
 
   async getDocumentsByProjectId(projectId: number): Promise<Document[]> {
     return db.select().from(documents).where(eq(documents.projectId, projectId));
   }
 
+  async deleteDocumentsByProjectId(projectId: number): Promise<string[]> {
+    const rows = await db.delete(documents).where(eq(documents.projectId, projectId)).returning();
+    return rows.map((r) => r.url);
+  }
+
   async getPhotosByProjectId(projectId: number): Promise<Photo[]> {
     return db.select().from(photos).where(eq(photos.projectId, projectId));
   }
 
+  async deletePhotosByProjectId(projectId: number): Promise<string[]> {
+    const rows = await db.delete(photos).where(eq(photos.projectId, projectId)).returning();
+    return rows.map((r) => r.url);
+  }
+
   async getMessagesByProjectId(projectId: number): Promise<Message[]> {
     return db.select().from(messages).where(eq(messages.projectId, projectId));
+  }
+
+  async deleteMessagesByProjectId(projectId: number): Promise<void> {
+    await db.delete(messages).where(eq(messages.projectId, projectId));
   }
 
   async createMessage(msg: InsertMessage): Promise<Message> {
@@ -194,6 +227,11 @@ export class DatabaseStorage implements IStorage {
     return row?.url;
   }
 
+  async deleteVideosByProjectId(projectId: number): Promise<string[]> {
+    const rows = await db.delete(videos).where(eq(videos.projectId, projectId)).returning();
+    return rows.map((r) => r.url);
+  }
+
   async createProject(project: InsertProject): Promise<Project> {
     const [row] = await db.insert(projects).values(project).returning();
     return row;
@@ -260,6 +298,10 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
+  async deleteNonWorkingDaysByProjectId(projectId: number): Promise<void> {
+    await db.delete(nonWorkingDays).where(eq(nonWorkingDays.projectId, projectId));
+  }
+
   async getPhotosByEstimateItemId(estimateItemId: number): Promise<EstimateItemPhoto[]> {
     return db.select().from(estimateItemPhotos).where(eq(estimateItemPhotos.estimateItemId, estimateItemId));
   }
@@ -310,6 +352,10 @@ export class DatabaseStorage implements IStorage {
   async deleteDayComment(id: number): Promise<boolean> {
     const result = await db.delete(dayComments).where(eq(dayComments.id, id)).returning();
     return result.length > 0;
+  }
+
+  async deleteDayCommentsByProjectId(projectId: number): Promise<void> {
+    await db.delete(dayComments).where(eq(dayComments.projectId, projectId));
   }
 
   async getLeads(): Promise<Lead[]> {

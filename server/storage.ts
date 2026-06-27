@@ -26,10 +26,17 @@ export interface IStorage {
   getEstimatesByProjectId(projectId: number): Promise<Estimate[]>;
   getEstimateItemsByEstimateId(estimateId: number): Promise<EstimateItem[]>;
   getEstimateItemsByEstimateIds(estimateIds: number[]): Promise<EstimateItem[]>;
+  deleteEstimatesByProjectId(projectId: number): Promise<void>;
+  deleteEstimateItemsByEstimateIds(estimateIds: number[]): Promise<void>;
+  deleteEstimateItemPhotosByEstimateItemIds(estimateItemIds: number[]): Promise<string[]>;
   getPaymentsByProjectId(projectId: number): Promise<Payment[]>;
+  deletePaymentsByProjectId(projectId: number): Promise<void>;
   getDocumentsByProjectId(projectId: number): Promise<Document[]>;
+  deleteDocumentsByProjectId(projectId: number): Promise<string[]>;
   getPhotosByProjectId(projectId: number): Promise<Photo[]>;
+  deletePhotosByProjectId(projectId: number): Promise<string[]>;
   getMessagesByProjectId(projectId: number): Promise<Message[]>;
+  deleteMessagesByProjectId(projectId: number): Promise<void>;
   createMessage(message: InsertMessage): Promise<Message>;
   markMessagesAsRead(projectId: number, sender: string): Promise<void>;
   getUnreadCount(projectId: number, sender: string): Promise<number>;
@@ -52,6 +59,7 @@ export interface IStorage {
   createVideo(video: InsertVideo): Promise<Video>;
   updateVideo(id: number, data: Partial<InsertVideo>): Promise<Video | undefined>;
   deleteVideo(id: number): Promise<string | undefined>;
+  deleteVideosByProjectId(projectId: number): Promise<string[]>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, data: Partial<InsertProject>): Promise<Project | undefined>;
   deleteProject(id: number): Promise<boolean>;
@@ -66,6 +74,7 @@ export interface IStorage {
   getNonWorkingDaysByProjectId(projectId: number): Promise<NonWorkingDay[]>;
   createNonWorkingDay(day: InsertNonWorkingDay): Promise<NonWorkingDay>;
   deleteNonWorkingDay(id: number): Promise<boolean>;
+  deleteNonWorkingDaysByProjectId(projectId: number): Promise<void>;
   getPhotosByEstimateItemId(estimateItemId: number): Promise<EstimateItemPhoto[]>;
   getPhotosByEstimateItemIds(ids: number[]): Promise<EstimateItemPhoto[]>;
   createEstimateItemPhoto(photo: InsertEstimateItemPhoto): Promise<EstimateItemPhoto>;
@@ -77,6 +86,7 @@ export interface IStorage {
   createDayComment(comment: InsertDayComment): Promise<DayComment>;
   updateDayComment(id: number, data: Partial<InsertDayComment>): Promise<DayComment | undefined>;
   deleteDayComment(id: number): Promise<boolean>;
+  deleteDayCommentsByProjectId(projectId: number): Promise<void>;
   getLeads(): Promise<Lead[]>;
   createLead(lead: InsertLead): Promise<Lead>;
   updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined>;
