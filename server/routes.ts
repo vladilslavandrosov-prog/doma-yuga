@@ -384,17 +384,17 @@ export async function registerRoutes(
   app.get("/api/project/:id/estimates", requireProjectAccess, async (req, res) => {
     const projectId = parseInt(req.params.id);
     const estimates = await storage.getEstimatesByProjectId(projectId);
-    const result = [];
-    for (const est of estimates) {
-      const items = await storage.getEstimateItemsByEstimateId(est.id);
-      const itemIds = items.map(i => i.id);
-      const photos = itemIds.length > 0 ? await storage.getPhotosByEstimateItemIds(itemIds) : [];
+    const allItems = await storage.getEstimateItemsByEstimateIds(estimates.map(e => e.id));
+    const itemIds = allItems.map(i => i.id);
+    const photos = itemIds.length > 0 ? await storage.getPhotosByEstimateItemIds(itemIds) : [];
+    const result = estimates.map(est => {
+      const items = allItems.filter(i => i.estimateId === est.id);
       const itemsWithPhotos = items.map(item => ({
         ...item,
         photos: photos.filter(p => p.estimateItemId === item.id),
       }));
-      result.push({ ...est, items: itemsWithPhotos });
-    }
+      return { ...est, items: itemsWithPhotos };
+    });
     res.json(result);
   });
 
@@ -484,12 +484,10 @@ export async function registerRoutes(
     let totalItems = 0;
     let completedItems = 0;
     let totalEstimateSum = 0;
-    for (const est of estimates) {
-      const items = await storage.getEstimateItemsByEstimateId(est.id);
-      totalItems += items.length;
-      completedItems += items.filter(i => i.status === "completed").length;
-      totalEstimateSum += items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
-    }
+    const allEstimateItems = await storage.getEstimateItemsByEstimateIds(estimates.map(e => e.id));
+    totalItems = allEstimateItems.length;
+    completedItems = allEstimateItems.filter(i => i.status === "completed").length;
+    totalEstimateSum = allEstimateItems.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
     const payments = await storage.getPaymentsByProjectId(project.id);
     const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
     const unreadSender = req.session.role === "admin" ? "client" : "admin";
@@ -518,11 +516,9 @@ export async function registerRoutes(
     if (!project) return res.status(404).json({ error: "Not found" });
 
     const estimates = await storage.getEstimatesByProjectId(projectId);
-    const allItems: any[] = [];
-    for (const est of estimates) {
-      const items = await storage.getEstimateItemsByEstimateId(est.id);
-      items.forEach(i => allItems.push({ ...i, category: est.title }));
-    }
+    const estimateTitleById = new Map(estimates.map(e => [e.id, e.title]));
+    const rawItems = await storage.getEstimateItemsByEstimateIds(estimates.map(e => e.id));
+    const allItems: any[] = rawItems.map(i => ({ ...i, category: estimateTitleById.get(i.estimateId) }));
 
     const completed = allItems.filter(i => i.status === "completed").length;
     const inProgress = allItems.filter(i => i.status === "in_progress").length;
@@ -701,12 +697,10 @@ export async function registerRoutes(
     let totalItems = 0;
     let completedItems = 0;
     let totalEstimateSum = 0;
-    for (const est of estimates) {
-      const items = await storage.getEstimateItemsByEstimateId(est.id);
-      totalItems += items.length;
-      completedItems += items.filter(i => i.status === "completed").length;
-      totalEstimateSum += items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
-    }
+    const allEstimateItems = await storage.getEstimateItemsByEstimateIds(estimates.map(e => e.id));
+    totalItems = allEstimateItems.length;
+    completedItems = allEstimateItems.filter(i => i.status === "completed").length;
+    totalEstimateSum = allEstimateItems.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
     const payments = await storage.getPaymentsByProjectId(project.id);
     const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
     const unreadSender = req.session.role === "admin" ? "client" : "admin";

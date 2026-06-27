@@ -24,6 +24,7 @@ export interface IStorage {
   getProjectById(id: number): Promise<Project | undefined>;
   getEstimatesByProjectId(projectId: number): Promise<Estimate[]>;
   getEstimateItemsByEstimateId(estimateId: number): Promise<EstimateItem[]>;
+  getEstimateItemsByEstimateIds(estimateIds: number[]): Promise<EstimateItem[]>;
   getPaymentsByProjectId(projectId: number): Promise<Payment[]>;
   getDocumentsByProjectId(projectId: number): Promise<Document[]>;
   getPhotosByProjectId(projectId: number): Promise<Photo[]>;

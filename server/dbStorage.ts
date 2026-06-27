@@ -56,6 +56,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(estimateItems).where(eq(estimateItems.estimateId, estimateId));
   }
 
+  async getEstimateItemsByEstimateIds(estimateIds: number[]): Promise<EstimateItem[]> {
+    if (estimateIds.length === 0) return [];
+    return db.select().from(estimateItems).where(inArray(estimateItems.estimateId, estimateIds));
+  }
+
   async getPaymentsByProjectId(projectId: number): Promise<Payment[]> {
     return db.select().from(payments).where(eq(payments.projectId, projectId));
   }
