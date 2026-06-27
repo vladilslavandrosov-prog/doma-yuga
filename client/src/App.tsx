@@ -8,6 +8,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider, ThemeToggle } from "@/components/ThemeProvider";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { FaqChatWidget } from "@/components/FaqChatWidget";
 import NotFound from "@/pages/not-found";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Projects = lazy(() => import("@/pages/Projects"));
@@ -227,14 +228,23 @@ function ClientPage({ section }: { section: "estimates" | "execution" | "payment
   );
 }
 
+function PublicPage({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {children}
+      <FaqChatWidget />
+    </>
+  );
+}
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={About} />
-      <Route path="/advantages" component={Advantages} />
-      <Route path="/gallery" component={PublicGallery} />
-      <Route path="/contact" component={Contact} />
-      <Route path="/presentation" component={Presentation} />
+      <Route path="/">{() => <PublicPage><About /></PublicPage>}</Route>
+      <Route path="/advantages">{() => <PublicPage><Advantages /></PublicPage>}</Route>
+      <Route path="/gallery">{() => <PublicPage><PublicGallery /></PublicPage>}</Route>
+      <Route path="/contact">{() => <PublicPage><Contact /></PublicPage>}</Route>
+      <Route path="/presentation">{() => <PublicPage><Presentation /></PublicPage>}</Route>
 
       <Route path="/cabinet">{() => <CabinetLayout><CabinetHome /></CabinetLayout>}</Route>
 

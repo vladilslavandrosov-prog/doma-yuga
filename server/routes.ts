@@ -242,6 +242,14 @@ const changePasswordLimiter = rateLimit({
   message: { error: "Слишком много попыток. Попробуйте позже." },
 });
 
+const faqChatLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Слишком много сообщений. Попробуйте позже или оставьте заявку." },
+});
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -1297,6 +1305,32 @@ export async function registerRoutes(
     } catch (e) {
       console.error("create lead error:", e);
       return res.status(400).json({ error: "Не удалось сохранить заявку" });
+    }
+  });
+
+  app.get("/api/faq-chat/status", async (_req, res) => {
+    const { isFaqBotConfigured } = await import("./faqBot");
+    res.json({ available: isFaqBotConfigured() });
+  });
+
+  app.post("/api/faq-chat", faqChatLimiter, async (req, res) => {
+    const { messages } = req.body;
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 20) {
+      return res.status(400).json({ error: "Некорректный запрос" });
+    }
+    const history = messages
+      .filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m: any) => ({ role: m.role, content: m.content.slice(0, 2000) }));
+    if (history.length === 0) {
+      return res.status(400).json({ error: "Некорректный запрос" });
+    }
+    try {
+      const { askFaqBot } = await import("./faqBot");
+      const reply = await askFaqBot(history);
+      res.json({ reply });
+    } catch (err) {
+      console.error("faq-chat error:", err);
+      res.status(503).json({ error: "Бот временно недоступен. Оставьте заявку, и менеджер ответит вам." });
     }
   });
 
