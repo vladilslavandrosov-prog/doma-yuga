@@ -249,6 +249,7 @@ export default function Videos({ projectId }: { projectId: number }) {
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
+                max="2100-12-31"
                 data-testid="input-video-date"
               />
             </div>

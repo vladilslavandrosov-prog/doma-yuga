@@ -143,6 +143,7 @@ export default function Payments({ projectId }: { projectId: number }) {
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
+                    max="2100-12-31"
                     data-testid="input-payment-date"
                   />
                 </div>

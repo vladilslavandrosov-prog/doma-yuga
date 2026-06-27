@@ -357,6 +357,7 @@ export default function Projects() {
                   value={formStartDate}
                   onChange={(e) => setFormStartDate(e.target.value)}
                   required
+                  max="2100-12-31"
                   data-testid="input-project-start-date"
                 />
               </div>
@@ -429,6 +430,7 @@ export default function Projects() {
                   value={formStartDate}
                   onChange={(e) => setFormStartDate(e.target.value)}
                   required
+                  max="2100-12-31"
                   data-testid="input-edit-project-start-date"
                 />
               </div>

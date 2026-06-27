@@ -306,6 +306,7 @@ export default function Photos({ projectId }: { projectId: number }) {
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
+                max="2100-12-31"
                 data-testid="input-photo-date"
               />
             </div>

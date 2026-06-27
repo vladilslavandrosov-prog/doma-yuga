@@ -526,6 +526,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
                 value={formDate}
                 onChange={(e) => setFormDate(e.target.value)}
                 required
+                max="2100-12-31"
                 data-testid="input-item-date"
               />
             </div>

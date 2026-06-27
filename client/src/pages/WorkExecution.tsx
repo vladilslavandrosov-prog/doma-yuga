@@ -765,6 +765,7 @@ function ItemFormDialog({
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
                 required
+                max="2100-12-31"
                 data-testid="input-item-date"
               />
             </div>
