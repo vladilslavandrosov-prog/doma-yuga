@@ -4,10 +4,11 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 // model first (if set), then fall back through a list of currently-known free
 // models so the bot keeps working without a manual env var update.
 const FALLBACK_FREE_MODELS = [
+  "openai/gpt-oss-120b:free",
+  "qwen/qwen3-next-80b-a3b-instruct:free",
   "meta-llama/llama-3.3-70b-instruct:free",
-  "qwen/qwen-2.5-7b-instruct:free",
-  "mistralai/mistral-7b-instruct:free",
-  "google/gemini-2.0-flash-exp:free",
+  "openai/gpt-oss-20b:free",
+  "nousresearch/hermes-3-llama-3.1-405b:free",
 ];
 const CANDIDATE_MODELS = process.env.OPENROUTER_MODEL
   ? [process.env.OPENROUTER_MODEL, ...FALLBACK_FREE_MODELS]
