@@ -131,8 +131,9 @@ export default function ContactPage() {
         source: source || null,
       });
       setStep(4);
-    } catch {
-      alert("Ошибка при отправке. Пожалуйста, позвоните нам напрямую.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      alert(`Ошибка при отправке${message ? `: ${message}` : ""}. Пожалуйста, позвоните нам напрямую.`);
     } finally {
       setLoading(false);
     }
