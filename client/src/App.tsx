@@ -20,6 +20,7 @@ const Videos = lazy(() => import("@/pages/Videos"));
 const Chat = lazy(() => import("@/pages/Chat"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Clients = lazy(() => import("@/pages/Clients"));
+const Leads = lazy(() => import("@/pages/Leads"));
 const About = lazy(() => import("@/pages/About"));
 const Advantages = lazy(() => import("@/pages/Advantages"));
 const PublicGallery = lazy(() => import("@/pages/PublicGallery"));
@@ -245,6 +246,7 @@ function Router() {
       <Route path="/cabinet/chat">{() => <CabinetLayout><ClientPage section="chat" /></CabinetLayout>}</Route>
       <Route path="/cabinet/settings">{() => <CabinetLayout><Settings /></CabinetLayout>}</Route>
       <Route path="/cabinet/clients">{() => <CabinetLayout><AdminOnly><Clients /></AdminOnly></CabinetLayout>}</Route>
+      <Route path="/cabinet/leads">{() => <CabinetLayout><AdminOnly><Leads /></AdminOnly></CabinetLayout>}</Route>
 
       <Route path="/cabinet/project/:id">{() => <CabinetLayout><ProjectPage section="dashboard" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/estimates">{() => <CabinetLayout><ProjectPage section="estimates" /></CabinetLayout>}</Route>

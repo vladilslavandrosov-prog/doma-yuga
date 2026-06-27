@@ -11,6 +11,6 @@ run:
   scriptName: null
   scriptArguments: null
   nodeArguments: null
-  command: npm run db:migrate && node dist/index.cjs
+  command: npm run db:push && node dist/index.cjs
   containerPort: 5000
   servicePort: 80
