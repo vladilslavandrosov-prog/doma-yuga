@@ -39,21 +39,28 @@ export function isFaqBotConfigured(): boolean {
 }
 
 async function callOpenRouter(model: string, history: FaqChatMessage[]): Promise<Response> {
-  return fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-      "HTTP-Referer": "https://doma-yuga.ru",
-      "X-Title": "Doma Yuga FAQ Bot",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
-      temperature: 0.4,
-      max_tokens: 400,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    return await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "https://doma-yuga.ru",
+        "X-Title": "Doma Yuga FAQ Bot",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
+        temperature: 0.4,
+        max_tokens: 400,
+      }),
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function askFaqBot(history: FaqChatMessage[]): Promise<string> {
