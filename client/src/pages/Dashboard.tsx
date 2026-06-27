@@ -66,6 +66,9 @@ import {
 } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
+import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
+import { HelpCircle } from "lucide-react";
 
 interface DashboardData {
   client: {
@@ -147,6 +150,49 @@ const ACTIVITY_ICON: Record<string, ReactNode> = {
   message: <MessageCircle className="w-4 h-4" />,
 };
 
+const DASHBOARD_TOUR_STEPS: TourStep[] = [
+  {
+    target: "card-hero",
+    title: "Ваш объект",
+    description: "Здесь отображается название, адрес и дата начала вашего проекта, а также текущий статус строительства.",
+  },
+  {
+    target: "card-progress",
+    title: "Прогресс работ",
+    description: "Показывает, какая доля позиций сметы уже выполнена строительной бригадой.",
+  },
+  {
+    target: "card-financial",
+    title: "Оплата",
+    description: "Процент и сумма уже внесённых платежей по проекту.",
+  },
+  {
+    target: "card-remaining",
+    title: "Остаток к оплате",
+    description: "Сколько осталось доплатить до полной суммы по смете.",
+  },
+  {
+    target: "card-work-groups",
+    title: "Группы работ",
+    description: "Детальный прогресс по каждому этапу: фундамент, стены, крыша и другие группы работ.",
+  },
+  {
+    target: "card-activity",
+    title: "Последние события",
+    description: "Лента свежих обновлений по проекту: новые фото, платежи, выполненные позиции и сообщения.",
+  },
+  {
+    target: "card-ai-insight",
+    title: "AI-анализ сроков",
+    description: "Нажмите, чтобы получить оценку темпов строительства с учётом прогноза погоды.",
+  },
+  {
+    target: "card-quick-links",
+    title: "Быстрый доступ",
+    description: "Переходы в смету, ход работ, документы, фотоотчёт и чат с компанией — всё в один клик.",
+  },
+];
+
 function getQuickLinks(basePath: string) {
   return [
     { title: "Сметы", url: `${basePath}/estimates`, icon: FileSpreadsheet, description: "Работы и материалы" },
@@ -196,6 +242,7 @@ function DashboardSkeleton() {
 export default function Dashboard({ projectId, basePath }: { projectId: number; basePath?: string }) {
   const linkBase = basePath ?? "/cabinet";
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [aiOpen, setAiOpen] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [weatherDays, setWeatherDays] = useState<WeatherDay[]>([]);
@@ -280,11 +327,26 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                   </span>
                 </div>
               </div>
-              {getStatusBadge(project.status)}
+              <div className="flex items-center gap-2">
+                {!isAdmin && (
+                  <Button
+                    size="icon"
+                    variant={data.heroPhoto ? "secondary" : "outline"}
+                    onClick={startOnboardingTour}
+                    aria-label="Показать инструкцию"
+                    data-testid="button-show-tour"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                  </Button>
+                )}
+                {getStatusBadge(project.status)}
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {!isAdmin && <OnboardingTour steps={DASHBOARD_TOUR_STEPS} storageKey="tour-dashboard-v1" />}
 
       {/* Stat tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
