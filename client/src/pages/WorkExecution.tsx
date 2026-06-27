@@ -1183,7 +1183,7 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
   const workGroups = useMemo((): WorkGroupData[] => {
     const groups = new Map<string, EstimateItemWithPhotos[]>();
     for (const item of allItems) {
-      const groupName = item.workGroup || "Без группы";
+      const groupName = item.workGroup || "Без категории";
       const existing = groups.get(groupName) || [];
       existing.push(item);
       groups.set(groupName, existing);
@@ -1198,8 +1198,8 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
       });
     }
     result.sort((a, b) => {
-      if (a.groupName === "Без группы") return 1;
-      if (b.groupName === "Без группы") return -1;
+      if (a.groupName === "Без категории") return 1;
+      if (b.groupName === "Без категории") return -1;
       return a.groupName.localeCompare(b.groupName);
     });
     return result;

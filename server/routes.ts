@@ -574,7 +574,7 @@ export async function registerRoutes(
     let maxPlannedDate: Date | null = null;
 
     for (const item of allItems) {
-      const g = item.workGroup ?? item.category ?? "Прочее";
+      const g = item.workGroup || item.category || "Без категории";
       if (!groups[g]) groups[g] = { total: 0, completed: 0, inProgress: 0, overdue: 0 };
       groups[g].total++;
       if (item.status === "completed") groups[g].completed++;

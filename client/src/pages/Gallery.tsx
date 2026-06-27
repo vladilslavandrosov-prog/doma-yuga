@@ -90,7 +90,7 @@ export default function Gallery({ projectId }: { projectId: number }) {
     for (const est of estimates) {
       for (const item of est.items) {
         if (!item.photos || item.photos.length === 0) continue;
-        const groupName = item.workGroup || "Без группы";
+        const groupName = item.workGroup || "Без категории";
         const existing = groups.get(groupName) || [];
         for (const photo of item.photos) {
           existing.push({ photo, itemName: item.name, date: item.date });
@@ -104,8 +104,8 @@ export default function Gallery({ projectId }: { projectId: number }) {
       result.push({ groupName, photos });
     }
     result.sort((a, b) => {
-      if (a.groupName === "Без группы") return 1;
-      if (b.groupName === "Без группы") return -1;
+      if (a.groupName === "Без категории") return 1;
+      if (b.groupName === "Без категории") return -1;
       return a.groupName.localeCompare(b.groupName);
     });
     return result;
@@ -181,7 +181,7 @@ export default function Gallery({ projectId }: { projectId: number }) {
 
   const filteredItems = useMemo(() => {
     if (!uploadGroupName) return allItemsWithPhotos;
-    return allItemsWithPhotos.filter(i => (i.workGroup || "Без группы") === uploadGroupName);
+    return allItemsWithPhotos.filter(i => (i.workGroup || "Без категории") === uploadGroupName);
   }, [allItemsWithPhotos, uploadGroupName]);
 
   const currentLightboxPhotos = useMemo(() => {
@@ -349,7 +349,7 @@ export default function Gallery({ projectId }: { projectId: number }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all_groups">Все группы</SelectItem>
-                  {Array.from(new Set(allItemsWithPhotos.map(i => i.workGroup || "Без группы"))).sort().map(g => (
+                  {Array.from(new Set(allItemsWithPhotos.map(i => i.workGroup || "Без категории"))).sort().map(g => (
                     <SelectItem key={g} value={g}>{g}</SelectItem>
                   ))}
                 </SelectContent>

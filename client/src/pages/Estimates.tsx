@@ -174,6 +174,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
   const [formUnit, setFormUnit] = useState("");
   const [formUnitPrice, setFormUnitPrice] = useState("");
   const [formStatus, setFormStatus] = useState("planned");
+  const [formWorkGroup, setFormWorkGroup] = useState("");
 
   const isMobile = useIsMobile();
 
@@ -194,6 +195,15 @@ export default function Estimates({ projectId }: { projectId: number }) {
       .filter((e) => e.category === categoryKey)
       .flatMap((e) => e.items);
   }, [estimates, categoryKey]);
+
+  const existingWorkGroups = useMemo(() => {
+    if (!estimates) return [];
+    const groups = new Set<string>();
+    estimates.flatMap((e) => e.items).forEach((item) => {
+      if (item.workGroup) groups.add(item.workGroup);
+    });
+    return Array.from(groups).sort();
+  }, [estimates]);
 
   const filteredItems = useMemo(() => {
     let items = allItems;
@@ -265,6 +275,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
     setFormUnit("");
     setFormUnitPrice("");
     setFormStatus("planned");
+    setFormWorkGroup("");
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -281,6 +292,7 @@ export default function Estimates({ projectId }: { projectId: number }) {
       unitPrice: formUnitPrice,
       totalPrice: String(qty * price),
       status: formStatus,
+      workGroup: formWorkGroup.trim() || null,
     });
   }
 
@@ -586,6 +598,21 @@ export default function Estimates({ projectId }: { projectId: number }) {
                   <SelectItem value="completed">Выполнено</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Группа работ</Label>
+              <Input
+                value={formWorkGroup}
+                onChange={(e) => setFormWorkGroup(e.target.value)}
+                placeholder="Например, Фундамент"
+                list="estimate-work-groups"
+                data-testid="input-item-work-group"
+              />
+              <datalist id="estimate-work-groups">
+                {existingWorkGroups.map((g) => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
             </div>
             <Button type="submit" className="w-full" disabled={createMutation.isPending} data-testid="button-submit-estimate-item">
               {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Добавить"}
