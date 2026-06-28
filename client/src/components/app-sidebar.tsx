@@ -25,6 +25,7 @@ import {
   Presentation,
   Inbox,
   ListTree,
+  Flame,
 } from "lucide-react";
 import {
   useSidebar,
@@ -80,7 +81,7 @@ export function AppSidebar() {
   const inCabinet = location.startsWith("/cabinet");
   const projectIdFromUrl = extractProjectId(location);
   const inProject = projectIdFromUrl !== null;
-  const adminPages = ["/cabinet", "/cabinet/clients", "/cabinet/leads", "/cabinet/work-groups", "/cabinet/settings"];
+  const adminPages = ["/cabinet", "/cabinet/home", "/cabinet/clients", "/cabinet/leads", "/cabinet/work-groups", "/cabinet/settings"];
   const inAdminPanel = isAdmin && inCabinet && !inProject && adminPages.includes(location);
 
   const isClient = !!user && user.role === "client";
@@ -194,6 +195,19 @@ export function AppSidebar() {
             <SidebarGroupLabel>Панель администратора</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/cabinet/home"}
+                    tooltip="Главная"
+                    data-testid="link-nav-home"
+                  >
+                    <Link href="/cabinet/home" onClick={closeMobile}>
+                      <Flame />
+                      <span>Главная</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild

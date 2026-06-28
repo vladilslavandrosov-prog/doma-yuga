@@ -10,6 +10,7 @@ import { ThemeProvider, ThemeToggle } from "@/components/ThemeProvider";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { FaqChatWidget } from "@/components/FaqChatWidget";
 import NotFound from "@/pages/not-found";
+const Home = lazy(() => import("@/pages/Home"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Projects = lazy(() => import("@/pages/Projects"));
 const Estimates = lazy(() => import("@/pages/Estimates"));
@@ -250,6 +251,7 @@ function Router() {
       <Route path="/presentation">{() => <PublicPage><Presentation /></PublicPage>}</Route>
 
       <Route path="/cabinet">{() => <CabinetLayout><CabinetHome /></CabinetLayout>}</Route>
+      <Route path="/cabinet/home">{() => <CabinetLayout><AdminOnly><Home /></AdminOnly></CabinetLayout>}</Route>
 
       <Route path="/cabinet/estimates">{() => <CabinetLayout><ClientPage section="estimates" /></CabinetLayout>}</Route>
       <Route path="/cabinet/execution">{() => <CabinetLayout><ClientPage section="execution" /></CabinetLayout>}</Route>

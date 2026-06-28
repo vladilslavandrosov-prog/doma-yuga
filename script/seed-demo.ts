@@ -26,11 +26,11 @@ const DEMO_CLIENTS: DemoClient[] = [
     address: "г. Краснодар, ул. Демонстрационная, 1",
   },
   {
-    name: "Атаман Матвеев",
+    name: "Иванов Сергей Петрович",
     username: "matveev",
     password: "matveev12345",
-    projectName: "Дом Матвеева — коттедж 180м²",
-    address: "г. Краснодар, ст. Атаманская, ул. Степная, 12",
+    projectName: "Дом на ул. Атамана Матвеева — коттедж 180м²",
+    address: "г. Краснодар, ул. Атамана Матвеева, 12",
   },
 ];
 
@@ -46,7 +46,8 @@ async function upsertClient(c: DemoClient) {
   let clientId: number;
   if (existingClient.rows.length > 0) {
     clientId = existingClient.rows[0].id;
-    console.log(`= клиент «${c.name}» уже существует (id ${clientId})`);
+    await pool.query("UPDATE clients SET name = $1 WHERE id = $2", [c.name, clientId]);
+    console.log(`= клиент с uid demo-${c.username} обновлён до «${c.name}» (id ${clientId})`);
   } else {
     const inserted = await pool.query(
       "INSERT INTO clients (name, phone, email, uid) VALUES ($1, $2, $3, $4) RETURNING id",
@@ -69,13 +70,18 @@ async function upsertClient(c: DemoClient) {
   }
 
   const existingProject = await pool.query(
-    "SELECT id FROM projects WHERE client_id = $1 AND name = $2",
-    [clientId, c.projectName],
+    "SELECT id, name FROM projects WHERE client_id = $1 ORDER BY id LIMIT 1",
+    [clientId],
   );
   let projectId: number;
   if (existingProject.rows.length > 0) {
     projectId = existingProject.rows[0].id;
-    console.log(`= объект «${c.projectName}» уже существует (id ${projectId})`);
+    if (existingProject.rows[0].name !== c.projectName) {
+      await pool.query("UPDATE projects SET name = $1, address = $2 WHERE id = $3", [c.projectName, c.address, projectId]);
+      console.log(`= объект (id ${projectId}) переименован в «${c.projectName}»`);
+    } else {
+      console.log(`= объект «${c.projectName}» уже существует (id ${projectId})`);
+    }
     return;
   }
   const insertedProject = await pool.query(

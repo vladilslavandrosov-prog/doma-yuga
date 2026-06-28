@@ -1443,6 +1443,28 @@ export async function registerRoutes(
     res.json({ activeCount, overdueCount, overdueTotal, completedCount, totalCount: projects.length });
   });
 
+  app.get("/api/admin/reminders-summary", requireAdmin, async (_req, res) => {
+    const reminders = await storage.getAllClientReminders();
+    const clients = await storage.getAllClients();
+    const clientById = new Map(clients.map((c) => [c.id, c]));
+    const today = new Date().toISOString().slice(0, 10);
+    const in7Days = new Date();
+    in7Days.setDate(in7Days.getDate() + 7);
+    const in7DaysStr = in7Days.toISOString().slice(0, 10);
+
+    const pending = reminders.filter((r) => r.status === "pending");
+    const burning = pending
+      .filter((r) => r.priority === "urgent" || (r.dueDate && r.dueDate <= today))
+      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—" }))
+      .sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"));
+    const upcoming = pending
+      .filter((r) => !burning.some((b) => b.id === r.id) && r.dueDate && r.dueDate > today && r.dueDate <= in7DaysStr)
+      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—" }))
+      .sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"));
+
+    res.json({ burning, upcoming });
+  });
+
   app.get("/api/admin/settings/faq-telegram-notifications", requireAdmin, async (_req, res) => {
     const value = await storage.getSetting("faqTelegramNotificationsEnabled");
     res.json({ enabled: value !== "false" });
