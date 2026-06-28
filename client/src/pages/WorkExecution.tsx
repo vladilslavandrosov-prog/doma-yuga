@@ -1128,6 +1128,7 @@ function VoiceStatusControl({ projectId, items }: { projectId: number; items: Es
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const handledResultRef = useRef(false);
+  const listenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const SpeechRecognitionCtor =
     typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
@@ -1167,7 +1168,12 @@ function VoiceStatusControl({ projectId, items }: { projectId: number; items: Es
       return;
     }
     if (listening) {
-      recognitionRef.current?.stop();
+      if (listenTimeoutRef.current) {
+        clearTimeout(listenTimeoutRef.current);
+        listenTimeoutRef.current = null;
+      }
+      recognitionRef.current?.abort();
+      setListening(false);
       return;
     }
     if (recognitionRef.current) {
@@ -1175,6 +1181,10 @@ function VoiceStatusControl({ projectId, items }: { projectId: number; items: Es
       recognitionRef.current.onend = null;
       recognitionRef.current.onerror = null;
       recognitionRef.current.abort();
+    }
+    if (listenTimeoutRef.current) {
+      clearTimeout(listenTimeoutRef.current);
+      listenTimeoutRef.current = null;
     }
     handledResultRef.current = false;
     const recognition = new SpeechRecognitionCtor();
@@ -1196,12 +1206,26 @@ function VoiceStatusControl({ projectId, items }: { projectId: number; items: Es
       setListening(false);
     };
     recognition.onend = () => {
+      if (listenTimeoutRef.current) {
+        clearTimeout(listenTimeoutRef.current);
+        listenTimeoutRef.current = null;
+      }
       setListening(false);
       if (recognitionRef.current === recognition) recognitionRef.current = null;
     };
     recognitionRef.current = recognition;
     recognition.start();
     setListening(true);
+    listenTimeoutRef.current = setTimeout(() => {
+      toast({ title: "Не удалось распознать речь", description: "Попробуйте ещё раз", variant: "destructive" });
+      recognition.onresult = null;
+      recognition.onend = null;
+      recognition.onerror = null;
+      recognition.abort();
+      if (recognitionRef.current === recognition) recognitionRef.current = null;
+      setListening(false);
+      listenTimeoutRef.current = null;
+    }, 8000);
   };
 
   if (!SpeechRecognitionCtor) return null;
