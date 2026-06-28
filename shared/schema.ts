@@ -224,11 +224,23 @@ export const clientReminders = pgTable("client_reminders", {
   resolutionQuality: text("resolution_quality"),
   notifiedAt: text("notified_at"),
   assignedToUserId: integer("assigned_to_user_id"),
+  recurrence: text("recurrence").notNull().default("none"),
 });
 
 export const insertClientReminderSchema = createInsertSchema(clientReminders).omit({ id: true });
 export type InsertClientReminder = z.infer<typeof insertClientReminderSchema>;
 export type ClientReminder = typeof clientReminders.$inferSelect;
+
+export const reminderHistory = pgTable("reminder_history", {
+  id: serial("id").primaryKey(),
+  reminderId: integer("reminder_id").notNull(),
+  action: text("action").notNull(),
+  details: text("details"),
+  userId: integer("user_id"),
+  createdAt: text("created_at").notNull(),
+});
+
+export type ReminderHistory = typeof reminderHistory.$inferSelect;
 
 export const appSettings = pgTable("app_settings", {
   key: text("key").primaryKey(),

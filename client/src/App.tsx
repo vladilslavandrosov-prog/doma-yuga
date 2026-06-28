@@ -26,6 +26,7 @@ const Clients = lazy(() => import("@/pages/Clients"));
 const Leads = lazy(() => import("@/pages/Leads"));
 const WorkGroups = lazy(() => import("@/pages/WorkGroups"));
 const Reminders = lazy(() => import("@/pages/Reminders"));
+const RemindersCalendar = lazy(() => import("@/pages/RemindersCalendar"));
 const About = lazy(() => import("@/pages/About"));
 const Advantages = lazy(() => import("@/pages/Advantages"));
 const PublicGallery = lazy(() => import("@/pages/PublicGallery"));
@@ -266,6 +267,7 @@ function Router() {
       <Route path="/cabinet/leads">{() => <CabinetLayout><AdminOnly><Leads /></AdminOnly></CabinetLayout>}</Route>
       <Route path="/cabinet/work-groups">{() => <CabinetLayout><AdminOnly><WorkGroups /></AdminOnly></CabinetLayout>}</Route>
       <Route path="/cabinet/reminders">{() => <CabinetLayout><AdminOnly><Reminders /></AdminOnly></CabinetLayout>}</Route>
+      <Route path="/cabinet/reminders/calendar">{() => <CabinetLayout><AdminOnly><RemindersCalendar /></AdminOnly></CabinetLayout>}</Route>
 
       <Route path="/cabinet/project/:id">{() => <CabinetLayout><ProjectPage section="dashboard" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/estimates">{() => <CabinetLayout><ProjectPage section="estimates" /></CabinetLayout>}</Route>

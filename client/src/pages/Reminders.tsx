@@ -15,13 +15,22 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDate, overdueUrgencyClass, addDaysToToday } from "@/lib/format";
-import { Bell, Users, Check, RotateCcw, Pencil, Trash2, Loader2, Clock } from "lucide-react";
+import { Bell, Users, Check, RotateCcw, Pencil, Trash2, Loader2, Clock, History, CalendarDays } from "lucide-react";
 import type { ClientReminder } from "@shared/schema";
+import { ReminderHistoryDialog } from "@/components/ReminderHistoryDialog";
+import { Link } from "wouter";
+
+const RECURRENCE_LABEL: Record<string, string> = {
+  none: "Не повторять",
+  weekly: "Еженедельно",
+  monthly: "Ежемесячно",
+};
 
 interface ReminderWithClient extends ClientReminder {
   clientName: string;
   projectName: string | null;
   assignedToName: string | null;
+  recurrence: string;
 }
 
 const PRIORITY_LABEL: Record<string, string> = {
@@ -43,8 +52,10 @@ export default function Reminders() {
   const [editText, setEditText] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
   const [editPriority, setEditPriority] = useState("normal");
+  const [editRecurrence, setEditRecurrence] = useState("none");
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [resolutionNote, setResolutionNote] = useState("");
+  const [historyId, setHistoryId] = useState<number | null>(null);
 
   const { data: reminders, isLoading } = useQuery<ReminderWithClient[]>({
     queryKey: ["/api/admin/reminders"],
@@ -84,6 +95,7 @@ export default function Reminders() {
     setEditText("");
     setEditDueDate("");
     setEditPriority("normal");
+    setEditRecurrence("none");
   };
 
   const startEdit = (r: ReminderWithClient) => {
@@ -93,6 +105,7 @@ export default function Reminders() {
     setEditText(r.text);
     setEditDueDate(r.dueDate ?? "");
     setEditPriority(r.priority);
+    setEditRecurrence(r.recurrence ?? "none");
   };
 
   const saveEdit = (id: number) => {
@@ -101,7 +114,7 @@ export default function Reminders() {
       return;
     }
     updateMut.mutate(
-      { id, data: { text: editText.trim(), dueDate: editDueDate || null, priority: editPriority } },
+      { id, data: { text: editText.trim(), dueDate: editDueDate || null, priority: editPriority, recurrence: editRecurrence } },
       { onSuccess: () => { resetEdit(); toast({ title: "Изменения сохранены" }); } },
     );
   };
@@ -137,6 +150,12 @@ export default function Reminders() {
           Напоминания
         </h1>
         <div className="flex gap-2">
+          <Button size="sm" variant="outline" asChild data-testid="link-reminders-calendar">
+            <Link href="/cabinet/reminders/calendar">
+              <CalendarDays className="w-4 h-4 mr-1" />
+              Календарь
+            </Link>
+          </Button>
           {(["pending", "done", "all"] as const).map((s) => (
             <Button
               key={s}
@@ -185,6 +204,16 @@ export default function Reminders() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <Select value={editRecurrence} onValueChange={setEditRecurrence}>
+                    <SelectTrigger data-testid={`select-edit-recurrence-${r.id}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{RECURRENCE_LABEL.none}</SelectItem>
+                      <SelectItem value="weekly">{RECURRENCE_LABEL.weekly}</SelectItem>
+                      <SelectItem value="monthly">{RECURRENCE_LABEL.monthly}</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => saveEdit(r.id)} disabled={updateMut.isPending} data-testid={`button-save-edit-${r.id}`}>
                       {updateMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Сохранить изменения"}
@@ -208,6 +237,9 @@ export default function Reminders() {
                       {r.dueDate && <span className="text-muted-foreground text-xs">до {formatDate(r.dueDate)}</span>}
                       {r.projectName && <span className="text-muted-foreground text-xs">{r.projectName}</span>}
                       {r.assignedToName && <Badge variant="outline" data-testid={`badge-assignee-${r.id}`}>{r.assignedToName}</Badge>}
+                      {r.recurrence && r.recurrence !== "none" && (
+                        <Badge variant="outline" data-testid={`badge-recurrence-${r.id}`}>{RECURRENCE_LABEL[r.recurrence] ?? r.recurrence}</Badge>
+                      )}
                       <Badge variant="outline">{r.status === "done" ? "Выполнено" : "В работе"}</Badge>
                     </div>
                     <p className={r.status === "done" ? "line-through" : ""}>{r.text}</p>
@@ -240,6 +272,16 @@ export default function Reminders() {
                     ) : null}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => setHistoryId(r.id)}
+                      aria-label="История изменений"
+                      data-testid={`button-history-reminder-${r.id}`}
+                    >
+                      <History className="h-3.5 w-3.5" />
+                    </Button>
                     {r.status === "pending" ? (
                       <>
                         <Button
@@ -330,6 +372,8 @@ export default function Reminders() {
           </Card>
         ))}
       </div>
+
+      <ReminderHistoryDialog reminderId={historyId} onClose={() => setHistoryId(null)} />
     </div>
   );
 }

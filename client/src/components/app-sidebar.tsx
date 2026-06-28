@@ -82,7 +82,7 @@ export function AppSidebar() {
   const inCabinet = location.startsWith("/cabinet");
   const projectIdFromUrl = extractProjectId(location);
   const inProject = projectIdFromUrl !== null;
-  const adminPages = ["/cabinet", "/cabinet/home", "/cabinet/clients", "/cabinet/reminders", "/cabinet/leads", "/cabinet/work-groups", "/cabinet/settings"];
+  const adminPages = ["/cabinet", "/cabinet/home", "/cabinet/clients", "/cabinet/reminders", "/cabinet/reminders/calendar", "/cabinet/leads", "/cabinet/work-groups", "/cabinet/settings"];
   const inAdminPanel = isAdmin && inCabinet && !inProject && adminPages.includes(location);
 
   const isClient = !!user && user.role === "client";

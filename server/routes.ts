@@ -269,6 +269,19 @@ function formatMoney(value: number): string {
   return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(value) + " ₽";
 }
 
+function addDaysIso(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function nextRecurrenceDate(dueDate: string | null, recurrence: string): string | null {
+  const base = dueDate ? new Date(dueDate) : new Date();
+  if (recurrence === "weekly") base.setDate(base.getDate() + 7);
+  else if (recurrence === "monthly") base.setMonth(base.getMonth() + 1);
+  return base.toISOString().slice(0, 10);
+}
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -507,6 +520,13 @@ export async function registerRoutes(
       return res.status(400).json({ error: parsed.error.message });
     }
     const reminder = await storage.createClientReminder(parsed.data);
+    await storage.addReminderHistory({
+      reminderId: reminder.id,
+      action: "created",
+      details: reminder.text,
+      userId: req.session.userId ?? null,
+      createdAt: new Date().toISOString(),
+    });
     if (reminder.priority === "urgent") {
       const { notifyClientReminderDue } = await import("./telegram");
       const client = await storage.getClientById(clientId);
@@ -520,7 +540,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/reminders/:id", requireAdmin, async (req, res) => {
-    const allowed = ["text", "dueDate", "priority", "status", "resolutionNote", "resolutionQuality", "projectId", "assignedToUserId"];
+    const allowed = ["text", "dueDate", "priority", "status", "resolutionNote", "resolutionQuality", "projectId", "assignedToUserId", "recurrence"];
     const filtered: Record<string, any> = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) filtered[key] = req.body[key];
@@ -528,12 +548,79 @@ export async function registerRoutes(
     if (filtered.resolutionQuality !== undefined && filtered.resolutionQuality !== null && !["good", "bad"].includes(filtered.resolutionQuality)) {
       return res.status(400).json({ error: "Недопустимое значение resolutionQuality" });
     }
+    if (filtered.recurrence !== undefined && !["none", "weekly", "monthly"].includes(filtered.recurrence)) {
+      return res.status(400).json({ error: "Недопустимое значение recurrence" });
+    }
     if (filtered.dueDate !== undefined || filtered.text !== undefined || filtered.priority !== undefined || filtered.status === "pending") {
       filtered.notifiedAt = null;
     }
+    const before = await storage.getClientReminderById(parseInt(req.params.id as string));
     const reminder = await storage.updateClientReminder(parseInt(req.params.id as string), filtered);
     if (!reminder) {
       return res.status(404).json({ error: "Напоминание не найдено" });
+    }
+    const userId = req.session.userId ?? null;
+    const now = new Date().toISOString();
+    if (filtered.status === "done" && before?.status !== "done") {
+      await storage.addReminderHistory({
+        reminderId: reminder.id,
+        action: "resolved",
+        details: reminder.resolutionQuality === "bad" ? "Плохо" : reminder.resolutionQuality === "good" ? "Хорошо" : null,
+        userId,
+        createdAt: now,
+      });
+
+      if (reminder.resolutionQuality === "bad") {
+        const followUp = await storage.createClientReminder({
+          clientId: reminder.clientId,
+          projectId: reminder.projectId,
+          text: `Доработать: ${reminder.text}`,
+          dueDate: addDaysIso(3),
+          priority: reminder.priority,
+          status: "pending",
+          createdAt: now,
+          assignedToUserId: reminder.assignedToUserId,
+          recurrence: "none",
+        });
+        await storage.addReminderHistory({
+          reminderId: followUp.id,
+          action: "created",
+          details: `Автофоллоу-ап после «Плохо» по напоминанию #${reminder.id}`,
+          userId,
+          createdAt: now,
+        });
+      } else if (reminder.recurrence !== "none") {
+        const nextDueDate = nextRecurrenceDate(reminder.dueDate, reminder.recurrence);
+        const nextOccurrence = await storage.createClientReminder({
+          clientId: reminder.clientId,
+          projectId: reminder.projectId,
+          text: reminder.text,
+          dueDate: nextDueDate,
+          priority: reminder.priority,
+          status: "pending",
+          createdAt: now,
+          assignedToUserId: reminder.assignedToUserId,
+          recurrence: reminder.recurrence,
+        });
+        await storage.addReminderHistory({
+          reminderId: nextOccurrence.id,
+          action: "created",
+          details: `Следующее повторение напоминания #${reminder.id}`,
+          userId,
+          createdAt: now,
+        });
+      }
+    } else {
+      const changedFields = Object.keys(filtered).filter((k) => k !== "notifiedAt");
+      if (changedFields.length > 0) {
+        await storage.addReminderHistory({
+          reminderId: reminder.id,
+          action: "updated",
+          details: changedFields.join(", "),
+          userId,
+          createdAt: now,
+        });
+      }
     }
     if (filtered.assignedToUserId !== undefined && filtered.assignedToUserId !== null && reminder.status === "pending" && reminder.priority === "urgent") {
       const { notifyClientReminderDue } = await import("./telegram");
@@ -544,6 +631,16 @@ export async function registerRoutes(
       }
     }
     res.json(reminder);
+  });
+
+  app.get("/api/admin/reminders/:id/history", requireAdmin, async (req, res) => {
+    const history = await storage.getReminderHistory(parseInt(req.params.id as string));
+    const users = await storage.getAllUsers();
+    const result = history
+      .slice()
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map((h) => ({ ...h, userName: users.find((u) => u.id === h.userId)?.username ?? null }));
+    res.json(result);
   });
 
   app.delete("/api/admin/reminders/:id", requireAdmin, async (req, res) => {

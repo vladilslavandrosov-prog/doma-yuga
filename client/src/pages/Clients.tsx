@@ -22,10 +22,17 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
-import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil, Trash2, HelpCircle, Bell, Mic, MicOff, Check, X, Flame, Clock } from "lucide-react";
+import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil, Trash2, HelpCircle, Bell, Mic, MicOff, Check, X, Flame, Clock, History } from "lucide-react";
 import type { Project, ClientReminder } from "@shared/schema";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
 import { formatDate, overdueUrgencyClass, addDaysToToday } from "@/lib/format";
+import { ReminderHistoryDialog } from "@/components/ReminderHistoryDialog";
+
+const RECURRENCE_LABEL: Record<string, string> = {
+  none: "Не повторять",
+  weekly: "Еженедельно",
+  monthly: "Ежемесячно",
+};
 
 const CLIENTS_TOUR_STEPS: TourStep[] = [
   { target: "text-page-title", title: "Клиенты", description: "Список всех клиентов с доступом в личный кабинет и привязкой к их объектам." },
@@ -101,6 +108,8 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   const [manualPriority, setManualPriority] = useState("normal");
   const [manualProjectId, setManualProjectId] = useState<string>("none");
   const [manualAssigneeId, setManualAssigneeId] = useState<string>("none");
+  const [manualRecurrence, setManualRecurrence] = useState<string>("none");
+  const [historyId, setHistoryId] = useState<number | null>(null);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const handledResultRef = useRef(false);
@@ -129,7 +138,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   });
 
   const createMut = useMutation({
-    mutationFn: async (data: { text: string; dueDate: string | null; priority: string; projectId?: number | null; assignedToUserId?: number | null }) => {
+    mutationFn: async (data: { text: string; dueDate: string | null; priority: string; projectId?: number | null; assignedToUserId?: number | null; recurrence?: string }) => {
       const res = await apiRequest("POST", `/api/admin/clients/${client!.id}/reminders`, data);
       if (!res.ok) throw new Error("Ошибка создания напоминания");
       return res.json();
@@ -141,6 +150,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
       setManualPriority("normal");
       setManualProjectId("none");
       setManualAssigneeId("none");
+      setManualRecurrence("none");
       toast({ title: "Напоминание сохранено" });
     },
     onError: () => {
@@ -181,6 +191,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     setManualPriority("normal");
     setManualProjectId("none");
     setManualAssigneeId("none");
+    setManualRecurrence("none");
     setEditingId(null);
   };
 
@@ -193,6 +204,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     setManualPriority(r.priority);
     setManualProjectId(r.projectId != null ? String(r.projectId) : "none");
     setManualAssigneeId(r.assignedToUserId != null ? String(r.assignedToUserId) : "none");
+    setManualRecurrence(r.recurrence ?? "none");
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
@@ -206,11 +218,11 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     const assignedToUserId = manualAssigneeId === "none" ? null : parseInt(manualAssigneeId);
     if (editingId) {
       updateMut.mutate(
-        { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId, assignedToUserId } },
+        { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId, assignedToUserId, recurrence: manualRecurrence } },
         { onSuccess: () => { resetForm(); toast({ title: "Изменения сохранены" }); } },
       );
     } else {
-      createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId, assignedToUserId });
+      createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId, assignedToUserId, recurrence: manualRecurrence });
     }
   };
 
@@ -294,7 +306,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   };
 
   return (
-    <Dialog open={!!client} onOpenChange={(open) => { if (!open) { resetForm(); setResolvingId(null); setResolutionNote(""); onClose(); } }}>
+    <Dialog open={!!client} onOpenChange={(open) => { if (!open) { resetForm(); setResolvingId(null); setResolutionNote(""); setHistoryId(null); onClose(); } }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Напоминания — {client?.name}</DialogTitle>
@@ -325,6 +337,9 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                     <Badge variant="outline" data-testid={`badge-assignee-${r.id}`}>
                       {staff?.find((s) => s.id === r.assignedToUserId)?.username ?? "Сотрудник"}
                     </Badge>
+                  )}
+                  {r.recurrence && r.recurrence !== "none" && (
+                    <Badge variant="outline" data-testid={`badge-recurrence-${r.id}`}>{RECURRENCE_LABEL[r.recurrence] ?? r.recurrence}</Badge>
                   )}
                 </div>
                 <p className={r.status === "done" ? "line-through" : ""}>{r.text}</p>
@@ -357,6 +372,16 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                 ) : null}
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => setHistoryId(r.id)}
+                  aria-label="История изменений"
+                  data-testid={`button-history-reminder-${r.id}`}
+                >
+                  <History className="h-3.5 w-3.5" />
+                </Button>
                 {r.status === "pending" ? (
                   <>
                     <Button
@@ -509,6 +534,16 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                 </SelectContent>
               </Select>
             )}
+            <Select value={manualRecurrence} onValueChange={setManualRecurrence}>
+              <SelectTrigger data-testid="select-reminder-recurrence">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{RECURRENCE_LABEL.none}</SelectItem>
+                <SelectItem value="weekly">{RECURRENCE_LABEL.weekly}</SelectItem>
+                <SelectItem value="monthly">{RECURRENCE_LABEL.monthly}</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="flex gap-2">
               <Button
                 type="submit"
@@ -533,6 +568,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
           </form>
         </div>
       </DialogContent>
+      <ReminderHistoryDialog reminderId={historyId} onClose={() => setHistoryId(null)} />
     </Dialog>
   );
 }

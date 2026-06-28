@@ -4,7 +4,7 @@ import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
   estimateItemPhotos, galleryPhotos, dayComments, leads, workGroups, appSettings,
-  clientReminders,
+  clientReminders, reminderHistory,
 } from "@shared/schema";
 import type {
   Client, InsertClient,
@@ -23,7 +23,7 @@ import type {
   DayComment, InsertDayComment,
   Lead, InsertLead,
   WorkGroup, InsertWorkGroup,
-  ClientReminder, InsertClientReminder,
+  ClientReminder, InsertClientReminder, ReminderHistory,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -383,6 +383,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(clientReminders);
   }
 
+  async getClientReminderById(id: number): Promise<ClientReminder | undefined> {
+    const [row] = await db.select().from(clientReminders).where(eq(clientReminders.id, id));
+    return row;
+  }
+
   async createClientReminder(reminder: InsertClientReminder): Promise<ClientReminder> {
     const [row] = await db.insert(clientReminders).values(reminder).returning();
     return row;
@@ -396,6 +401,15 @@ export class DatabaseStorage implements IStorage {
   async deleteClientReminder(id: number): Promise<boolean> {
     const result = await db.delete(clientReminders).where(eq(clientReminders.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getReminderHistory(reminderId: number): Promise<ReminderHistory[]> {
+    return db.select().from(reminderHistory).where(eq(reminderHistory.reminderId, reminderId));
+  }
+
+  async addReminderHistory(entry: { reminderId: number; action: string; details?: string | null; userId?: number | null; createdAt: string }): Promise<ReminderHistory> {
+    const [row] = await db.insert(reminderHistory).values(entry).returning();
+    return row;
   }
 
   async getLeads(): Promise<Lead[]> {

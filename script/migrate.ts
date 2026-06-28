@@ -71,8 +71,21 @@ async function main() {
   await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS notified_at TEXT`);
   await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS project_id INTEGER`);
   await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS assigned_to_user_id INTEGER`);
+  await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS recurrence TEXT NOT NULL DEFAULT 'none'`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id TEXT`);
-  console.log("✓ колонки resolution_note/resolution_quality/notified_at/project_id/assigned_to_user_id готовы");
+  console.log("✓ колонки resolution_note/resolution_quality/notified_at/project_id/assigned_to_user_id/recurrence готовы");
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS reminder_history (
+      id SERIAL PRIMARY KEY,
+      reminder_id INTEGER NOT NULL,
+      action TEXT NOT NULL,
+      details TEXT,
+      user_id INTEGER,
+      created_at TEXT NOT NULL
+    )
+  `);
+  console.log("✓ таблица reminder_history готова");
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_settings (
