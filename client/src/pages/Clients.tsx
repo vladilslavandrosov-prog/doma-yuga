@@ -148,7 +148,10 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualText.trim()) return;
+    if (!manualText.trim()) {
+      toast({ title: "Введите текст напоминания", variant: "destructive" });
+      return;
+    }
     createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority });
   };
 
@@ -273,7 +276,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" size="sm" disabled={createMut.isPending} data-testid="button-add-reminder">
+            <Button type="submit" size="sm" disabled={createMut.isPending || !manualText.trim()} data-testid="button-add-reminder">
               {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Добавить"}
             </Button>
           </form>
