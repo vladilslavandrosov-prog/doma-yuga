@@ -294,7 +294,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   };
 
   return (
-    <Dialog open={!!client} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog open={!!client} onOpenChange={(open) => { if (!open) { resetForm(); setResolvingId(null); setResolutionNote(""); onClose(); } }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Напоминания — {client?.name}</DialogTitle>
