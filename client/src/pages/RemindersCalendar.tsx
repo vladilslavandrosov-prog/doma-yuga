@@ -42,6 +42,8 @@ export default function RemindersCalendar() {
 
   const { data: reminders, isLoading } = useQuery<ReminderWithClient[]>({
     queryKey: ["/api/admin/reminders"],
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   const byDate = new Map<string, ReminderWithClient[]>();

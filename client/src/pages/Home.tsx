@@ -108,9 +108,13 @@ function ReminderRow({ reminder }: { reminder: ReminderWithClient }) {
 export default function Home() {
   const { data: summary } = useQuery<DashboardSummary>({
     queryKey: ["/api/admin/dashboard-summary"],
+    refetchOnMount: "always",
+    staleTime: 0,
   });
   const { data: reminders } = useQuery<RemindersSummary>({
     queryKey: ["/api/admin/reminders-summary"],
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   return (

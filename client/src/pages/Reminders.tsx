@@ -59,6 +59,8 @@ export default function Reminders() {
 
   const { data: reminders, isLoading } = useQuery<ReminderWithClient[]>({
     queryKey: ["/api/admin/reminders"],
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   const updateMut = useMutation({

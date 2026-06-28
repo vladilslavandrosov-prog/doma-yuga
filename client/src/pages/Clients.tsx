@@ -154,6 +154,8 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   const { data: reminders } = useQuery<ClientReminder[]>({
     queryKey: ["/api/admin/clients", client?.id, "reminders"],
     enabled: !!client,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   const { data: staff } = useQuery<StaffMember[]>({
