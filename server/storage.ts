@@ -96,6 +96,7 @@ export interface IStorage {
   getClientReminderById(id: number): Promise<ClientReminder | undefined>;
   createClientReminder(reminder: InsertClientReminder): Promise<ClientReminder>;
   updateClientReminder(id: number, data: Partial<InsertClientReminder>): Promise<ClientReminder | undefined>;
+  resolveClientReminderIfPending(id: number, data: Partial<InsertClientReminder>): Promise<ClientReminder | undefined>;
   deleteClientReminder(id: number): Promise<boolean>;
   deleteClientRemindersByClientId(clientId: number): Promise<void>;
   nullifyReminderAssigneesByUserId(userId: number): Promise<void>;

@@ -581,14 +581,29 @@ export async function registerRoutes(
     if (filtered.dueDate !== undefined || filtered.text !== undefined || filtered.priority !== undefined || filtered.status === "pending") {
       filtered.notifiedAt = null;
     }
-    const before = await storage.getClientReminderById(parseInt(req.params.id as string));
-    const reminder = await storage.updateClientReminder(parseInt(req.params.id as string), filtered);
-    if (!reminder) {
+    const reminderId = parseInt(req.params.id as string);
+    const before = await storage.getClientReminderById(reminderId);
+    if (!before) {
       return res.status(404).json({ error: "Напоминание не найдено" });
+    }
+    let reminder: ClientReminder | undefined;
+    let isFreshResolve = false;
+    if (filtered.status === "done") {
+      reminder = await storage.resolveClientReminderIfPending(reminderId, filtered);
+      if (!reminder) {
+        // уже было закрыто параллельным запросом — отдаём текущее состояние, без повторных побочных эффектов
+        return res.json(before);
+      }
+      isFreshResolve = true;
+    } else {
+      reminder = await storage.updateClientReminder(reminderId, filtered);
+      if (!reminder) {
+        return res.status(404).json({ error: "Напоминание не найдено" });
+      }
     }
     const userId = req.session.userId ?? null;
     const now = new Date().toISOString();
-    if (filtered.status === "done" && before?.status !== "done") {
+    if (isFreshResolve) {
       await storage.addReminderHistory({
         reminderId: reminder.id,
         action: "resolved",

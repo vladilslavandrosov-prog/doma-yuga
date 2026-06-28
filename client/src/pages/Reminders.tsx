@@ -33,6 +33,9 @@ export default function Reminders() {
   const { toast } = useToast();
   const { isStaff } = useAuth();
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "done">("pending");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
@@ -127,7 +130,18 @@ export default function Reminders() {
     updateMut.mutate({ id, data: { dueDate: addDaysToToday(days) } });
   };
 
-  const filtered = (reminders ?? []).filter((r) => statusFilter === "all" || r.status === statusFilter);
+  const assigneeOptions = Array.from(
+    new Map((reminders ?? []).filter((r) => r.assignedToUserId != null).map((r) => [r.assignedToUserId as number, r.assignedToName ?? String(r.assignedToUserId)])).entries(),
+  );
+
+  const query = searchQuery.trim().toLowerCase();
+  const filtered = (reminders ?? []).filter((r) => {
+    if (statusFilter !== "all" && r.status !== statusFilter) return false;
+    if (priorityFilter !== "all" && r.priority !== priorityFilter) return false;
+    if (assigneeFilter !== "all" && String(r.assignedToUserId ?? "") !== assigneeFilter) return false;
+    if (query && !r.text.toLowerCase().includes(query) && !r.clientName.toLowerCase().includes(query)) return false;
+    return true;
+  });
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -155,6 +169,40 @@ export default function Reminders() {
             </Button>
           ))}
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Input
+          placeholder="Поиск по тексту или клиенту"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-xs"
+          data-testid="input-search-reminders"
+        />
+        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <SelectTrigger className="w-40" data-testid="select-filter-priority">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все приоритеты</SelectItem>
+            <SelectItem value="urgent">{PRIORITY_LABEL.urgent}</SelectItem>
+            <SelectItem value="normal">{PRIORITY_LABEL.normal}</SelectItem>
+            <SelectItem value="low">{PRIORITY_LABEL.low}</SelectItem>
+          </SelectContent>
+        </Select>
+        {!isStaff && assigneeOptions.length > 0 && (
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-44" data-testid="select-filter-assignee">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все исполнители</SelectItem>
+              {assigneeOptions.map(([id, name]) => (
+                <SelectItem key={id} value={String(id)}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Загрузка...</p>}

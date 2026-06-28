@@ -398,6 +398,15 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
+  async resolveClientReminderIfPending(id: number, data: Partial<InsertClientReminder>): Promise<ClientReminder | undefined> {
+    const [row] = await db
+      .update(clientReminders)
+      .set(data)
+      .where(and(eq(clientReminders.id, id), eq(clientReminders.status, "pending")))
+      .returning();
+    return row;
+  }
+
   async deleteClientReminder(id: number): Promise<boolean> {
     await db.delete(reminderHistory).where(eq(reminderHistory.reminderId, id));
     const result = await db.delete(clientReminders).where(eq(clientReminders.id, id)).returning();
