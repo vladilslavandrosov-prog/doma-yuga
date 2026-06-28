@@ -66,6 +66,10 @@ async function main() {
   `);
   console.log("✓ таблица client_reminders готова");
 
+  await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS resolution_note TEXT`);
+  await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS resolution_quality TEXT`);
+  console.log("✓ колонки resolution_note/resolution_quality готовы");
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_settings (
       key TEXT PRIMARY KEY,

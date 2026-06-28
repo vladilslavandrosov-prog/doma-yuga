@@ -423,10 +423,13 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/reminders/:id", requireAdmin, async (req, res) => {
-    const allowed = ["text", "dueDate", "priority", "status"];
+    const allowed = ["text", "dueDate", "priority", "status", "resolutionNote", "resolutionQuality"];
     const filtered: Record<string, any> = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) filtered[key] = req.body[key];
+    }
+    if (filtered.resolutionQuality !== undefined && filtered.resolutionQuality !== null && !["good", "bad"].includes(filtered.resolutionQuality)) {
+      return res.status(400).json({ error: "Недопустимое значение resolutionQuality" });
     }
     const reminder = await storage.updateClientReminder(parseInt(req.params.id as string), filtered);
     if (!reminder) {

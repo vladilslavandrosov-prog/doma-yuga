@@ -218,6 +218,8 @@ export const clientReminders = pgTable("client_reminders", {
   priority: text("priority").notNull().default("normal"),
   status: text("status").notNull().default("pending"),
   createdAt: text("created_at").notNull(),
+  resolutionNote: text("resolution_note"),
+  resolutionQuality: text("resolution_quality"),
 });
 
 export const insertClientReminderSchema = createInsertSchema(clientReminders).omit({ id: true });

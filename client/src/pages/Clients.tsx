@@ -96,6 +96,9 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const handledResultRef = useRef(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [resolvingId, setResolvingId] = useState<number | null>(null);
+  const [resolutionNote, setResolutionNote] = useState("");
 
   const SpeechRecognitionCtor =
     typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
@@ -136,17 +139,39 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/clients", client?.id, "reminders"] });
     },
+    onError: () => {
+      toast({ title: "Ошибка", description: "Не удалось обновить напоминание", variant: "destructive" });
+    },
   });
 
   const deleteMut = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiRequest("DELETE", `/api/admin/reminders/${id}`);
       if (!res.ok) throw new Error("Ошибка удаления");
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id: number) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/clients", client?.id, "reminders"] });
+      if (editingId === id) resetForm();
+      if (resolvingId === id) { setResolvingId(null); setResolutionNote(""); }
     },
   });
+
+  const resetForm = () => {
+    setManualText("");
+    setManualDueDate("");
+    setManualPriority("normal");
+    setEditingId(null);
+  };
+
+  const startEdit = (r: ClientReminder) => {
+    setResolvingId(null);
+    setResolutionNote("");
+    setEditingId(r.id);
+    setManualText(r.text);
+    setManualDueDate(r.dueDate ?? "");
+    setManualPriority(r.priority);
+  };
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,7 +179,21 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
       toast({ title: "Введите текст напоминания", variant: "destructive" });
       return;
     }
-    createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority });
+    if (editingId) {
+      updateMut.mutate(
+        { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority } },
+        { onSuccess: () => resetForm() },
+      );
+    } else {
+      createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority });
+    }
+  };
+
+  const confirmResolve = (id: number, quality: "good" | "bad") => {
+    updateMut.mutate(
+      { id, data: { status: "done", resolutionNote: resolutionNote.trim() || null, resolutionQuality: quality } },
+      { onSuccess: () => { setResolvingId(null); setResolutionNote(""); } },
+    );
   };
 
   const handleTranscript = (transcript: string) => {
@@ -231,19 +270,41 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                   {r.dueDate && <span className="text-muted-foreground text-xs">до {formatDate(r.dueDate)}</span>}
                 </div>
                 <p className={r.status === "done" ? "line-through" : ""}>{r.text}</p>
+                {r.status === "done" && r.resolutionNote ? (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    {r.resolutionQuality === "good" ? (
+                      <Badge className="bg-green-100 text-green-700">Хорошо</Badge>
+                    ) : r.resolutionQuality === "bad" ? (
+                      <Badge className="bg-red-100 text-red-700">Плохо</Badge>
+                    ) : null}
+                    {r.resolutionNote}
+                  </p>
+                ) : null}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {r.status === "pending" ? (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    onClick={() => updateMut.mutate({ id: r.id, data: { status: "done" } })}
-                    aria-label="Отметить выполненным"
-                    data-testid={`button-done-reminder-${r.id}`}
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </Button>
+                  <>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => startEdit(r)}
+                      aria-label="Изменить напоминание"
+                      data-testid={`button-edit-reminder-${r.id}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => { resetForm(); setResolvingId(r.id); setResolutionNote(""); }}
+                      aria-label="Отметить выполненным"
+                      data-testid={`button-done-reminder-${r.id}`}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
                 ) : null}
                 <Button
                   size="icon"
@@ -258,6 +319,45 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
               </div>
             </div>
           ))}
+          {sortedReminders.map((r) =>
+            resolvingId === r.id ? (
+              <div key={`resolve-${r.id}`} className="rounded-md border p-2 space-y-2 bg-muted/30">
+                <p className="text-xs text-muted-foreground">Как прошло: «{r.text}»?</p>
+                <Textarea
+                  value={resolutionNote}
+                  onChange={(e) => setResolutionNote(e.target.value)}
+                  placeholder="Комментарий по результату (необязательно)"
+                  data-testid={`input-resolution-note-${r.id}`}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => confirmResolve(r.id, "good")}
+                    data-testid={`button-resolve-good-${r.id}`}
+                  >
+                    Хорошо
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => confirmResolve(r.id, "bad")}
+                    data-testid={`button-resolve-bad-${r.id}`}
+                  >
+                    Плохо
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setResolvingId(null); setResolutionNote(""); }}
+                    data-testid={`button-resolve-cancel-${r.id}`}
+                  >
+                    Отмена
+                  </Button>
+                </div>
+              </div>
+            ) : null
+          )}
         </div>
 
         <div className="border-t pt-3 space-y-3">
@@ -299,9 +399,27 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" size="sm" disabled={createMut.isPending || !manualText.trim()} data-testid="button-add-reminder">
-              {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Добавить"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={(editingId ? updateMut.isPending : createMut.isPending) || !manualText.trim()}
+                data-testid="button-add-reminder"
+              >
+                {(editingId ? updateMut.isPending : createMut.isPending) ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : editingId ? (
+                  "Сохранить изменения"
+                ) : (
+                  "Добавить"
+                )}
+              </Button>
+              {editingId ? (
+                <Button type="button" size="sm" variant="ghost" onClick={resetForm} data-testid="button-cancel-edit-reminder">
+                  Отмена
+                </Button>
+              ) : null}
+            </div>
           </form>
         </div>
       </DialogContent>
