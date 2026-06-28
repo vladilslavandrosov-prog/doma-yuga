@@ -945,7 +945,7 @@ export default function Clients() {
         </DialogContent>
       </Dialog>
 
-      <ReminderDialog client={remindersClient} onClose={() => setRemindersClient(null)} />
+      <ReminderDialog key={remindersClient?.id ?? "none"} client={remindersClient} onClose={() => setRemindersClient(null)} />
     </div>
   );
 }
