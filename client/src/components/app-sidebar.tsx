@@ -199,114 +199,135 @@ export function AppSidebar() {
         )}
 
         {inAdminPanel && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Панель администратора</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === "/cabinet/home"}
-                    tooltip="Главная"
-                    data-testid="link-nav-home"
-                  >
-                    <Link href="/cabinet/home" onClick={closeMobile}>
-                      <Flame />
-                      <span>Главная</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === "/cabinet"}
-                    tooltip="Объекты"
-                    data-testid="link-nav-projects"
-                  >
-                    <Link href="/cabinet" onClick={closeMobile}>
-                      <FolderKanban />
-                      <span>Объекты</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === "/cabinet/clients"}
-                    tooltip="Клиенты"
-                    data-testid="link-nav-clients"
-                  >
-                    <Link href="/cabinet/clients" onClick={closeMobile}>
-                      <Users />
-                      <span>Клиенты</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === "/cabinet/reminders"}
-                    tooltip="Напоминания"
-                    data-testid="link-nav-reminders"
-                  >
-                    <Link href="/cabinet/reminders" onClick={closeMobile}>
-                      <Bell />
-                      <span>Напоминания</span>
-                    </Link>
-                  </SidebarMenuButton>
-                  {burningRemindersCount > 0 && (
-                    <SidebarMenuBadge data-testid="badge-burning-reminders">
-                      {burningRemindersCount}
-                    </SidebarMenuBadge>
-                  )}
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === "/cabinet/leads"}
-                    tooltip="Заявки"
-                    data-testid="link-nav-leads"
-                  >
-                    <Link href="/cabinet/leads" onClick={closeMobile}>
-                      <Inbox />
-                      <span>Заявки</span>
-                    </Link>
-                  </SidebarMenuButton>
-                  {newLeadsCount > 0 && (
-                    <SidebarMenuBadge data-testid="badge-new-leads">
-                      {newLeadsCount}
-                    </SidebarMenuBadge>
-                  )}
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === "/cabinet/work-groups"}
-                    tooltip="Группы работ"
-                    data-testid="link-nav-work-groups"
-                  >
-                    <Link href="/cabinet/work-groups" onClick={closeMobile}>
-                      <ListTree />
-                      <span>Группы работ</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === "/cabinet/settings"}
-                    tooltip="Настройки"
-                    data-testid="link-nav-settings"
-                  >
-                    <Link href="/cabinet/settings" onClick={closeMobile}>
-                      <Settings />
-                      <span>Настройки</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Панель администратора</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location === "/cabinet/home"}
+                      tooltip="Главная"
+                      data-testid="link-nav-home"
+                    >
+                      <Link href="/cabinet/home" onClick={closeMobile}>
+                        <Flame />
+                        <span>Главная</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Управление</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location === "/cabinet"}
+                      tooltip="Объекты"
+                      data-testid="link-nav-projects"
+                    >
+                      <Link href="/cabinet" onClick={closeMobile}>
+                        <FolderKanban />
+                        <span>Объекты</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location === "/cabinet/clients"}
+                      tooltip="Клиенты"
+                      data-testid="link-nav-clients"
+                    >
+                      <Link href="/cabinet/clients" onClick={closeMobile}>
+                        <Users />
+                        <span>Клиенты</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location === "/cabinet/reminders"}
+                      tooltip="Напоминания"
+                      data-testid="link-nav-reminders"
+                    >
+                      <Link href="/cabinet/reminders" onClick={closeMobile}>
+                        <Bell />
+                        <span>Напоминания</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    {burningRemindersCount > 0 && (
+                      <SidebarMenuBadge data-testid="badge-burning-reminders">
+                        {burningRemindersCount}
+                      </SidebarMenuBadge>
+                    )}
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location === "/cabinet/leads"}
+                      tooltip="Заявки"
+                      data-testid="link-nav-leads"
+                    >
+                      <Link href="/cabinet/leads" onClick={closeMobile}>
+                        <Inbox />
+                        <span>Заявки</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    {newLeadsCount > 0 && (
+                      <SidebarMenuBadge data-testid="badge-new-leads">
+                        {newLeadsCount}
+                      </SidebarMenuBadge>
+                    )}
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location === "/cabinet/work-groups"}
+                      tooltip="Группы работ"
+                      data-testid="link-nav-work-groups"
+                    >
+                      <Link href="/cabinet/work-groups" onClick={closeMobile}>
+                        <ListTree />
+                        <span>Группы работ</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location === "/cabinet/settings"}
+                      tooltip="Настройки"
+                      data-testid="link-nav-settings"
+                    >
+                      <Link href="/cabinet/settings" onClick={closeMobile}>
+                        <Settings />
+                        <span>Настройки</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         )}
 
         {showProjectNav && (
