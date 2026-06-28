@@ -22,7 +22,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
-import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil, Trash2, HelpCircle, Bell, Mic, MicOff, Check, X } from "lucide-react";
+import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil, Trash2, HelpCircle, Bell, Mic, MicOff, Check, X, Flame } from "lucide-react";
 import type { Project, ClientReminder } from "@shared/schema";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
 import { formatDate } from "@/lib/format";
@@ -314,6 +314,12 @@ export default function Clients() {
     queryKey: ["/api/admin/clients"],
   });
 
+  const { data: remindersSummary } = useQuery<{ burning: { clientId: number }[]; upcoming: { clientId: number }[] }>({
+    queryKey: ["/api/admin/reminders-summary"],
+    refetchInterval: 30000,
+  });
+  const burningClientIds = new Set((remindersSummary?.burning ?? []).map((r) => r.clientId));
+
   const { data: projects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
@@ -455,12 +461,15 @@ export default function Clients() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="grid-clients">
           {clients.map((client) => (
-            <Card key={client.id} data-testid={`card-client-${client.id}`}>
+            <Card key={client.id} data-testid={`card-client-${client.id}`} className={burningClientIds.has(client.id) ? "border-destructive/50" : undefined}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     {client.name}
+                    {burningClientIds.has(client.id) && (
+                      <Flame className="h-4 w-4 text-destructive" data-testid={`icon-burning-client-${client.id}`} />
+                    )}
                   </span>
                   <div className="flex items-center gap-2">
                     {client.hasAccount ? (

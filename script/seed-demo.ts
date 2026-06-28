@@ -41,7 +41,7 @@ const WORK_ITEMS = [
   { name: "Монтаж кровли", unit: "м2", quantity: "180", unitPrice: "1800", status: "planned", workGroup: "Кровля" },
 ];
 
-async function upsertClient(c: DemoClient) {
+async function upsertClient(c: DemoClient): Promise<number> {
   const existingClient = await pool.query("SELECT id FROM clients WHERE uid = $1", [`demo-${c.username}`]);
   let clientId: number;
   if (existingClient.rows.length > 0) {
@@ -82,7 +82,7 @@ async function upsertClient(c: DemoClient) {
     } else {
       console.log(`= объект «${c.projectName}» уже существует (id ${projectId})`);
     }
-    return;
+    return clientId;
   }
   const insertedProject = await pool.query(
     "INSERT INTO projects (name, address, start_date, status, client_id) VALUES ($1, $2, $3, 'active', $4) RETURNING id",
@@ -110,15 +110,47 @@ async function upsertClient(c: DemoClient) {
     );
   }
   console.log(`✓ добавлено ${WORK_ITEMS.length} позиций сметы для «${c.projectName}»`);
+  return clientId;
+}
+
+async function seedMockReminders(clientIds: number[]) {
+  const flag = await pool.query("SELECT value FROM app_settings WHERE key = $1", ["demo_reminders_seeded"]);
+  if (flag.rows.length > 0) {
+    console.log("= мок-напоминания уже были созданы ранее, пропускаю");
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const mockReminders = [
+    { clientId: clientIds[0], text: "Срочно позвонить — уточнить дату следующей оплаты", dueDate: today, priority: "urgent" },
+    { clientId: clientIds[1], text: "Согласовать допработы по фундаменту", dueDate: today, priority: "urgent" },
+  ];
+
+  for (const r of mockReminders) {
+    if (!r.clientId) continue;
+    await pool.query(
+      "INSERT INTO client_reminders (client_id, text, due_date, priority, status, created_at) VALUES ($1, $2, $3, $4, 'pending', $5)",
+      [r.clientId, r.text, r.dueDate, r.priority, new Date().toISOString()],
+    );
+  }
+  console.log(`✓ создано ${mockReminders.length} мок-напоминаний (горящие)`);
+
+  await pool.query(
+    "INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+    ["demo_reminders_seeded", "true"],
+  );
 }
 
 async function main() {
   await pool.query("SELECT 1");
   console.log("✓ соединение с БД установлено");
 
+  const clientIds: number[] = [];
   for (const client of DEMO_CLIENTS) {
-    await upsertClient(client);
+    clientIds.push(await upsertClient(client));
   }
+
+  await seedMockReminders(clientIds);
 
   await pool.end();
   console.log("✓ демо-данные готовы");

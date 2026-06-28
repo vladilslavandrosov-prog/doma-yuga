@@ -1443,6 +1443,26 @@ export async function registerRoutes(
     res.json({ activeCount, overdueCount, overdueTotal, completedCount, totalCount: projects.length });
   });
 
+  app.get("/api/admin/projects-debt", requireAdmin, async (_req, res) => {
+    const projects = await storage.getAllProjects();
+    const debtByProjectId: Record<number, number> = {};
+
+    for (const project of projects) {
+      if (project.status !== "active") continue;
+      const estimates = await storage.getEstimatesByProjectId(project.id);
+      const items = await storage.getEstimateItemsByEstimateIds(estimates.map((e) => e.id));
+      const totalEstimateSum = items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
+      const payments = await storage.getPaymentsByProjectId(project.id);
+      const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const remaining = totalEstimateSum - totalPaid;
+      if (remaining > 0) {
+        debtByProjectId[project.id] = remaining;
+      }
+    }
+
+    res.json(debtByProjectId);
+  });
+
   app.get("/api/admin/reminders-summary", requireAdmin, async (_req, res) => {
     const reminders = await storage.getAllClientReminders();
     const clients = await storage.getAllClients();

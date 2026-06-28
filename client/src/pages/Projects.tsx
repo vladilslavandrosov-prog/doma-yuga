@@ -51,13 +51,13 @@ function getStatusBadge(status: string) {
   }
 }
 
-function ProjectCard({ project, isAdmin, onEdit, onDelete, onShowQr }: { project: Project; isAdmin: boolean; onEdit: (p: Project) => void; onDelete: (p: Project) => void; onShowQr: (p: Project) => void }) {
+function ProjectCard({ project, isAdmin, hasDebt, onEdit, onDelete, onShowQr }: { project: Project; isAdmin: boolean; hasDebt: boolean; onEdit: (p: Project) => void; onDelete: (p: Project) => void; onShowQr: (p: Project) => void }) {
   const { data: client } = useQuery<Client>({
     queryKey: ["/api/project", project.id, "client"],
   });
 
   return (
-    <Card className="hover-elevate h-full relative" data-testid={`card-project-${project.id}`}>
+    <Card className={`hover-elevate h-full relative ${hasDebt ? "border-destructive/50" : ""}`} data-testid={`card-project-${project.id}`}>
       {isAdmin && (
         <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
           <button
@@ -89,7 +89,10 @@ function ProjectCard({ project, isAdmin, onEdit, onDelete, onShowQr }: { project
             <CardTitle className="text-base font-medium truncate min-w-0" data-testid={`text-project-name-${project.id}`}>
               {project.name}
             </CardTitle>
-            <div className="shrink-0">{getStatusBadge(project.status)}</div>
+            <div className="shrink-0 flex items-center gap-1">
+              {hasDebt && <AlertTriangle className="w-4 h-4 text-destructive" data-testid={`icon-debt-${project.id}`} />}
+              {getStatusBadge(project.status)}
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -257,6 +260,11 @@ export default function Projects() {
 
   const { data: clients } = useQuery<Client[]>({
     queryKey: ["/api/admin/clients"],
+    enabled: isAdmin,
+  });
+
+  const { data: debtByProjectId } = useQuery<Record<number, number>>({
+    queryKey: ["/api/admin/projects-debt"],
     enabled: isAdmin,
   });
 
@@ -470,7 +478,7 @@ export default function Projects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-projects">
           {sortedAndFiltered.map((project) => (
-            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} onShowQr={setQrProject} />
+            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} hasDebt={!!debtByProjectId?.[project.id]} onEdit={openEdit} onDelete={handleDelete} onShowQr={setQrProject} />
           ))}
         </div>
       )}
