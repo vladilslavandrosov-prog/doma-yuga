@@ -147,6 +147,9 @@ export default function PublicGallery() {
       toast({ title: "Фото удалено" });
       setLightboxOpen(false);
     },
+    onError: (e: any) => {
+      toast({ title: "Не удалось удалить фото", description: e?.message, variant: "destructive" });
+    },
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
