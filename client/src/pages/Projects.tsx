@@ -25,7 +25,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
-import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter, HelpCircle } from "lucide-react";
+import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter, HelpCircle, AlertTriangle, Wallet, Building2 } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
 
 const PROJECTS_TOUR_STEPS: TourStep[] = [
@@ -104,6 +105,54 @@ function ProjectCard({ project, isAdmin, onEdit, onDelete }: { project: Project;
         </div>
       </Link>
     </Card>
+  );
+}
+
+interface DashboardSummary {
+  activeCount: number;
+  overdueCount: number;
+  overdueTotal: number;
+  completedCount: number;
+  totalCount: number;
+}
+
+function AdminDashboardSummary() {
+  const { data } = useQuery<DashboardSummary>({
+    queryKey: ["/api/admin/dashboard-summary"],
+  });
+
+  if (!data) return null;
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-testid="grid-dashboard-summary">
+      <Card>
+        <CardContent className="p-4 flex items-center gap-3">
+          <Building2 className="w-8 h-8 text-primary" />
+          <div>
+            <div className="text-2xl font-semibold" data-testid="text-summary-active-count">{data.activeCount}</div>
+            <div className="text-sm text-muted-foreground">Активных объектов</div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className={data.overdueCount > 0 ? "border-destructive/50" : undefined}>
+        <CardContent className="p-4 flex items-center gap-3">
+          <AlertTriangle className={`w-8 h-8 ${data.overdueCount > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+          <div>
+            <div className="text-2xl font-semibold" data-testid="text-summary-overdue-count">{data.overdueCount}</div>
+            <div className="text-sm text-muted-foreground">С долгом по оплате</div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="p-4 flex items-center gap-3">
+          <Wallet className="w-8 h-8 text-primary" />
+          <div>
+            <div className="text-2xl font-semibold" data-testid="text-summary-overdue-total">{formatCurrency(data.overdueTotal)}</div>
+            <div className="text-sm text-muted-foreground">Общий долг по объектам</div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -327,6 +376,7 @@ export default function Projects() {
         </div>
       </div>
       {isAdmin && <OnboardingTour steps={PROJECTS_TOUR_STEPS} storageKey="tour-admin-projects-v1" />}
+      {isAdmin && <AdminDashboardSummary />}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">

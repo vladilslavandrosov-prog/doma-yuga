@@ -1342,6 +1342,33 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/dashboard-summary", requireAdmin, async (_req, res) => {
+    const projects = await storage.getAllProjects();
+    let activeCount = 0;
+    let overdueCount = 0;
+    let overdueTotal = 0;
+    let completedCount = 0;
+
+    for (const project of projects) {
+      if (project.status === "completed") completedCount++;
+      if (project.status !== "active") continue;
+      activeCount++;
+
+      const estimates = await storage.getEstimatesByProjectId(project.id);
+      const items = await storage.getEstimateItemsByEstimateIds(estimates.map((e) => e.id));
+      const totalEstimateSum = items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
+      const payments = await storage.getPaymentsByProjectId(project.id);
+      const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const remaining = totalEstimateSum - totalPaid;
+      if (remaining > 0) {
+        overdueCount++;
+        overdueTotal += remaining;
+      }
+    }
+
+    res.json({ activeCount, overdueCount, overdueTotal, completedCount, totalCount: projects.length });
+  });
+
   app.get("/api/admin/settings/faq-telegram-notifications", requireAdmin, async (_req, res) => {
     const value = await storage.getSetting("faqTelegramNotificationsEnabled");
     res.json({ enabled: value !== "false" });
