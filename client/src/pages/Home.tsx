@@ -18,6 +18,7 @@ interface DashboardSummary {
 
 interface ReminderWithClient extends ClientReminder {
   clientName: string;
+  projectName: string | null;
 }
 
 interface RemindersSummary {
@@ -71,6 +72,7 @@ function ReminderRow({ reminder }: { reminder: ReminderWithClient }) {
             {reminder.clientName}
           </span>
           {reminder.dueDate && <span className="text-muted-foreground text-xs">до {formatDate(reminder.dueDate)}</span>}
+          {reminder.projectName && <span className="text-muted-foreground text-xs">{reminder.projectName}</span>}
         </div>
         <p className="truncate">{reminder.text}</p>
         <div className="flex items-center gap-1 pt-1">

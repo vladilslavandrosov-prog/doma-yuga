@@ -83,6 +83,39 @@ export async function checkDueReminders(): Promise<void> {
   }
 }
 
+// Раз в сутки шлёт сводный дайджест по горящим и скоро наступающим напоминаниям
+export async function sendDailyReminderDigest(): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  const lastSent = await storage.getSetting("reminders_digest_last_sent_date");
+  if (lastSent === today) return;
+
+  const { sendTelegramText } = await import("./telegram");
+  const reminders = await storage.getAllClientReminders();
+  const weekAhead = new Date();
+  weekAhead.setDate(weekAhead.getDate() + 7);
+  const weekAheadStr = weekAhead.toISOString().slice(0, 10);
+
+  const pending = reminders.filter((r) => r.status === "pending");
+  const burning = pending.filter((r) => r.dueDate && r.dueDate <= today);
+  const upcoming = pending.filter((r) => r.dueDate && r.dueDate > today && r.dueDate <= weekAheadStr);
+
+  if (burning.length === 0 && upcoming.length === 0) {
+    await storage.setSetting("reminders_digest_last_sent_date", today);
+    return;
+  }
+
+  const lines = [`🔔 Ежедневная сводка по напоминаниям`, ``, `🔥 Горящих: ${burning.length}`, `📅 На неделю: ${upcoming.length}`];
+  if (burning.length > 0) {
+    lines.push(``, `Горящие:`);
+    for (const r of burning.slice(0, 10)) {
+      const client = await storage.getClientById(r.clientId);
+      lines.push(`• ${client?.name ?? "?"}: ${r.text}`);
+    }
+  }
+  await sendTelegramText(lines.join("\n"));
+  await storage.setSetting("reminders_digest_last_sent_date", today);
+}
+
 // Возвращает путь к подпапке, создаёт если нет
 function subDir(...parts: string[]): string {
   const dir = path.join(uploadsDir, ...parts);
@@ -421,11 +454,19 @@ export async function registerRoutes(
       return res.status(400).json({ error: parsed.error.message });
     }
     const reminder = await storage.createClientReminder(parsed.data);
+    if (reminder.priority === "urgent") {
+      const { notifyClientReminderDue } = await import("./telegram");
+      const client = await storage.getClientById(clientId);
+      if (client) {
+        await notifyClientReminderDue(client.name, reminder.text, reminder.priority);
+        await storage.updateClientReminder(reminder.id, { notifiedAt: new Date().toISOString() });
+      }
+    }
     res.json(reminder);
   });
 
   app.patch("/api/admin/reminders/:id", requireAdmin, async (req, res) => {
-    const allowed = ["text", "dueDate", "priority", "status", "resolutionNote", "resolutionQuality"];
+    const allowed = ["text", "dueDate", "priority", "status", "resolutionNote", "resolutionQuality", "projectId"];
     const filtered: Record<string, any> = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) filtered[key] = req.body[key];
@@ -1475,6 +1516,8 @@ export async function registerRoutes(
     const reminders = await storage.getAllClientReminders();
     const clients = await storage.getAllClients();
     const clientById = new Map(clients.map((c) => [c.id, c]));
+    const projects = await storage.getAllProjects();
+    const projectById = new Map(projects.map((p) => [p.id, p]));
     const today = new Date().toISOString().slice(0, 10);
     const in7Days = new Date();
     in7Days.setDate(in7Days.getDate() + 7);
@@ -1483,11 +1526,11 @@ export async function registerRoutes(
     const pending = reminders.filter((r) => r.status === "pending");
     const burning = pending
       .filter((r) => r.priority === "urgent" || (r.dueDate && r.dueDate <= today))
-      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—" }))
+      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—", projectName: r.projectId != null ? projectById.get(r.projectId)?.name ?? null : null }))
       .sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"));
     const upcoming = pending
       .filter((r) => !burning.some((b) => b.id === r.id) && r.dueDate && r.dueDate > today && r.dueDate <= in7DaysStr)
-      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—" }))
+      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—", projectName: r.projectId != null ? projectById.get(r.projectId)?.name ?? null : null }))
       .sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"));
 
     res.json({ burning, upcoming });
@@ -1497,8 +1540,10 @@ export async function registerRoutes(
     const reminders = await storage.getAllClientReminders();
     const clients = await storage.getAllClients();
     const clientById = new Map(clients.map((c) => [c.id, c]));
+    const projects = await storage.getAllProjects();
+    const projectById = new Map(projects.map((p) => [p.id, p]));
     const result = reminders
-      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—" }))
+      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—", projectName: r.projectId != null ? projectById.get(r.projectId)?.name ?? null : null }))
       .sort((a, b) => {
         if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
         return (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");

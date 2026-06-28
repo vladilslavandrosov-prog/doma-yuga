@@ -93,6 +93,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   const [manualText, setManualText] = useState("");
   const [manualDueDate, setManualDueDate] = useState("");
   const [manualPriority, setManualPriority] = useState("normal");
+  const [manualProjectId, setManualProjectId] = useState<string>("none");
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const handledResultRef = useRef(false);
@@ -115,7 +116,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   });
 
   const createMut = useMutation({
-    mutationFn: async (data: { text: string; dueDate: string | null; priority: string }) => {
+    mutationFn: async (data: { text: string; dueDate: string | null; priority: string; projectId?: number | null }) => {
       const res = await apiRequest("POST", `/api/admin/clients/${client!.id}/reminders`, data);
       if (!res.ok) throw new Error("Ошибка создания напоминания");
       return res.json();
@@ -125,6 +126,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
       setManualText("");
       setManualDueDate("");
       setManualPriority("normal");
+      setManualProjectId("none");
     },
     onError: () => {
       toast({ title: "Ошибка", description: "Не удалось сохранить напоминание", variant: "destructive" });
@@ -162,6 +164,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     setManualText("");
     setManualDueDate("");
     setManualPriority("normal");
+    setManualProjectId("none");
     setEditingId(null);
   };
 
@@ -172,6 +175,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     setManualText(r.text);
     setManualDueDate(r.dueDate ?? "");
     setManualPriority(r.priority);
+    setManualProjectId(r.projectId != null ? String(r.projectId) : "none");
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -180,13 +184,14 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
       toast({ title: "Введите текст напоминания", variant: "destructive" });
       return;
     }
+    const projectId = manualProjectId === "none" ? null : parseInt(manualProjectId);
     if (editingId) {
       updateMut.mutate(
-        { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority } },
+        { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId } },
         { onSuccess: () => resetForm() },
       );
     } else {
-      createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority });
+      createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId });
     }
   };
 
@@ -292,6 +297,11 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                     {PRIORITY_LABEL[r.priority] ?? r.priority}
                   </Badge>
                   {r.dueDate && <span className="text-muted-foreground text-xs">до {formatDate(r.dueDate)}</span>}
+                  {r.projectId != null && (
+                    <span className="text-muted-foreground text-xs">
+                      {client?.projects.find((p) => p.id === r.projectId)?.name ?? "Объект"}
+                    </span>
+                  )}
                 </div>
                 <p className={r.status === "done" ? "line-through" : ""}>{r.text}</p>
                 {r.status === "pending" ? (
@@ -440,6 +450,19 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                 </SelectContent>
               </Select>
             </div>
+            {client && client.projects.length > 0 && (
+              <Select value={manualProjectId} onValueChange={setManualProjectId}>
+                <SelectTrigger data-testid="select-reminder-project">
+                  <SelectValue placeholder="Привязать к объекту" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Без объекта</SelectItem>
+                  {client.projects.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <div className="flex gap-2">
               <Button
                 type="submit"

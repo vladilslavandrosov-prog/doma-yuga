@@ -69,7 +69,8 @@ async function main() {
   await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS resolution_note TEXT`);
   await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS resolution_quality TEXT`);
   await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS notified_at TEXT`);
-  console.log("✓ колонки resolution_note/resolution_quality/notified_at готовы");
+  await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS project_id INTEGER`);
+  console.log("✓ колонки resolution_note/resolution_quality/notified_at/project_id готовы");
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_settings (

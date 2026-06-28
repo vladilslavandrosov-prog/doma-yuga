@@ -213,6 +213,7 @@ export type WorkGroup = typeof workGroups.$inferSelect;
 export const clientReminders = pgTable("client_reminders", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull(),
+  projectId: integer("project_id"),
   text: text("text").notNull(),
   dueDate: text("due_date"),
   priority: text("priority").notNull().default("normal"),
