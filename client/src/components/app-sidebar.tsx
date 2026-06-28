@@ -86,6 +86,7 @@ export function AppSidebar() {
   const inAdminPanel = isAdmin && inCabinet && !inProject && adminPages.includes(location);
 
   const isClient = !!user && user.role === "client";
+  const isStaff = !!user && user.role === "staff";
   const { data: clientProjects } = useQuery<{ id: number }[]>({
     queryKey: ["/api/client-projects"],
     enabled: isClient && inCabinet,
@@ -96,7 +97,7 @@ export function AppSidebar() {
     : 1;
   const activeProjectId = inProject
     ? projectIdFromUrl
-    : (!isAdmin && inCabinet && !hasMultipleProjects ? singleClientProjectId : null);
+    : (!isAdmin && !isStaff && inCabinet && !hasMultipleProjects ? singleClientProjectId : null);
   const basePath = inProject ? `/cabinet/project/${projectIdFromUrl}` : "/cabinet";
   const projectItems = activeProjectId !== null ? getProjectItems(basePath) : [];
   const clientOnProjectsList = isClient && hasMultipleProjects && !inProject && location === "/cabinet";
@@ -433,7 +434,7 @@ export function AppSidebar() {
                 {user.username}
               </span>
               <Badge variant="secondary" data-testid="badge-user-role">
-                {isAdmin ? "Администратор" : "Клиент"}
+                {isAdmin ? "Администратор" : isStaff ? "Сотрудник" : "Клиент"}
               </Badge>
             </div>
             <div className="flex items-center gap-1">
