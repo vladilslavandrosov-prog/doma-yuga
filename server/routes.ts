@@ -1326,8 +1326,11 @@ export async function registerRoutes(
     }
     const userMessages = history.filter((m) => m.role === "user");
     if (userMessages.length === 1) {
-      const { sendTelegramText } = await import("./telegram");
-      sendTelegramText(`🤖 Вопрос в FAQ-чате на сайте\n\n${userMessages[0].content}`).catch(() => {});
+      const notificationsEnabled = await storage.getSetting("faqTelegramNotificationsEnabled");
+      if (notificationsEnabled !== "false") {
+        const { sendTelegramText } = await import("./telegram");
+        sendTelegramText(`🤖 Вопрос в FAQ-чате на сайте\n\n${userMessages[0].content}`).catch(() => {});
+      }
     }
     try {
       const { askFaqBot } = await import("./faqBot");
@@ -1337,6 +1340,20 @@ export async function registerRoutes(
       console.error("faq-chat error:", err);
       res.status(503).json({ error: "Бот временно недоступен. Оставьте заявку, и менеджер ответит вам." });
     }
+  });
+
+  app.get("/api/admin/settings/faq-telegram-notifications", requireAdmin, async (_req, res) => {
+    const value = await storage.getSetting("faqTelegramNotificationsEnabled");
+    res.json({ enabled: value !== "false" });
+  });
+
+  app.put("/api/admin/settings/faq-telegram-notifications", requireAdmin, async (req, res) => {
+    const { enabled } = req.body;
+    if (typeof enabled !== "boolean") {
+      return res.status(400).json({ error: "enabled must be a boolean" });
+    }
+    await storage.setSetting("faqTelegramNotificationsEnabled", enabled ? "true" : "false");
+    res.json({ enabled });
   });
 
   app.get("/api/admin/leads", requireAdmin, async (_req, res) => {

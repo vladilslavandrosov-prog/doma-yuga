@@ -96,6 +96,8 @@ export interface IStorage {
   createWorkGroup(group: InsertWorkGroup): Promise<WorkGroup>;
   updateWorkGroup(id: number, group: InsertWorkGroup): Promise<WorkGroup | undefined>;
   deleteWorkGroup(id: number): Promise<boolean>;
+  getSetting(key: string): Promise<string | undefined>;
+  setSetting(key: string, value: string): Promise<void>;
 }
 
 import { DatabaseStorage } from "./dbStorage";

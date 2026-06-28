@@ -3,7 +3,7 @@ import { db } from "./db";
 import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
-  estimateItemPhotos, galleryPhotos, dayComments, leads, workGroups,
+  estimateItemPhotos, galleryPhotos, dayComments, leads, workGroups, appSettings,
 } from "@shared/schema";
 import type {
   Client, InsertClient,
@@ -402,6 +402,18 @@ export class DatabaseStorage implements IStorage {
   async deleteWorkGroup(id: number): Promise<boolean> {
     const result = await db.delete(workGroups).where(eq(workGroups.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getSetting(key: string): Promise<string | undefined> {
+    const [row] = await db.select().from(appSettings).where(eq(appSettings.key, key));
+    return row?.value;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    await db
+      .insert(appSettings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: appSettings.key, set: { value } });
   }
 
 }

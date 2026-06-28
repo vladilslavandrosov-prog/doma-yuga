@@ -1,14 +1,63 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Lock, Loader2, Check } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
+import { Lock, Loader2, Check, Send } from "lucide-react";
+
+function FaqTelegramNotificationsSetting() {
+  const { toast } = useToast();
+  const { data } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/admin/settings/faq-telegram-notifications"],
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      await apiRequest("PUT", "/api/admin/settings/faq-telegram-notifications", { enabled });
+    },
+    onSuccess: (_data, enabled) => {
+      queryClient.setQueryData(["/api/admin/settings/faq-telegram-notifications"], { enabled });
+      toast({ title: enabled ? "Уведомления включены" : "Уведомления отключены" });
+    },
+    onError: () => {
+      toast({ title: "Не удалось изменить настройку", variant: "destructive" });
+    },
+  });
+
+  return (
+    <Card className="max-w-md">
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Send className="h-5 w-5 text-muted-foreground" />
+          Уведомления в Telegram
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between gap-4">
+          <Label htmlFor="faq-telegram-toggle" className="text-sm text-muted-foreground">
+            Уведомлять о новых вопросах в FAQ-чате на сайте
+          </Label>
+          <Switch
+            id="faq-telegram-toggle"
+            checked={data?.enabled ?? true}
+            onCheckedChange={(checked) => mutation.mutate(checked)}
+            disabled={mutation.isPending}
+            data-testid="switch-faq-telegram-notifications"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Settings() {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -91,6 +140,8 @@ export default function Settings() {
           </form>
         </CardContent>
       </Card>
+
+      {isAdmin && <FaqTelegramNotificationsSetting />}
     </div>
   );
 }

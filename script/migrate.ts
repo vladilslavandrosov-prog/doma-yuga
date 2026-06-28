@@ -53,6 +53,14 @@ async function main() {
     console.log(`✓ перенесено ${backfill.rowCount} групп работ из существующих смет`);
   }
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `);
+  console.log("✓ таблица app_settings готова");
+
   await pool.end();
 }
 

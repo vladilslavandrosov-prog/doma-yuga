@@ -209,3 +209,10 @@ export const workGroups = pgTable("work_groups", {
 export const insertWorkGroupSchema = createInsertSchema(workGroups).omit({ id: true });
 export type InsertWorkGroup = z.infer<typeof insertWorkGroupSchema>;
 export type WorkGroup = typeof workGroups.$inferSelect;
+
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
+export type AppSetting = typeof appSettings.$inferSelect;
