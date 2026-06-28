@@ -121,6 +121,13 @@ export function AppSidebar() {
   });
   const newLeadsCount = leads?.filter(l => l.status === "new").length ?? 0;
 
+  const { data: remindersSummary } = useQuery<{ burning: unknown[]; upcoming: unknown[] }>({
+    queryKey: ["/api/admin/reminders-summary"],
+    enabled: isAdmin && inCabinet,
+    refetchInterval: 30000,
+  });
+  const burningRemindersCount = remindersSummary?.burning.length ?? 0;
+
   const showProjectNav = inCabinet && activeProjectId !== null && !inAdminPanel;
 
   return (
@@ -247,6 +254,11 @@ export function AppSidebar() {
                       <span>Напоминания</span>
                     </Link>
                   </SidebarMenuButton>
+                  {burningRemindersCount > 0 && (
+                    <SidebarMenuBadge data-testid="badge-burning-reminders">
+                      {burningRemindersCount}
+                    </SidebarMenuBadge>
+                  )}
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton

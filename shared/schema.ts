@@ -220,6 +220,7 @@ export const clientReminders = pgTable("client_reminders", {
   createdAt: text("created_at").notNull(),
   resolutionNote: text("resolution_note"),
   resolutionQuality: text("resolution_quality"),
+  notifiedAt: text("notified_at"),
 });
 
 export const insertClientReminderSchema = createInsertSchema(clientReminders).omit({ id: true });

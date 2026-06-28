@@ -22,10 +22,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
-import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil, Trash2, HelpCircle, Bell, Mic, MicOff, Check, X, Flame } from "lucide-react";
+import { UserPlus, Users, Phone, Mail, KeyRound, Loader2, FolderKanban, Pencil, Trash2, HelpCircle, Bell, Mic, MicOff, Check, X, Flame, Clock } from "lucide-react";
 import type { Project, ClientReminder } from "@shared/schema";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
-import { formatDate } from "@/lib/format";
+import { formatDate, overdueUrgencyClass, addDaysToToday } from "@/lib/format";
 
 const CLIENTS_TOUR_STEPS: TourStep[] = [
   { target: "text-page-title", title: "Клиенты", description: "Список всех клиентов с доступом в личный кабинет и привязкой к их объектам." },
@@ -283,7 +283,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
           {sortedReminders.map((r) => (
             <div
               key={r.id}
-              className={`flex items-start justify-between gap-2 rounded-md border p-2 text-sm ${r.status === "done" ? "opacity-50" : ""}`}
+              className={`flex items-start justify-between gap-2 rounded-md border p-2 text-sm ${r.status === "done" ? "opacity-50" : overdueUrgencyClass(r.dueDate)}`}
               data-testid={`row-reminder-${r.id}`}
             >
               <div className="space-y-1">
@@ -294,6 +294,23 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                   {r.dueDate && <span className="text-muted-foreground text-xs">до {formatDate(r.dueDate)}</span>}
                 </div>
                 <p className={r.status === "done" ? "line-through" : ""}>{r.text}</p>
+                {r.status === "pending" ? (
+                  <div className="flex items-center gap-1 pt-1">
+                    <Clock className="w-3 h-3 text-muted-foreground" />
+                    {[1, 3].map((days) => (
+                      <Button
+                        key={days}
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => updateMut.mutate({ id: r.id, data: { dueDate: addDaysToToday(days) } })}
+                        data-testid={`button-snooze-${days}-${r.id}`}
+                      >
+                        +{days} дн.
+                      </Button>
+                    ))}
+                  </div>
+                ) : null}
                 {r.status === "done" && r.resolutionNote ? (
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     {r.resolutionQuality === "good" ? (

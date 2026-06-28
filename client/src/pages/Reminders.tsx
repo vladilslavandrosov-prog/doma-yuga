@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { formatDate } from "@/lib/format";
-import { Bell, Users, Check, RotateCcw, Pencil, Trash2, Loader2 } from "lucide-react";
+import { formatDate, overdueUrgencyClass, addDaysToToday } from "@/lib/format";
+import { Bell, Users, Check, RotateCcw, Pencil, Trash2, Loader2, Clock } from "lucide-react";
 import type { ClientReminder } from "@shared/schema";
 
 interface ReminderWithClient extends ClientReminder {
@@ -121,6 +121,10 @@ export default function Reminders() {
     updateMut.mutate({ id, data: { status: "pending", resolutionNote: null, resolutionQuality: null } });
   };
 
+  const snooze = (id: number, days: number) => {
+    updateMut.mutate({ id, data: { dueDate: addDaysToToday(days) } });
+  };
+
   const filtered = (reminders ?? []).filter((r) => statusFilter === "all" || r.status === statusFilter);
 
   return (
@@ -152,7 +156,11 @@ export default function Reminders() {
 
       <div className="space-y-2" data-testid="list-all-reminders">
         {filtered.map((r) => (
-          <Card key={r.id} data-testid={`row-reminder-${r.id}`}>
+          <Card
+            key={r.id}
+            data-testid={`row-reminder-${r.id}`}
+            className={r.status === "pending" ? overdueUrgencyClass(r.dueDate) : undefined}
+          >
             <CardContent className="p-3 space-y-2">
               {editingId === r.id ? (
                 <div className="space-y-2">
@@ -199,6 +207,23 @@ export default function Reminders() {
                       <Badge variant="outline">{r.status === "done" ? "Выполнено" : "В работе"}</Badge>
                     </div>
                     <p className={r.status === "done" ? "line-through" : ""}>{r.text}</p>
+                    {r.status === "pending" ? (
+                      <div className="flex items-center gap-1 pt-1">
+                        <Clock className="w-3 h-3 text-muted-foreground" />
+                        {[1, 3].map((days) => (
+                          <Button
+                            key={days}
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => snooze(r.id, days)}
+                            data-testid={`button-snooze-${days}-${r.id}`}
+                          >
+                            +{days} дн.
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
                     {r.status === "done" && r.resolutionNote ? (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         {r.resolutionQuality === "good" ? (

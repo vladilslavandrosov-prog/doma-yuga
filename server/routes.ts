@@ -75,9 +75,11 @@ export async function checkDueReminders(): Promise<void> {
   for (const reminder of reminders) {
     if (reminder.status !== "pending") continue;
     if (!reminder.dueDate || reminder.dueDate > today) continue;
+    if (reminder.notifiedAt) continue;
     const client = await storage.getClientById(reminder.clientId);
     if (!client) continue;
     await notifyClientReminderDue(client.name, reminder.text, reminder.priority);
+    await storage.updateClientReminder(reminder.id, { notifiedAt: new Date().toISOString() });
   }
 }
 
@@ -430,6 +432,9 @@ export async function registerRoutes(
     }
     if (filtered.resolutionQuality !== undefined && filtered.resolutionQuality !== null && !["good", "bad"].includes(filtered.resolutionQuality)) {
       return res.status(400).json({ error: "Недопустимое значение resolutionQuality" });
+    }
+    if (filtered.dueDate !== undefined || filtered.text !== undefined || filtered.priority !== undefined || filtered.status === "pending") {
+      filtered.notifiedAt = null;
     }
     const reminder = await storage.updateClientReminder(parseInt(req.params.id as string), filtered);
     if (!reminder) {

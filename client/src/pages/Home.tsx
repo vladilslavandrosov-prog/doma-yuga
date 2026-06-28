@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { formatCurrency, formatDate } from "@/lib/format";
-import { AlertTriangle, Wallet, Building2, Flame, CalendarClock, Check, Users } from "lucide-react";
+import { formatCurrency, formatDate, overdueUrgencyClass, addDaysToToday } from "@/lib/format";
+import { AlertTriangle, Wallet, Building2, Flame, CalendarClock, Check, Users, Clock } from "lucide-react";
 import type { ClientReminder } from "@shared/schema";
 
 interface DashboardSummary {
@@ -47,8 +47,20 @@ function ReminderRow({ reminder }: { reminder: ReminderWithClient }) {
     },
   });
 
+  const snoozeMut = useMutation({
+    mutationFn: async (days: number) => {
+      await apiRequest("PATCH", `/api/admin/reminders/${reminder.id}`, { dueDate: addDaysToToday(days) });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/reminders-summary"] });
+    },
+  });
+
   return (
-    <div className="flex items-start justify-between gap-2 rounded-md border p-3 text-sm" data-testid={`row-home-reminder-${reminder.id}`}>
+    <div
+      className={`flex items-start justify-between gap-2 rounded-md border p-3 text-sm ${overdueUrgencyClass(reminder.dueDate)}`}
+      data-testid={`row-home-reminder-${reminder.id}`}
+    >
       <div className="space-y-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <Badge className={PRIORITY_BADGE_CLASS[reminder.priority] ?? PRIORITY_BADGE_CLASS.normal}>
@@ -61,6 +73,21 @@ function ReminderRow({ reminder }: { reminder: ReminderWithClient }) {
           {reminder.dueDate && <span className="text-muted-foreground text-xs">до {formatDate(reminder.dueDate)}</span>}
         </div>
         <p className="truncate">{reminder.text}</p>
+        <div className="flex items-center gap-1 pt-1">
+          <Clock className="w-3 h-3 text-muted-foreground" />
+          {[1, 3].map((days) => (
+            <Button
+              key={days}
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-xs"
+              onClick={() => snoozeMut.mutate(days)}
+              data-testid={`button-home-snooze-${days}-${reminder.id}`}
+            >
+              +{days} дн.
+            </Button>
+          ))}
+        </div>
       </div>
       <Button
         size="icon"
