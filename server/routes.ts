@@ -1324,6 +1324,11 @@ export async function registerRoutes(
     if (history.length === 0) {
       return res.status(400).json({ error: "Некорректный запрос" });
     }
+    const userMessages = history.filter((m) => m.role === "user");
+    if (userMessages.length === 1) {
+      const { sendTelegramText } = await import("./telegram");
+      sendTelegramText(`🤖 Вопрос в FAQ-чате на сайте\n\n${userMessages[0].content}`).catch(() => {});
+    }
     try {
       const { askFaqBot } = await import("./faqBot");
       const reply = await askFaqBot(history);
