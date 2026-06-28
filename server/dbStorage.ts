@@ -399,8 +399,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteClientReminder(id: number): Promise<boolean> {
+    await db.delete(reminderHistory).where(eq(reminderHistory.reminderId, id));
     const result = await db.delete(clientReminders).where(eq(clientReminders.id, id)).returning();
     return result.length > 0;
+  }
+
+  async deleteClientRemindersByClientId(clientId: number): Promise<void> {
+    const rows = await db.select({ id: clientReminders.id }).from(clientReminders).where(eq(clientReminders.clientId, clientId));
+    for (const row of rows) {
+      await db.delete(reminderHistory).where(eq(reminderHistory.reminderId, row.id));
+    }
+    await db.delete(clientReminders).where(eq(clientReminders.clientId, clientId));
+  }
+
+  async nullifyReminderAssigneesByUserId(userId: number): Promise<void> {
+    await db.update(clientReminders).set({ assignedToUserId: null }).where(eq(clientReminders.assignedToUserId, userId));
   }
 
   async getReminderHistory(reminderId: number): Promise<ReminderHistory[]> {

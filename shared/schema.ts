@@ -227,7 +227,11 @@ export const clientReminders = pgTable("client_reminders", {
   recurrence: text("recurrence").notNull().default("none"),
 });
 
-export const insertClientReminderSchema = createInsertSchema(clientReminders).omit({ id: true });
+export const insertClientReminderSchema = createInsertSchema(clientReminders, {
+  priority: z.enum(["urgent", "normal", "low"]),
+  status: z.enum(["pending", "done"]),
+  recurrence: z.enum(["none", "weekly", "monthly"]),
+}).omit({ id: true });
 export type InsertClientReminder = z.infer<typeof insertClientReminderSchema>;
 export type ClientReminder = typeof clientReminders.$inferSelect;
 

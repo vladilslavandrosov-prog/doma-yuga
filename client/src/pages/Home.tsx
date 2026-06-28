@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,12 +40,15 @@ const PRIORITY_BADGE_CLASS: Record<string, string> = {
 };
 
 function ReminderRow({ reminder }: { reminder: ReminderWithClient }) {
+  const [resolving, setResolving] = useState(false);
+
   const doneMut = useMutation({
-    mutationFn: async () => {
-      await apiRequest("PATCH", `/api/admin/reminders/${reminder.id}`, { status: "done" });
+    mutationFn: async (quality: "good" | "bad") => {
+      await apiRequest("PATCH", `/api/admin/reminders/${reminder.id}`, { status: "done", resolutionQuality: quality });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/reminders-summary"] });
+      setResolving(false);
     },
   });
 
@@ -90,12 +94,42 @@ function ReminderRow({ reminder }: { reminder: ReminderWithClient }) {
             </Button>
           ))}
         </div>
+        {resolving && (
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              size="sm"
+              className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700"
+              onClick={() => doneMut.mutate("good")}
+              data-testid={`button-home-resolve-good-${reminder.id}`}
+            >
+              Хорошо
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-6 px-2 text-xs"
+              onClick={() => doneMut.mutate("bad")}
+              data-testid={`button-home-resolve-bad-${reminder.id}`}
+            >
+              Плохо
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              onClick={() => setResolving(false)}
+              data-testid={`button-home-resolve-cancel-${reminder.id}`}
+            >
+              Отмена
+            </Button>
+          </div>
+        )}
       </div>
       <Button
         size="icon"
         variant="ghost"
         className="h-7 w-7 shrink-0"
-        onClick={() => doneMut.mutate()}
+        onClick={() => setResolving(true)}
         aria-label="Отметить выполненным"
         data-testid={`button-home-done-reminder-${reminder.id}`}
       >

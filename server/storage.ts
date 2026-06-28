@@ -97,6 +97,8 @@ export interface IStorage {
   createClientReminder(reminder: InsertClientReminder): Promise<ClientReminder>;
   updateClientReminder(id: number, data: Partial<InsertClientReminder>): Promise<ClientReminder | undefined>;
   deleteClientReminder(id: number): Promise<boolean>;
+  deleteClientRemindersByClientId(clientId: number): Promise<void>;
+  nullifyReminderAssigneesByUserId(userId: number): Promise<void>;
   getReminderHistory(reminderId: number): Promise<ReminderHistory[]>;
   addReminderHistory(entry: { reminderId: number; action: string; details?: string | null; userId?: number | null; createdAt: string }): Promise<ReminderHistory>;
   getLeads(): Promise<Lead[]>;

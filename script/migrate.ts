@@ -87,6 +87,12 @@ async function main() {
   `);
   console.log("✓ таблица reminder_history готова");
 
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_reminders_client_id ON client_reminders(client_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_reminders_status_due_date ON client_reminders(status, due_date)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_reminders_assigned_to_user_id ON client_reminders(assigned_to_user_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_reminder_history_reminder_id ON reminder_history(reminder_id)`);
+  console.log("✓ индексы client_reminders/reminder_history готовы");
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_settings (
       key TEXT PRIMARY KEY,

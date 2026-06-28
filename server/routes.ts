@@ -444,6 +444,7 @@ export async function registerRoutes(
       return res.status(400).json({ error: "У клиента есть объекты — сначала отвяжите или удалите их" });
     }
     await storage.deleteUsersByClientId(id);
+    await storage.deleteClientRemindersByClientId(id);
     const ok = await storage.deleteClient(id);
     if (!ok) {
       return res.status(404).json({ error: "Клиент не найден" });
@@ -499,6 +500,7 @@ export async function registerRoutes(
     if (!target) {
       return res.status(404).json({ error: "Сотрудник не найден" });
     }
+    await storage.nullifyReminderAssigneesByUserId(id);
     await storage.deleteUser(id);
     res.status(204).end();
   });
@@ -551,6 +553,12 @@ export async function registerRoutes(
     if (filtered.recurrence !== undefined && !["none", "weekly", "monthly"].includes(filtered.recurrence)) {
       return res.status(400).json({ error: "Недопустимое значение recurrence" });
     }
+    if (filtered.priority !== undefined && !["urgent", "normal", "low"].includes(filtered.priority)) {
+      return res.status(400).json({ error: "Недопустимое значение priority" });
+    }
+    if (filtered.status !== undefined && !["pending", "done"].includes(filtered.status)) {
+      return res.status(400).json({ error: "Недопустимое значение status" });
+    }
     if (filtered.dueDate !== undefined || filtered.text !== undefined || filtered.priority !== undefined || filtered.status === "pending") {
       filtered.notifiedAt = null;
     }
@@ -576,7 +584,7 @@ export async function registerRoutes(
           projectId: reminder.projectId,
           text: `Доработать: ${reminder.text}`,
           dueDate: addDaysIso(3),
-          priority: reminder.priority,
+          priority: reminder.priority as "urgent" | "normal" | "low",
           status: "pending",
           createdAt: now,
           assignedToUserId: reminder.assignedToUserId,
@@ -596,11 +604,11 @@ export async function registerRoutes(
           projectId: reminder.projectId,
           text: reminder.text,
           dueDate: nextDueDate,
-          priority: reminder.priority,
+          priority: reminder.priority as "urgent" | "normal" | "low",
           status: "pending",
           createdAt: now,
           assignedToUserId: reminder.assignedToUserId,
-          recurrence: reminder.recurrence,
+          recurrence: reminder.recurrence as "none" | "weekly" | "monthly",
         });
         await storage.addReminderHistory({
           reminderId: nextOccurrence.id,
