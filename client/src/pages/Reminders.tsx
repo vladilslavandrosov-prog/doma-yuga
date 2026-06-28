@@ -18,6 +18,7 @@ import { formatDate, overdueUrgencyClass, addDaysToToday } from "@/lib/format";
 import { Bell, Users, Check, RotateCcw, Pencil, Trash2, Loader2, Clock, History, CalendarDays } from "lucide-react";
 import type { ClientReminder } from "@shared/schema";
 import { ReminderHistoryDialog } from "@/components/ReminderHistoryDialog";
+import { useAuth } from "@/lib/auth";
 import { Link } from "wouter";
 
 const RECURRENCE_LABEL: Record<string, string> = {
@@ -47,6 +48,7 @@ const PRIORITY_BADGE_CLASS: Record<string, string> = {
 
 export default function Reminders() {
   const { toast } = useToast();
+  const { isStaff } = useAuth();
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "done">("pending");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
@@ -286,16 +288,18 @@ export default function Reminders() {
                     </Button>
                     {r.status === "pending" ? (
                       <>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          onClick={() => startEdit(r)}
-                          aria-label="Изменить напоминание"
-                          data-testid={`button-edit-reminder-${r.id}`}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        {!isStaff && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => startEdit(r)}
+                            aria-label="Изменить напоминание"
+                            data-testid={`button-edit-reminder-${r.id}`}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         <Button
                           size="icon"
                           variant="ghost"
@@ -319,16 +323,18 @@ export default function Reminders() {
                         <RotateCcw className="h-3.5 w-3.5" />
                       </Button>
                     )}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={() => deleteMut.mutate(r.id)}
-                      aria-label="Удалить напоминание"
-                      data-testid={`button-delete-reminder-${r.id}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {!isStaff && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => deleteMut.mutate(r.id)}
+                        aria-label="Удалить напоминание"
+                        data-testid={`button-delete-reminder-${r.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}

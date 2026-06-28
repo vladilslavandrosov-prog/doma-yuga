@@ -230,6 +230,16 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+function requireAdminOrStaff(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (req.session.role !== "admin" && req.session.role !== "staff") {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  next();
+}
+
 /**
  * IDOR-защита: если в сессии есть клиент — он может обращаться
  * только к своим проектам. Администратор и неавторизованный (демо)
@@ -541,8 +551,17 @@ export async function registerRoutes(
     res.json(reminder);
   });
 
-  app.patch("/api/admin/reminders/:id", requireAdmin, async (req, res) => {
-    const allowed = ["text", "dueDate", "priority", "status", "resolutionNote", "resolutionQuality", "projectId", "assignedToUserId", "recurrence"];
+  app.patch("/api/admin/reminders/:id", requireAdminOrStaff, async (req, res) => {
+    const isStaff = req.session.role === "staff";
+    if (isStaff) {
+      const existing = await storage.getClientReminderById(parseInt(req.params.id as string));
+      if (!existing || existing.assignedToUserId !== req.session.userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+    }
+    const allowed = isStaff
+      ? ["dueDate", "status", "resolutionNote", "resolutionQuality"]
+      : ["text", "dueDate", "priority", "status", "resolutionNote", "resolutionQuality", "projectId", "assignedToUserId", "recurrence"];
     const filtered: Record<string, any> = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) filtered[key] = req.body[key];
@@ -641,8 +660,15 @@ export async function registerRoutes(
     res.json(reminder);
   });
 
-  app.get("/api/admin/reminders/:id/history", requireAdmin, async (req, res) => {
-    const history = await storage.getReminderHistory(parseInt(req.params.id as string));
+  app.get("/api/admin/reminders/:id/history", requireAdminOrStaff, async (req, res) => {
+    const reminderId = parseInt(req.params.id as string);
+    if (req.session.role === "staff") {
+      const existing = await storage.getClientReminderById(reminderId);
+      if (!existing || existing.assignedToUserId !== req.session.userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+    }
+    const history = await storage.getReminderHistory(reminderId);
     const users = await storage.getAllUsers();
     const result = history
       .slice()
@@ -1679,8 +1705,12 @@ export async function registerRoutes(
     res.json(debtByProjectId);
   });
 
-  app.get("/api/admin/reminders-summary", requireAdmin, async (_req, res) => {
-    const reminders = await storage.getAllClientReminders();
+  app.get("/api/admin/reminders-summary", requireAdminOrStaff, async (req, res) => {
+    const isStaffOnly = req.session.role === "staff";
+    let reminders = await storage.getAllClientReminders();
+    if (isStaffOnly) {
+      reminders = reminders.filter((r) => r.assignedToUserId === req.session.userId);
+    }
     const clients = await storage.getAllClients();
     const clientById = new Map(clients.map((c) => [c.id, c]));
     const projects = await storage.getAllProjects();
@@ -1712,8 +1742,11 @@ export async function registerRoutes(
     res.json({ burning, upcoming });
   });
 
-  app.get("/api/admin/reminders", requireAdmin, async (_req, res) => {
-    const reminders = await storage.getAllClientReminders();
+  app.get("/api/admin/reminders", requireAdminOrStaff, async (req, res) => {
+    let reminders = await storage.getAllClientReminders();
+    if (req.session.role === "staff") {
+      reminders = reminders.filter((r) => r.assignedToUserId === req.session.userId);
+    }
     const clients = await storage.getAllClients();
     const clientById = new Map(clients.map((c) => [c.id, c]));
     const projects = await storage.getAllProjects();

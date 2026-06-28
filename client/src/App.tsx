@@ -133,6 +133,18 @@ function AdminOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminOrStaffOnly({ children }: { children: React.ReactNode }) {
+  const { isAdmin, isStaff } = useAuth();
+  if (!isAdmin && !isStaff) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        Доступ запрещён
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 function ClientProjectsList() {
   const { projects, isLoading } = useClientProjects();
 
@@ -266,7 +278,7 @@ function Router() {
       <Route path="/cabinet/clients">{() => <CabinetLayout><AdminOnly><Clients /></AdminOnly></CabinetLayout>}</Route>
       <Route path="/cabinet/leads">{() => <CabinetLayout><AdminOnly><Leads /></AdminOnly></CabinetLayout>}</Route>
       <Route path="/cabinet/work-groups">{() => <CabinetLayout><AdminOnly><WorkGroups /></AdminOnly></CabinetLayout>}</Route>
-      <Route path="/cabinet/reminders">{() => <CabinetLayout><AdminOnly><Reminders /></AdminOnly></CabinetLayout>}</Route>
+      <Route path="/cabinet/reminders">{() => <CabinetLayout><AdminOrStaffOnly><Reminders /></AdminOrStaffOnly></CabinetLayout>}</Route>
       <Route path="/cabinet/reminders/calendar">{() => <CabinetLayout><AdminOnly><RemindersCalendar /></AdminOnly></CabinetLayout>}</Route>
 
       <Route path="/cabinet/project/:id">{() => <CabinetLayout><ProjectPage section="dashboard" /></CabinetLayout>}</Route>

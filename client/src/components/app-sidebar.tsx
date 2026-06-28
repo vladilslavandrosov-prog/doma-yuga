@@ -130,6 +130,7 @@ export function AppSidebar() {
   const burningRemindersCount = remindersSummary?.burning.length ?? 0;
 
   const showProjectNav = inCabinet && activeProjectId !== null && !inAdminPanel;
+  const inStaffPanel = isStaff && inCabinet && !inProject;
 
   return (
     <Sidebar>
@@ -329,6 +330,29 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
           </>
+        )}
+
+        {inStaffPanel && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Мои задачи</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/cabinet/reminders"}
+                    tooltip="Мои напоминания"
+                    data-testid="link-nav-staff-reminders"
+                  >
+                    <Link href="/cabinet/reminders" onClick={closeMobile}>
+                      <Bell />
+                      <span>Мои напоминания</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
         {showProjectNav && (
