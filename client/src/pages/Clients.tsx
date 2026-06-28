@@ -337,11 +337,14 @@ export default function Clients() {
     queryKey: ["/api/admin/clients"],
   });
 
-  const { data: remindersSummary } = useQuery<{ burning: { clientId: number }[]; upcoming: { clientId: number }[] }>({
+  const { data: remindersSummary } = useQuery<{ burning: { clientId: number; text: string }[]; upcoming: { clientId: number }[] }>({
     queryKey: ["/api/admin/reminders-summary"],
     refetchInterval: 30000,
   });
-  const burningClientIds = new Set((remindersSummary?.burning ?? []).map((r) => r.clientId));
+  const burningByClientId = new Map<number, string[]>();
+  for (const r of remindersSummary?.burning ?? []) {
+    burningByClientId.set(r.clientId, [...(burningByClientId.get(r.clientId) ?? []), r.text]);
+  }
 
   const { data: projects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -483,14 +486,16 @@ export default function Clients() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="grid-clients">
-          {clients.map((client) => (
-            <Card key={client.id} data-testid={`card-client-${client.id}`} className={burningClientIds.has(client.id) ? "border-destructive/50" : undefined}>
+          {clients.map((client) => {
+            const burningTexts = burningByClientId.get(client.id) ?? [];
+            return (
+            <Card key={client.id} data-testid={`card-client-${client.id}`} className={burningTexts.length > 0 ? "border-destructive/50" : undefined}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     {client.name}
-                    {burningClientIds.has(client.id) && (
+                    {burningTexts.length > 0 && (
                       <Flame className="h-4 w-4 text-destructive" data-testid={`icon-burning-client-${client.id}`} />
                     )}
                   </span>
@@ -558,9 +563,20 @@ export default function Clients() {
                     <span>{client.projects.map(p => p.name).join(", ")}</span>
                   </div>
                 )}
+                {burningTexts.length > 0 && (
+                  <div className="space-y-1 pt-1" data-testid={`text-burning-${client.id}`}>
+                    {burningTexts.map((text, i) => (
+                      <div key={i} className="flex items-start gap-2 text-destructive">
+                        <Flame className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <span>{text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

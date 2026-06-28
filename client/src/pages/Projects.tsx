@@ -51,7 +51,8 @@ function getStatusBadge(status: string) {
   }
 }
 
-function ProjectCard({ project, isAdmin, hasDebt, onEdit, onDelete, onShowQr }: { project: Project; isAdmin: boolean; hasDebt: boolean; onEdit: (p: Project) => void; onDelete: (p: Project) => void; onShowQr: (p: Project) => void }) {
+function ProjectCard({ project, isAdmin, debtAmount, onEdit, onDelete, onShowQr }: { project: Project; isAdmin: boolean; debtAmount: number; onEdit: (p: Project) => void; onDelete: (p: Project) => void; onShowQr: (p: Project) => void }) {
+  const hasDebt = debtAmount > 0;
   const { data: client } = useQuery<Client>({
     queryKey: ["/api/project", project.id, "client"],
   });
@@ -107,6 +108,12 @@ function ProjectCard({ project, isAdmin, hasDebt, onEdit, onDelete, onShowQr }: 
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="w-4 h-4 shrink-0" />
                 <span>{client.name}</span>
+              </div>
+            )}
+            {hasDebt && (
+              <div className="flex items-center gap-2 text-sm text-destructive" data-testid={`text-debt-${project.id}`}>
+                <Wallet className="w-4 h-4 shrink-0" />
+                <span>Долг по оплате: {formatCurrency(debtAmount)}</span>
               </div>
             )}
             <div className="flex items-center justify-end pt-1">
@@ -478,7 +485,7 @@ export default function Projects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-projects">
           {sortedAndFiltered.map((project) => (
-            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} hasDebt={!!debtByProjectId?.[project.id]} onEdit={openEdit} onDelete={handleDelete} onShowQr={setQrProject} />
+            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} debtAmount={debtByProjectId?.[project.id] ?? 0} onEdit={openEdit} onDelete={handleDelete} onShowQr={setQrProject} />
           ))}
         </div>
       )}
