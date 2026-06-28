@@ -101,7 +101,7 @@ export default function Reminders() {
     }
     updateMut.mutate(
       { id, data: { text: editText.trim(), dueDate: editDueDate || null, priority: editPriority } },
-      { onSuccess: () => resetEdit() },
+      { onSuccess: () => { resetEdit(); toast({ title: "Изменения сохранены" }); } },
     );
   };
 

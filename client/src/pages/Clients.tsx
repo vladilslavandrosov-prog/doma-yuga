@@ -98,6 +98,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   const recognitionRef = useRef<any>(null);
   const handledResultRef = useRef(false);
   const listenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [resolutionNote, setResolutionNote] = useState("");
@@ -127,6 +128,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
       setManualDueDate("");
       setManualPriority("normal");
       setManualProjectId("none");
+      toast({ title: "Напоминание сохранено" });
     },
     onError: () => {
       toast({ title: "Ошибка", description: "Не удалось сохранить напоминание", variant: "destructive" });
@@ -176,6 +178,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     setManualDueDate(r.dueDate ?? "");
     setManualPriority(r.priority);
     setManualProjectId(r.projectId != null ? String(r.projectId) : "none");
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -188,7 +191,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     if (editingId) {
       updateMut.mutate(
         { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId } },
-        { onSuccess: () => resetForm() },
+        { onSuccess: () => { resetForm(); toast({ title: "Изменения сохранены" }); } },
       );
     } else {
       createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId });
@@ -425,7 +428,16 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
               {listening ? "Слушаю..." : "Добавить голосом"}
             </Button>
           )}
-          <form onSubmit={handleManualSubmit} className="space-y-2">
+          <form
+            ref={formRef}
+            onSubmit={handleManualSubmit}
+            className={`space-y-2 ${editingId ? "rounded-md border-2 border-primary p-2 -m-2" : ""}`}
+          >
+            {editingId && (
+              <p className="text-xs font-medium text-primary" data-testid="text-editing-reminder">
+                Редактирование напоминания
+              </p>
+            )}
             <Textarea
               value={manualText}
               onChange={(e) => setManualText(e.target.value)}
