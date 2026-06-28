@@ -34,9 +34,9 @@ interface ReminderWithClient extends ClientReminder {
 }
 
 const PRIORITY_LABEL: Record<string, string> = {
-  urgent: "Срочно",
-  normal: "Обычная",
-  low: "Не срочно",
+  urgent: "Важно",
+  normal: "Обычно",
+  low: "Не важно",
 };
 
 const PRIORITY_BADGE_CLASS: Record<string, string> = {
@@ -198,9 +198,9 @@ export default function Reminders() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="urgent">Срочно</SelectItem>
-                        <SelectItem value="normal">Обычная</SelectItem>
-                        <SelectItem value="low">Не срочно</SelectItem>
+                        <SelectItem value="urgent">Важно</SelectItem>
+                        <SelectItem value="normal">Обычно</SelectItem>
+                        <SelectItem value="low">Не важно</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -23,6 +23,10 @@ import {
   TrendingUp,
   Bell,
   Lock,
+  CalendarDays,
+  History,
+  Repeat,
+  UserCog,
 } from "lucide-react";
 
 const fadeUp = {
@@ -113,8 +117,36 @@ const benefits = [
   { icon: Clock, text: "Экономия времени: вся документация и история в одном месте" },
   { icon: Bell, text: "Уведомления о новых фото, документах и сообщениях" },
   { icon: Smartphone, text: "Адаптивный интерфейс — удобно с любого устройства" },
-  { icon: Lock, text: "Безопасный вход, разграничение прав: администратор и клиент" },
+  { icon: Lock, text: "Безопасный вход, разграничение прав: администратор, сотрудник и клиент" },
   { icon: Users, text: "Поддержка нескольких объектов для одного клиента" },
+];
+
+const teamFeatures = [
+  {
+    icon: UserCog,
+    title: "Учётные записи сотрудников",
+    desc: "Каждый сотрудник — отдельный логин и личный Telegram для уведомлений по своим задачам.",
+  },
+  {
+    icon: Bell,
+    title: "Напоминания с назначением",
+    desc: "Задачи по клиентам и объектам назначаются конкретному сотруднику с приоритетом и сроком.",
+  },
+  {
+    icon: Repeat,
+    title: "Авто-фоллоу-ап и повторение",
+    desc: "Если результат отметили «Плохо» — автоматически создаётся задача-доработка. Еженедельные и ежемесячные задачи повторяются сами.",
+  },
+  {
+    icon: History,
+    title: "История изменений",
+    desc: "По каждой задаче видно, кто и когда её создал, менял или закрыл.",
+  },
+  {
+    icon: CalendarDays,
+    title: "Календарь задач",
+    desc: "Все напоминания по всем клиентам — в едином месячном календаре с приоритетами.",
+  },
 ];
 
 const stats = [
@@ -335,6 +367,43 @@ export default function Presentation() {
             ))}
           </div>
         </motion.div>
+
+        {/* ── Команда и контроль задач ──────────────────────── */}
+        <div className="space-y-5">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+          >
+            <p className="text-sm font-medium text-primary uppercase tracking-widest mb-1">Внутренняя CRM</p>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">За проектом следит вся команда</h2>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+              Ничего не теряется: задачи назначаются сотрудникам, повторяются сами и не закрываются без проверки результата.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {teamFeatures.map((f, i) => (
+              <motion.div
+                key={f.title}
+                className="rounded-2xl border bg-card p-5 space-y-3 hover:shadow-md transition-shadow"
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                variants={fadeUp}
+                custom={i * 0.07}
+              >
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary shrink-0">
+                  <f.icon className="w-5 h-5" />
+                </div>
+                <p className="font-semibold text-sm">{f.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
 
         {/* ── Преимущества ─────────────────────────────────── */}
         <div className="space-y-5">

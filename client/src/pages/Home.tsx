@@ -27,9 +27,9 @@ interface RemindersSummary {
 }
 
 const PRIORITY_LABEL: Record<string, string> = {
-  urgent: "Срочно",
-  normal: "Обычная",
-  low: "Не срочно",
+  urgent: "Важно",
+  normal: "Обычно",
+  low: "Не важно",
 };
 
 const PRIORITY_BADGE_CLASS: Record<string, string> = {

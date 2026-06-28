@@ -52,9 +52,9 @@ interface StaffMember {
 }
 
 const PRIORITY_LABEL: Record<string, string> = {
-  urgent: "Срочно",
-  normal: "Обычная",
-  low: "Не срочно",
+  urgent: "Важно",
+  normal: "Обычно",
+  low: "Не важно",
 };
 
 const PRIORITY_BADGE_CLASS: Record<string, string> = {
@@ -65,15 +65,23 @@ const PRIORITY_BADGE_CLASS: Record<string, string> = {
 
 // Разбирает голосовую фразу вида «позвонить заказчику до 5 июля, важно — согласовать смету»
 // на дату исполнения, важность и сохраняет полный исходный текст.
+const WEEKDAYS_RU: Record<string, number> = {
+  "понедельник": 1, "вторник": 2, "сред": 3, "четверг": 4,
+  "пятниц": 5, "суббот": 6, "воскресень": 0,
+};
+
 function parseReminderTranscript(transcript: string): { text: string; dueDate: string | null; priority: string } {
   const lower = transcript.toLowerCase();
 
   let priority = "normal";
-  if (/срочно|важно|критично/.test(lower)) priority = "urgent";
-  else if (/не срочно|неважно|когда-нибудь/.test(lower)) priority = "low";
+  if (/не\s*важно|неважно|когда-нибудь/.test(lower)) priority = "low";
+  else if (/\bважно\b|срочно|критично/.test(lower)) priority = "urgent";
 
   let dueDate: string | null = null;
+  const inDaysMatch = lower.match(/через\s+(\d+)\s*д(?:ень|ня|ней)/);
   const dayMonthMatch = lower.match(/(\d{1,2})\s*(январ\w*|феврал\w*|март\w*|апрел\w*|ма[яй]\w*|июн\w*|июл\w*|август\w*|сентябр\w*|октябр\w*|ноябр\w*|декабр\w*)/);
+  const weekdayMatch = lower.match(/понедельник|вторник|сред\w*|четверг|пятниц\w*|суббот\w*|воскресень\w*/);
+
   if (dayMonthMatch) {
     const day = parseInt(dayMonthMatch[1], 10);
     const monthWord = dayMonthMatch[2];
@@ -86,14 +94,35 @@ function parseReminderTranscript(transcript: string): { text: string; dueDate: s
       if (candidate.getTime() < now.setHours(0, 0, 0, 0)) year += 1;
       dueDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     }
+  } else if (/послезавтра/.test(lower)) {
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    dueDate = d.toISOString().slice(0, 10);
   } else if (/завтра/.test(lower)) {
     const d = new Date();
     d.setDate(d.getDate() + 1);
+    dueDate = d.toISOString().slice(0, 10);
+  } else if (inDaysMatch) {
+    const d = new Date();
+    d.setDate(d.getDate() + parseInt(inDaysMatch[1], 10));
     dueDate = d.toISOString().slice(0, 10);
   } else if (/через неделю/.test(lower)) {
     const d = new Date();
     d.setDate(d.getDate() + 7);
     dueDate = d.toISOString().slice(0, 10);
+  } else if (/через месяц/.test(lower)) {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    dueDate = d.toISOString().slice(0, 10);
+  } else if (weekdayMatch) {
+    const key = Object.keys(WEEKDAYS_RU).find((k) => weekdayMatch[0].startsWith(k));
+    if (key !== undefined) {
+      const target = WEEKDAYS_RU[key];
+      const d = new Date();
+      const diff = (target - d.getDay() + 7) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      dueDate = d.toISOString().slice(0, 10);
+    }
   } else if (/сегодня/.test(lower)) {
     dueDate = new Date().toISOString().slice(0, 10);
   }
@@ -216,13 +245,14 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     }
     const projectId = manualProjectId === "none" ? null : parseInt(manualProjectId);
     const assignedToUserId = manualAssigneeId === "none" ? null : parseInt(manualAssigneeId);
+    const inferredDueDate = manualDueDate || parseReminderTranscript(manualText).dueDate;
     if (editingId) {
       updateMut.mutate(
-        { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId, assignedToUserId, recurrence: manualRecurrence } },
+        { id: editingId, data: { text: manualText.trim(), dueDate: inferredDueDate, priority: manualPriority, projectId, assignedToUserId, recurrence: manualRecurrence } },
         { onSuccess: () => { resetForm(); toast({ title: "Изменения сохранены" }); } },
       );
     } else {
-      createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId, assignedToUserId, recurrence: manualRecurrence });
+      createMut.mutate({ text: manualText.trim(), dueDate: inferredDueDate, priority: manualPriority, projectId, assignedToUserId, recurrence: manualRecurrence });
     }
   };
 
@@ -235,8 +265,11 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
 
   const handleTranscript = (transcript: string) => {
     const parsed = parseReminderTranscript(transcript);
-    createMut.mutate(parsed);
-    toast({ title: "Напоминание добавлено", description: transcript });
+    setManualText(parsed.text);
+    setManualDueDate(parsed.dueDate ?? "");
+    setManualPriority(parsed.priority);
+    toast({ title: "Распознано", description: "Проверьте текст и нажмите «Добавить»" });
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const toggleListening = () => {
@@ -487,7 +520,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
             <Textarea
               value={manualText}
               onChange={(e) => setManualText(e.target.value)}
-              placeholder="Что нужно сделать"
+              placeholder="Что нужно сделать (можно сказать «завтра», «через 3 дня», «в пятницу»)"
               data-testid="input-reminder-text"
             />
             <div className="grid grid-cols-2 gap-2">
@@ -502,9 +535,9 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="urgent">Срочно</SelectItem>
-                  <SelectItem value="normal">Обычная</SelectItem>
-                  <SelectItem value="low">Не срочно</SelectItem>
+                  <SelectItem value="urgent">Важно</SelectItem>
+                  <SelectItem value="normal">Обычно</SelectItem>
+                  <SelectItem value="low">Не важно</SelectItem>
                 </SelectContent>
               </Select>
             </div>
