@@ -19,6 +19,7 @@ const Documents = lazy(() => import("@/pages/Documents"));
 const Photos = lazy(() => import("@/pages/Photos"));
 const Videos = lazy(() => import("@/pages/Videos"));
 const Chat = lazy(() => import("@/pages/Chat"));
+const Act = lazy(() => import("@/pages/Act"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Clients = lazy(() => import("@/pages/Clients"));
 const Leads = lazy(() => import("@/pages/Leads"));
@@ -51,7 +52,7 @@ function CabinetLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" }) {
+function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execution" | "payments" | "documents" | "photos" | "videos" | "chat" | "act" }) {
   const params = useParams<{ id: string }>();
   const projectId = parseInt(params.id);
   const basePath = `/cabinet/project/${params.id}`;
@@ -75,6 +76,8 @@ function ProjectPage({ section }: { section: "dashboard" | "estimates" | "execut
       return <Videos projectId={projectId} />;
     case "chat":
       return <Chat projectId={projectId} />;
+    case "act":
+      return <Act projectId={projectId} />;
   }
 }
 
@@ -268,6 +271,7 @@ function Router() {
       <Route path="/cabinet/project/:id/photos">{() => <CabinetLayout><ProjectPage section="photos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/videos">{() => <CabinetLayout><ProjectPage section="videos" /></CabinetLayout>}</Route>
       <Route path="/cabinet/project/:id/chat">{() => <CabinetLayout><ProjectPage section="chat" /></CabinetLayout>}</Route>
+      <Route path="/cabinet/project/:id/act">{() => <CabinetLayout><ProjectPage section="act" /></CabinetLayout>}</Route>
 
       <Route path="/login" component={Login} />
       <Route component={NotFound} />

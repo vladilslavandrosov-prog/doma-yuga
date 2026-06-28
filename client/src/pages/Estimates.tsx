@@ -32,8 +32,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, ArrowUpDown, ArrowUp, ArrowDown, Plus, Trash2, Pencil, Loader2 } from "lucide-react";
+import { Search, ArrowUpDown, ArrowUp, ArrowDown, Plus, Trash2, Pencil, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate, EstimateItem, WorkGroup } from "@shared/schema";
 
@@ -394,10 +395,18 @@ export default function Estimates({ projectId }: { projectId: number }) {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Плановая смета</h1>
         {isAdmin && (
-          <Button onClick={() => setAddOpen(true)} data-testid="button-add-estimate-item">
-            <Plus className="h-4 w-4 mr-2" />
-            Добавить позицию
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href={`/cabinet/project/${projectId}/act`}>
+              <Button variant="outline" data-testid="button-open-act">
+                <FileText className="h-4 w-4 mr-2" />
+                Акт выполненных работ
+              </Button>
+            </Link>
+            <Button onClick={() => setAddOpen(true)} data-testid="button-add-estimate-item">
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить позицию
+            </Button>
+          </div>
         )}
       </div>
 
