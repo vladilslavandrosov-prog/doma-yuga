@@ -49,6 +49,8 @@ import {
   Loader2,
   MessageSquare,
   Send,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Textarea } from "@/components/ui/textarea";
@@ -1078,6 +1080,111 @@ function WorkGroupCard({
   );
 }
 
+function normalizeText(s: string) {
+  return s.toLowerCase().replace(/[^а-яa-z0-9 ]/gi, " ").replace(/\s+/g, " ").trim();
+}
+
+const STATUS_PHRASES: { status: string; label: string; phrases: string[] }[] = [
+  { status: "completed", label: "выполнено", phrases: ["готово", "завершено", "выполнено", "сделано", "закончено", "закончили"] },
+  { status: "in_progress", label: "в работе", phrases: ["в работе", "начато", "начали", "в процессе", "выполняется"] },
+  { status: "planned", label: "запланировано", phrases: ["запланировано", "не начато", "отменить", "сбросить", "запланировать"] },
+];
+
+function findItemMatch(transcript: string, items: { id: number; name: string }[]) {
+  const cleaned = normalizeText(transcript);
+  let best: { id: number; name: string } | null = null;
+  let bestScore = 0;
+  for (const item of items) {
+    const itemWords = normalizeText(item.name).split(" ").filter((w) => w.length > 2);
+    if (itemWords.length === 0) continue;
+    const matched = itemWords.filter((w) => cleaned.includes(w)).length;
+    const score = matched / itemWords.length;
+    if (score > bestScore) {
+      bestScore = score;
+      best = item;
+    }
+  }
+  return bestScore >= 0.5 ? best : null;
+}
+
+function VoiceStatusControl({ projectId, items }: { projectId: number; items: EstimateItemWithPhotos[] }) {
+  const { toast } = useToast();
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const SpeechRecognitionCtor =
+    typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
+
+  const statusMut = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/estimate-items/${id}`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project", projectId, "estimates"] });
+    },
+    onError: () => {
+      toast({ title: "Ошибка при обновлении статуса", variant: "destructive" });
+    },
+  });
+
+  const handleTranscript = (transcript: string) => {
+    const cleaned = normalizeText(transcript);
+    const statusEntry = STATUS_PHRASES.find((s) => s.phrases.some((p) => cleaned.includes(p)));
+    if (!statusEntry) {
+      toast({ title: "Не распознан статус", description: `Сказано: «${transcript}»`, variant: "destructive" });
+      return;
+    }
+    const match = findItemMatch(transcript, items);
+    if (!match) {
+      toast({ title: "Не найдена позиция сметы", description: `Сказано: «${transcript}»`, variant: "destructive" });
+      return;
+    }
+    statusMut.mutate({ id: match.id, status: statusEntry.status });
+    toast({ title: "Статус обновлён", description: `«${match.name}» → ${statusEntry.label}` });
+  };
+
+  const toggleListening = () => {
+    if (!SpeechRecognitionCtor) {
+      toast({ title: "Голосовое управление не поддерживается в этом браузере", variant: "destructive" });
+      return;
+    }
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "ru-RU";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0]?.[0]?.transcript ?? "";
+      if (transcript) handleTranscript(transcript);
+    };
+    recognition.onerror = () => {
+      toast({ title: "Ошибка распознавания речи", variant: "destructive" });
+    };
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  };
+
+  if (!SpeechRecognitionCtor) return null;
+
+  return (
+    <Button
+      size="sm"
+      variant={listening ? "destructive" : "outline"}
+      onClick={toggleListening}
+      data-testid="button-voice-control"
+    >
+      {listening ? <MicOff className="w-4 h-4 mr-1" /> : <Mic className="w-4 h-4 mr-1" />}
+      {listening ? "Слушаю..." : "Голосом"}
+    </Button>
+  );
+}
+
 export default function WorkExecution({ projectId }: { projectId: number }) {
   const [category, setCategory] = useState<string>("works");
   const [viewMode, setViewMode] = useState<ViewMode>("by-day");
@@ -1293,10 +1400,13 @@ export default function WorkExecution({ projectId }: { projectId: number }) {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Выполнение работ</h1>
         {isAdmin && (
-          <Button size="sm" onClick={handleAdd} data-testid="button-add-item">
-            <Plus className="w-4 h-4 mr-1" />
-            Добавить запись
-          </Button>
+          <div className="flex items-center gap-2">
+            <VoiceStatusControl projectId={projectId} items={allItems} />
+            <Button size="sm" onClick={handleAdd} data-testid="button-add-item">
+              <Plus className="w-4 h-4 mr-1" />
+              Добавить запись
+            </Button>
+          </div>
         )}
       </div>
 
