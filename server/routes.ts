@@ -1488,6 +1488,19 @@ export async function registerRoutes(
     res.json({ burning, upcoming });
   });
 
+  app.get("/api/admin/reminders", requireAdmin, async (_req, res) => {
+    const reminders = await storage.getAllClientReminders();
+    const clients = await storage.getAllClients();
+    const clientById = new Map(clients.map((c) => [c.id, c]));
+    const result = reminders
+      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—" }))
+      .sort((a, b) => {
+        if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
+        return (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
+      });
+    res.json(result);
+  });
+
   app.get("/api/admin/settings/faq-telegram-notifications", requireAdmin, async (_req, res) => {
     const value = await storage.getSetting("faqTelegramNotificationsEnabled");
     res.json({ enabled: value !== "false" });

@@ -159,6 +159,48 @@ async function seedMockReminders(clientIds: number[]) {
   );
 }
 
+async function seedMoreMockReminders(clientIds: number[]) {
+  const flag = await pool.query("SELECT value FROM app_settings WHERE key = $1", ["demo_reminders_seeded_v2"]);
+  if (flag.rows.length > 0) {
+    console.log("= вторая партия мок-напоминаний уже была создана ранее, пропускаю");
+    return;
+  }
+
+  const today = new Date();
+  const addDays = (n: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const mockReminders = [
+    { clientId: clientIds[0], text: "Передать клиенту обновлённую смету после допработ", dueDate: addDays(-1), priority: "urgent" },
+    { clientId: clientIds[0], text: "Подписать акт скрытых работ по фундаменту", dueDate: addDays(0), priority: "urgent" },
+    { clientId: clientIds[0], text: "Заказать кирпич на следующий этап", dueDate: addDays(1), priority: "normal" },
+    { clientId: clientIds[0], text: "Уточнить у клиента цвет фасадной плитки", dueDate: addDays(3), priority: "normal" },
+    { clientId: clientIds[0], text: "Согласовать график поставки кровельных материалов", dueDate: addDays(5), priority: "normal" },
+    { clientId: clientIds[0], text: "Напомнить клиенту про фотоотчёт за месяц", dueDate: addDays(7), priority: "low" },
+    { clientId: clientIds[0], text: "Проверить остатки расходных материалов на складе", dueDate: addDays(10), priority: "low" },
+    { clientId: clientIds[0], text: "Обновить договор подряда — добавить доп. соглашение", dueDate: null, priority: "low" },
+  ];
+
+  let inserted = 0;
+  for (const r of mockReminders) {
+    if (!r.clientId) continue;
+    await pool.query(
+      "INSERT INTO client_reminders (client_id, text, due_date, priority, status, created_at) VALUES ($1, $2, $3, $4, 'pending', $5)",
+      [r.clientId, r.text, r.dueDate, r.priority, new Date().toISOString()],
+    );
+    inserted++;
+  }
+  console.log(`✓ создано ${inserted} мок-напоминаний (вторая партия)`);
+
+  await pool.query(
+    "INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+    ["demo_reminders_seeded_v2", "true"],
+  );
+}
+
 async function main() {
   await pool.query("SELECT 1");
   console.log("✓ соединение с БД установлено");
@@ -173,6 +215,7 @@ async function main() {
   }
 
   await seedMockReminders(clientIds);
+  await seedMoreMockReminders(clientIds);
 
   await pool.end();
   console.log("✓ демо-данные готовы");

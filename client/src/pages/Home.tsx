@@ -122,13 +122,18 @@ export default function Home() {
 
       <Card className={reminders && reminders.burning.length > 0 ? "border-destructive/50" : undefined}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Flame className="w-5 h-5 text-destructive" />
-            Горящее
-            {reminders && reminders.burning.length > 0 && (
-              <Badge className="bg-destructive text-destructive-foreground no-default-hover-elevate">{reminders.burning.length}</Badge>
-            )}
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Flame className="w-5 h-5 text-destructive" />
+              Горящее
+              {reminders && reminders.burning.length > 0 && (
+                <Badge className="bg-destructive text-destructive-foreground no-default-hover-elevate">{reminders.burning.length}</Badge>
+              )}
+            </CardTitle>
+            <Link href="/cabinet/reminders">
+              <Button variant="ghost" size="sm" data-testid="link-all-reminders">Все напоминания</Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent className="space-y-2">
           {!reminders || reminders.burning.length === 0 ? (

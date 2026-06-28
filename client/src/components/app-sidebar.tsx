@@ -26,6 +26,7 @@ import {
   Inbox,
   ListTree,
   Flame,
+  Bell,
 } from "lucide-react";
 import {
   useSidebar,
@@ -231,6 +232,19 @@ export function AppSidebar() {
                     <Link href="/cabinet/clients" onClick={closeMobile}>
                       <Users />
                       <span>Клиенты</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/cabinet/reminders"}
+                    tooltip="Напоминания"
+                    data-testid="link-nav-reminders"
+                  >
+                    <Link href="/cabinet/reminders" onClick={closeMobile}>
+                      <Bell />
+                      <span>Напоминания</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
