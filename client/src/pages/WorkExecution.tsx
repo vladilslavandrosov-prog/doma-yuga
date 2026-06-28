@@ -1127,6 +1127,7 @@ function VoiceStatusControl({ projectId, items }: { projectId: number; items: Es
   const { toast } = useToast();
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const handledResultRef = useRef(false);
 
   const SpeechRecognitionCtor =
     typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
@@ -1169,18 +1170,35 @@ function VoiceStatusControl({ projectId, items }: { projectId: number; items: Es
       recognitionRef.current?.stop();
       return;
     }
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.onend = null;
+      recognitionRef.current.onerror = null;
+      recognitionRef.current.abort();
+    }
+    handledResultRef.current = false;
     const recognition = new SpeechRecognitionCtor();
     recognition.lang = "ru-RU";
     recognition.continuous = false;
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
     recognition.onresult = (event: any) => {
+      if (handledResultRef.current) return;
       const transcript = event.results[0]?.[0]?.transcript ?? "";
-      if (transcript) handleTranscript(transcript);
+      if (transcript) {
+        handledResultRef.current = true;
+        handleTranscript(transcript);
+      }
+      recognition.stop();
     };
     recognition.onerror = () => {
       toast({ title: "Ошибка распознавания речи", variant: "destructive" });
+      setListening(false);
     };
-    recognition.onend = () => setListening(false);
+    recognition.onend = () => {
+      setListening(false);
+      if (recognitionRef.current === recognition) recognitionRef.current = null;
+    };
     recognitionRef.current = recognition;
     recognition.start();
     setListening(true);

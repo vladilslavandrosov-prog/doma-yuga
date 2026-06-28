@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -94,6 +94,8 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   const [manualDueDate, setManualDueDate] = useState("");
   const [manualPriority, setManualPriority] = useState("normal");
   const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const handledResultRef = useRef(false);
 
   const SpeechRecognitionCtor =
     typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
@@ -166,19 +168,40 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
       toast({ title: "Голосовой ввод не поддерживается в этом браузере", variant: "destructive" });
       return;
     }
-    if (listening) return;
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.onend = null;
+      recognitionRef.current.onerror = null;
+      recognitionRef.current.abort();
+    }
+    handledResultRef.current = false;
     const recognition = new SpeechRecognitionCtor();
+    recognitionRef.current = recognition;
     recognition.lang = "ru-RU";
     recognition.continuous = false;
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
     recognition.onresult = (event: any) => {
+      if (handledResultRef.current) return;
       const transcript = event.results[0]?.[0]?.transcript ?? "";
-      if (transcript) handleTranscript(transcript);
+      if (transcript) {
+        handledResultRef.current = true;
+        handleTranscript(transcript);
+      }
+      recognition.stop();
     };
     recognition.onerror = () => {
       toast({ title: "Ошибка распознавания речи", variant: "destructive" });
+      setListening(false);
     };
-    recognition.onend = () => setListening(false);
+    recognition.onend = () => {
+      setListening(false);
+      if (recognitionRef.current === recognition) recognitionRef.current = null;
+    };
     recognition.start();
     setListening(true);
   };
