@@ -8,6 +8,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatDate, overdueUrgencyClass, addDaysToToday } from "@/lib/format";
 import { AlertTriangle, Wallet, Building2, Flame, CalendarClock, Check, Users, Clock } from "lucide-react";
 import type { ClientReminder } from "@shared/schema";
+import { PRIORITY_LABEL, PRIORITY_BADGE_CLASS } from "@/lib/reminderConstants";
 
 interface DashboardSummary {
   activeCount: number;
@@ -26,18 +27,6 @@ interface RemindersSummary {
   burning: ReminderWithClient[];
   upcoming: ReminderWithClient[];
 }
-
-const PRIORITY_LABEL: Record<string, string> = {
-  urgent: "Важно",
-  normal: "Обычно",
-  low: "Не важно",
-};
-
-const PRIORITY_BADGE_CLASS: Record<string, string> = {
-  urgent: "bg-red-600 text-white no-default-hover-elevate",
-  normal: "bg-amber-500 text-white no-default-hover-elevate",
-  low: "bg-sky-600 text-white no-default-hover-elevate",
-};
 
 function ReminderRow({ reminder }: { reminder: ReminderWithClient }) {
   const [resolving, setResolving] = useState(false);

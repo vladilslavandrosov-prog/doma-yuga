@@ -27,12 +27,7 @@ import type { Project, ClientReminder } from "@shared/schema";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
 import { formatDate, overdueUrgencyClass, addDaysToToday } from "@/lib/format";
 import { ReminderHistoryDialog } from "@/components/ReminderHistoryDialog";
-
-const RECURRENCE_LABEL: Record<string, string> = {
-  none: "Не повторять",
-  weekly: "Еженедельно",
-  monthly: "Ежемесячно",
-};
+import { PRIORITY_LABEL, PRIORITY_BADGE_CLASS, RECURRENCE_LABEL } from "@/lib/reminderConstants";
 
 const CLIENTS_TOUR_STEPS: TourStep[] = [
   { target: "text-page-title", title: "Клиенты", description: "Список всех клиентов с доступом в личный кабинет и привязкой к их объектам." },
@@ -50,18 +45,6 @@ interface StaffMember {
   username: string;
   telegramChatId: string | null;
 }
-
-const PRIORITY_LABEL: Record<string, string> = {
-  urgent: "Важно",
-  normal: "Обычно",
-  low: "Не важно",
-};
-
-const PRIORITY_BADGE_CLASS: Record<string, string> = {
-  urgent: "bg-red-600 text-white no-default-hover-elevate",
-  normal: "bg-amber-500 text-white no-default-hover-elevate",
-  low: "bg-sky-600 text-white no-default-hover-elevate",
-};
 
 // Разбирает голосовую фразу вида «позвонить заказчику до 5 июля, важно — согласовать смету»
 // на дату исполнения, важность и сохраняет полный исходный текст.

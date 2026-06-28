@@ -20,12 +20,7 @@ import type { ClientReminder } from "@shared/schema";
 import { ReminderHistoryDialog } from "@/components/ReminderHistoryDialog";
 import { useAuth } from "@/lib/auth";
 import { Link } from "wouter";
-
-const RECURRENCE_LABEL: Record<string, string> = {
-  none: "Не повторять",
-  weekly: "Еженедельно",
-  monthly: "Ежемесячно",
-};
+import { PRIORITY_LABEL, PRIORITY_BADGE_CLASS, RECURRENCE_LABEL } from "@/lib/reminderConstants";
 
 interface ReminderWithClient extends ClientReminder {
   clientName: string;
@@ -33,18 +28,6 @@ interface ReminderWithClient extends ClientReminder {
   assignedToName: string | null;
   recurrence: string;
 }
-
-const PRIORITY_LABEL: Record<string, string> = {
-  urgent: "Важно",
-  normal: "Обычно",
-  low: "Не важно",
-};
-
-const PRIORITY_BADGE_CLASS: Record<string, string> = {
-  urgent: "bg-red-600 text-white no-default-hover-elevate",
-  normal: "bg-amber-500 text-white no-default-hover-elevate",
-  low: "bg-sky-600 text-white no-default-hover-elevate",
-};
 
 export default function Reminders() {
   const { toast } = useToast();

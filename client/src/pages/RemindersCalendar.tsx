@@ -5,18 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, CalendarDays, List } from "lucide-react";
 import type { ClientReminder } from "@shared/schema";
+import { PRIORITY_DOT_CLASS } from "@/lib/reminderConstants";
 
 interface ReminderWithClient extends ClientReminder {
   clientName: string;
   projectName: string | null;
   assignedToName: string | null;
 }
-
-const PRIORITY_DOT_CLASS: Record<string, string> = {
-  urgent: "bg-red-600",
-  normal: "bg-amber-500",
-  low: "bg-sky-600",
-};
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 

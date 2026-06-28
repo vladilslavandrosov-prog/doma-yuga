@@ -177,6 +177,9 @@ httpServer.listen(
 
   const ONE_DAY = 24 * 60 * 60 * 1000;
   const ONE_HOUR = 60 * 60 * 1000;
+  checkOverduePayments().catch((err) => console.error("[overdue-payments]", err));
+  checkDueReminders().catch((err) => console.error("[client-reminders]", err));
+  sendDailyReminderDigest().catch((err) => console.error("[reminders-digest]", err));
   setInterval(() => {
     checkOverduePayments().catch((err) => console.error("[overdue-payments]", err));
   }, ONE_DAY);
