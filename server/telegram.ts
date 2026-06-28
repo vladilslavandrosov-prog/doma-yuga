@@ -69,6 +69,15 @@ export async function notifyOverduePayment(projectName: string, remaining: numbe
   await sendTelegramText(text);
 }
 
+export async function notifyExtraWork(projectName: string, itemName: string, totalPrice: string) {
+  const text = `➕ Дополнительная работа\n\n` +
+    `📋 Объект: ${projectName}\n` +
+    `Работа: ${itemName}\n` +
+    `Сумма: ${parseFloat(totalPrice).toLocaleString("ru-RU")} ₽\n\n` +
+    `Заказчик уведомлён в чате объекта.`;
+  await sendTelegramText(text);
+}
+
 export async function notifyClientReminderDue(clientName: string, reminderText: string, priority: string) {
   const priorityLabel = priority === "urgent" ? "🔴 Срочно" : priority === "low" ? "🔵 Не срочно" : "🟡 Обычная";
   const text = `📌 Напоминание по клиенту\n\n` +

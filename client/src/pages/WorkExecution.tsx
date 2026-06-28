@@ -54,6 +54,7 @@ import {
 } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { Estimate, EstimateItem, NonWorkingDay, EstimateItemPhoto, DayComment, WorkGroup } from "@shared/schema";
 
 type EstimateItemWithPhotos = EstimateItem & { photos?: EstimateItemPhoto[] };
@@ -616,6 +617,7 @@ interface ItemFormData {
   unitPrice: string;
   status: string;
   workGroup: string;
+  isExtraWork: boolean;
 }
 
 function ItemFormDialog({
@@ -646,6 +648,7 @@ function ItemFormDialog({
     unitPrice: editItem?.unitPrice ?? "0",
     status: editItem?.status ?? "completed",
     workGroup: editItem?.workGroup ?? "",
+    isExtraWork: false,
   });
 
   const totalPrice = (parseFloat(form.quantity || "0") * parseFloat(form.unitPrice || "0")).toFixed(2);
@@ -701,12 +704,12 @@ function ItemFormDialog({
       unitPrice: form.unitPrice,
       totalPrice,
       status: form.status,
-      workGroup: form.workGroup || null,
+      workGroup: form.workGroup || (form.isExtraWork ? "Дополнительные работы" : null),
     };
     if (isEdit) {
       updateMut.mutate(payload);
     } else {
-      createMut.mutate(payload);
+      createMut.mutate({ ...payload, notifyClient: form.isExtraWork });
     }
   };
 
@@ -745,6 +748,19 @@ function ItemFormDialog({
               </datalist>
             )}
           </div>
+          {!isEdit && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="is-extra-work"
+                checked={form.isExtraWork}
+                onCheckedChange={(checked) => setForm({ ...form, isExtraWork: checked === true })}
+                data-testid="checkbox-extra-work"
+              />
+              <Label htmlFor="is-extra-work" className="text-sm font-normal">
+                Дополнительная работа (вне сметы) — уведомить заказчика в чате
+              </Label>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Дата</Label>

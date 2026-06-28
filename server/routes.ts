@@ -939,6 +939,24 @@ export async function registerRoutes(
       return res.status(400).json({ error: parsed.error });
     }
     const item = await storage.createEstimateItem(parsed.data);
+
+    if (req.body.notifyClient) {
+      const estimate = await storage.getEstimateById(item.estimateId);
+      if (estimate) {
+        const project = await storage.getProjectById(estimate.projectId);
+        if (project) {
+          await storage.createMessage({
+            projectId: project.id,
+            sender: "admin",
+            text: `Добавлена дополнительная работа: «${item.name}» (${item.quantity} ${item.unit}, ${item.totalPrice} ₽). Это вне основной сметы.`,
+            createdAt: new Date().toISOString(),
+          });
+          const { notifyExtraWork } = await import("./telegram");
+          await notifyExtraWork(project.name, item.name, item.totalPrice);
+        }
+      }
+    }
+
     res.json(item);
   });
 
