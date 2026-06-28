@@ -690,7 +690,14 @@ export default function Clients() {
                     <Users className="h-4 w-4 text-muted-foreground" />
                     {client.name}
                     {burningTexts.length > 0 && (
-                      <Flame className="h-4 w-4 text-destructive" data-testid={`icon-burning-client-${client.id}`} />
+                      <span className="flex items-center gap-1" data-testid={`icon-burning-client-${client.id}`}>
+                        <Flame className="h-4 w-4 text-destructive" />
+                        {burningTexts.length > 1 && (
+                          <Badge className="bg-destructive text-destructive-foreground no-default-hover-elevate h-5 px-1.5">
+                            {burningTexts.length}
+                          </Badge>
+                        )}
+                      </span>
                     )}
                   </span>
                   <div className="flex items-center gap-2">
