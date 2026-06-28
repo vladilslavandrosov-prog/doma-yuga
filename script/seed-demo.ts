@@ -25,14 +25,32 @@ const DEMO_CLIENTS: DemoClient[] = [
     projectName: "Демо-объект — коттедж 150м²",
     address: "г. Краснодар, ул. Демонстрационная, 1",
   },
-  {
-    name: "Иванов Сергей Петрович",
-    username: "matveev",
-    password: "matveev12345",
-    projectName: "Дом на ул. Атамана Матвеева — коттедж 180м²",
-    address: "г. Краснодар, ул. Атамана Матвеева, 12",
-  },
 ];
+
+const REMOVED_DEMO_USERNAMES = ["matveev"];
+
+async function removeDemoClient(username: string) {
+  const client = await pool.query("SELECT id FROM clients WHERE uid = $1", [`demo-${username}`]);
+  if (client.rows.length === 0) return;
+  const clientId = client.rows[0].id;
+
+  await pool.query("DELETE FROM users WHERE username = $1", [username]);
+
+  const projects = await pool.query("SELECT id FROM projects WHERE client_id = $1", [clientId]);
+  for (const p of projects.rows) {
+    const estimates = await pool.query("SELECT id FROM estimates WHERE project_id = $1", [p.id]);
+    for (const e of estimates.rows) {
+      await pool.query("DELETE FROM estimate_items WHERE estimate_id = $1", [e.id]);
+    }
+    await pool.query("DELETE FROM estimates WHERE project_id = $1", [p.id]);
+    await pool.query("DELETE FROM payments WHERE project_id = $1", [p.id]);
+    await pool.query("DELETE FROM messages WHERE project_id = $1", [p.id]);
+    await pool.query("DELETE FROM projects WHERE id = $1", [p.id]);
+  }
+  await pool.query("DELETE FROM client_reminders WHERE client_id = $1", [clientId]);
+  await pool.query("DELETE FROM clients WHERE id = $1", [clientId]);
+  console.log(`✓ демо-клиент «${username}» и его объект удалены`);
+}
 
 const WORK_ITEMS = [
   { name: "Разработка котлована", unit: "м3", quantity: "120", unitPrice: "450", status: "completed", workGroup: "Земляные работы" },
@@ -123,7 +141,7 @@ async function seedMockReminders(clientIds: number[]) {
   const today = new Date().toISOString().slice(0, 10);
   const mockReminders = [
     { clientId: clientIds[0], text: "Срочно позвонить — уточнить дату следующей оплаты", dueDate: today, priority: "urgent" },
-    { clientId: clientIds[1], text: "Согласовать допработы по фундаменту", dueDate: today, priority: "urgent" },
+    { clientId: clientIds[0], text: "Согласовать допработы по фундаменту", dueDate: today, priority: "urgent" },
   ];
 
   for (const r of mockReminders) {
@@ -144,6 +162,10 @@ async function seedMockReminders(clientIds: number[]) {
 async function main() {
   await pool.query("SELECT 1");
   console.log("✓ соединение с БД установлено");
+
+  for (const username of REMOVED_DEMO_USERNAMES) {
+    await removeDemoClient(username);
+  }
 
   const clientIds: number[] = [];
   for (const client of DEMO_CLIENTS) {
