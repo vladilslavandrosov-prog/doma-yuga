@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { Project, Client } from "@shared/schema";
@@ -25,8 +25,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
-import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter, HelpCircle, AlertTriangle, Wallet, Building2 } from "lucide-react";
+import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter, HelpCircle, AlertTriangle, Wallet, Building2, QrCode, Download } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import QRCode from "qrcode";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
 
 const PROJECTS_TOUR_STEPS: TourStep[] = [
@@ -50,7 +51,7 @@ function getStatusBadge(status: string) {
   }
 }
 
-function ProjectCard({ project, isAdmin, onEdit, onDelete }: { project: Project; isAdmin: boolean; onEdit: (p: Project) => void; onDelete: (p: Project) => void }) {
+function ProjectCard({ project, isAdmin, onEdit, onDelete, onShowQr }: { project: Project; isAdmin: boolean; onEdit: (p: Project) => void; onDelete: (p: Project) => void; onShowQr: (p: Project) => void }) {
   const { data: client } = useQuery<Client>({
     queryKey: ["/api/project", project.id, "client"],
   });
@@ -59,6 +60,13 @@ function ProjectCard({ project, isAdmin, onEdit, onDelete }: { project: Project;
     <Card className="hover-elevate h-full relative" data-testid={`card-project-${project.id}`}>
       {isAdmin && (
         <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+          <button
+            className="p-1.5 rounded-md hover:bg-muted transition-colors"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onShowQr(project); }}
+            data-testid={`button-qr-project-${project.id}`}
+          >
+            <QrCode className="w-4 h-4 text-muted-foreground hover:text-primary" />
+          </button>
           <button
             className="p-1.5 rounded-md hover:bg-muted transition-colors"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(project); }}
@@ -77,7 +85,7 @@ function ProjectCard({ project, isAdmin, onEdit, onDelete }: { project: Project;
       )}
       <Link href={`/cabinet/project/${project.id}`}>
         <div className="cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 pr-20">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 pr-28">
             <CardTitle className="text-base font-medium truncate min-w-0" data-testid={`text-project-name-${project.id}`}>
               {project.name}
             </CardTitle>
@@ -156,6 +164,57 @@ function AdminDashboardSummary() {
   );
 }
 
+function ProjectQrDialog({ project, onClose }: { project: Project | null; onClose: () => void }) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+
+  const targetUrl = project ? `${window.location.origin}/cabinet/project/${project.id}/photos` : "";
+
+  useEffect(() => {
+    if (project) {
+      QRCode.toDataURL(targetUrl, { width: 320, margin: 1 }).then(setDataUrl).catch(() => setDataUrl(null));
+    }
+  }, [project?.id]);
+
+  return (
+    <Dialog
+      open={!!project}
+      onOpenChange={(open) => {
+        if (!open) {
+          setDataUrl(null);
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>QR-код объекта</DialogTitle>
+        </DialogHeader>
+        {project && (
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-sm text-muted-foreground text-center">{project.name}</p>
+            {dataUrl ? (
+              <img src={dataUrl} alt="QR-код" className="w-64 h-64" data-testid="img-project-qr" />
+            ) : (
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            )}
+            <p className="text-xs text-muted-foreground text-center">
+              Сканируйте на объекте, чтобы быстро открыть фотоотчёт
+            </p>
+            {dataUrl && (
+              <a href={dataUrl} download={`qr-${project.name}.png`} className="w-full">
+                <Button variant="outline" className="w-full" data-testid="button-download-qr">
+                  <Download className="w-4 h-4 mr-2" />
+                  Скачать
+                </Button>
+              </a>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ProjectsSkeleton() {
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -182,6 +241,7 @@ export default function Projects() {
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [qrProject, setQrProject] = useState<Project | null>(null);
   const [formName, setFormName] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formStartDate, setFormStartDate] = useState("");
@@ -410,7 +470,7 @@ export default function Projects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-projects">
           {sortedAndFiltered.map((project) => (
-            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} />
+            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} onShowQr={setQrProject} />
           ))}
         </div>
       )}
@@ -562,6 +622,8 @@ export default function Projects() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ProjectQrDialog project={qrProject} onClose={() => setQrProject(null)} />
     </div>
   );
 }
