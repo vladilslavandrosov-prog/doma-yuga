@@ -21,6 +21,7 @@ import {
   insertDayCommentSchema,
   insertLeadSchema,
   insertWorkGroupSchema,
+  insertClientReminderSchema,
 } from "@shared/schema";
 
 const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
@@ -63,6 +64,20 @@ export async function checkOverduePayments(): Promise<void> {
     if (remaining > 0) {
       await notifyOverduePayment(project.name, remaining);
     }
+  }
+}
+
+// Раз в сутки шлёт в Telegram напоминания по клиентам, срок которых наступил или прошёл
+export async function checkDueReminders(): Promise<void> {
+  const { notifyClientReminderDue } = await import("./telegram");
+  const reminders = await storage.getAllClientReminders();
+  const today = new Date().toISOString().slice(0, 10);
+  for (const reminder of reminders) {
+    if (reminder.status !== "pending") continue;
+    if (!reminder.dueDate || reminder.dueDate > today) continue;
+    const client = await storage.getClientById(reminder.clientId);
+    if (!client) continue;
+    await notifyClientReminderDue(client.name, reminder.text, reminder.priority);
   }
 }
 
@@ -383,6 +398,47 @@ export async function registerRoutes(
     const ok = await storage.deleteClient(id);
     if (!ok) {
       return res.status(404).json({ error: "Клиент не найден" });
+    }
+    res.status(204).end();
+  });
+
+  app.get("/api/admin/clients/:id/reminders", requireAdmin, async (req, res) => {
+    const clientId = parseInt(req.params.id as string);
+    const reminders = await storage.getClientRemindersByClientId(clientId);
+    res.json(reminders);
+  });
+
+  app.post("/api/admin/clients/:id/reminders", requireAdmin, async (req, res) => {
+    const clientId = parseInt(req.params.id as string);
+    const parsed = insertClientReminderSchema.safeParse({
+      ...req.body,
+      clientId,
+      createdAt: new Date().toISOString(),
+    });
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    const reminder = await storage.createClientReminder(parsed.data);
+    res.json(reminder);
+  });
+
+  app.patch("/api/admin/reminders/:id", requireAdmin, async (req, res) => {
+    const allowed = ["text", "dueDate", "priority", "status"];
+    const filtered: Record<string, any> = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) filtered[key] = req.body[key];
+    }
+    const reminder = await storage.updateClientReminder(parseInt(req.params.id as string), filtered);
+    if (!reminder) {
+      return res.status(404).json({ error: "Напоминание не найдено" });
+    }
+    res.json(reminder);
+  });
+
+  app.delete("/api/admin/reminders/:id", requireAdmin, async (req, res) => {
+    const ok = await storage.deleteClientReminder(parseInt(req.params.id as string));
+    if (!ok) {
+      return res.status(404).json({ error: "Напоминание не найдено" });
     }
     res.status(204).end();
   });

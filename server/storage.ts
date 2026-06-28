@@ -15,6 +15,7 @@ import {
   type DayComment, type InsertDayComment,
   type Lead, type InsertLead,
   type WorkGroup, type InsertWorkGroup,
+  type ClientReminder, type InsertClientReminder,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -88,6 +89,11 @@ export interface IStorage {
   updateDayComment(id: number, data: Partial<InsertDayComment>): Promise<DayComment | undefined>;
   deleteDayComment(id: number): Promise<boolean>;
   deleteDayCommentsByProjectId(projectId: number): Promise<void>;
+  getClientRemindersByClientId(clientId: number): Promise<ClientReminder[]>;
+  getAllClientReminders(): Promise<ClientReminder[]>;
+  createClientReminder(reminder: InsertClientReminder): Promise<ClientReminder>;
+  updateClientReminder(id: number, data: Partial<InsertClientReminder>): Promise<ClientReminder | undefined>;
+  deleteClientReminder(id: number): Promise<boolean>;
   getLeads(): Promise<Lead[]>;
   createLead(lead: InsertLead): Promise<Lead>;
   updateLead(id: number, data: { status?: string; notes?: string }): Promise<Lead | undefined>;

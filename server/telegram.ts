@@ -68,3 +68,12 @@ export async function notifyOverduePayment(projectName: string, remaining: numbe
     `Остаток к оплате: ${remaining.toLocaleString("ru-RU")} ₽`;
   await sendTelegramText(text);
 }
+
+export async function notifyClientReminderDue(clientName: string, reminderText: string, priority: string) {
+  const priorityLabel = priority === "urgent" ? "🔴 Срочно" : priority === "low" ? "🔵 Не срочно" : "🟡 Обычная";
+  const text = `📌 Напоминание по клиенту\n\n` +
+    `👤 Клиент: ${clientName}\n` +
+    `${priorityLabel}\n\n` +
+    `${reminderText}`;
+  await sendTelegramText(text);
+}

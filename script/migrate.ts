@@ -54,6 +54,19 @@ async function main() {
   }
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS client_reminders (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      due_date TEXT,
+      priority TEXT NOT NULL DEFAULT 'normal',
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL
+    )
+  `);
+  console.log("✓ таблица client_reminders готова");
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS app_settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL

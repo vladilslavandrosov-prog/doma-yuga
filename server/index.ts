@@ -4,7 +4,7 @@ import connectPgSimple from "connect-pg-simple";
 import path from "path";
 import crypto from "crypto";
 import fs from "fs";
-import { registerRoutes, checkOverduePayments } from "./routes";
+import { registerRoutes, checkOverduePayments, checkDueReminders } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
@@ -178,5 +178,8 @@ httpServer.listen(
   const ONE_DAY = 24 * 60 * 60 * 1000;
   setInterval(() => {
     checkOverduePayments().catch((err) => console.error("[overdue-payments]", err));
+  }, ONE_DAY);
+  setInterval(() => {
+    checkDueReminders().catch((err) => console.error("[client-reminders]", err));
   }, ONE_DAY);
 })();

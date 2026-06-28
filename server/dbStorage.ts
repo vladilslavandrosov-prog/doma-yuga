@@ -4,6 +4,7 @@ import {
   clients, projects, estimates, estimateItems, payments,
   documents, photos, videos, messages, users, nonWorkingDays,
   estimateItemPhotos, galleryPhotos, dayComments, leads, workGroups, appSettings,
+  clientReminders,
 } from "@shared/schema";
 import type {
   Client, InsertClient,
@@ -22,6 +23,7 @@ import type {
   DayComment, InsertDayComment,
   Lead, InsertLead,
   WorkGroup, InsertWorkGroup,
+  ClientReminder, InsertClientReminder,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -361,6 +363,29 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDayCommentsByProjectId(projectId: number): Promise<void> {
     await db.delete(dayComments).where(eq(dayComments.projectId, projectId));
+  }
+
+  async getClientRemindersByClientId(clientId: number): Promise<ClientReminder[]> {
+    return db.select().from(clientReminders).where(eq(clientReminders.clientId, clientId));
+  }
+
+  async getAllClientReminders(): Promise<ClientReminder[]> {
+    return db.select().from(clientReminders);
+  }
+
+  async createClientReminder(reminder: InsertClientReminder): Promise<ClientReminder> {
+    const [row] = await db.insert(clientReminders).values(reminder).returning();
+    return row;
+  }
+
+  async updateClientReminder(id: number, data: Partial<InsertClientReminder>): Promise<ClientReminder | undefined> {
+    const [row] = await db.update(clientReminders).set(data).where(eq(clientReminders.id, id)).returning();
+    return row;
+  }
+
+  async deleteClientReminder(id: number): Promise<boolean> {
+    const result = await db.delete(clientReminders).where(eq(clientReminders.id, id)).returning();
+    return result.length > 0;
   }
 
   async getLeads(): Promise<Lead[]> {

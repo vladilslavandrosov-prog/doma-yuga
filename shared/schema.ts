@@ -210,6 +210,20 @@ export const insertWorkGroupSchema = createInsertSchema(workGroups).omit({ id: t
 export type InsertWorkGroup = z.infer<typeof insertWorkGroupSchema>;
 export type WorkGroup = typeof workGroups.$inferSelect;
 
+export const clientReminders = pgTable("client_reminders", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  text: text("text").notNull(),
+  dueDate: text("due_date"),
+  priority: text("priority").notNull().default("normal"),
+  status: text("status").notNull().default("pending"),
+  createdAt: text("created_at").notNull(),
+});
+
+export const insertClientReminderSchema = createInsertSchema(clientReminders).omit({ id: true });
+export type InsertClientReminder = z.infer<typeof insertClientReminderSchema>;
+export type ClientReminder = typeof clientReminders.$inferSelect;
+
 export const appSettings = pgTable("app_settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
