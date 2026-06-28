@@ -38,6 +38,12 @@ const MONTHS_RU: Record<string, number> = {
   "июл": 6, "август": 7, "сентябр": 8, "октябр": 9, "ноябр": 10, "декабр": 11,
 };
 
+interface StaffMember {
+  id: number;
+  username: string;
+  telegramChatId: string | null;
+}
+
 const PRIORITY_LABEL: Record<string, string> = {
   urgent: "Срочно",
   normal: "Обычная",
@@ -94,6 +100,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
   const [manualDueDate, setManualDueDate] = useState("");
   const [manualPriority, setManualPriority] = useState("normal");
   const [manualProjectId, setManualProjectId] = useState<string>("none");
+  const [manualAssigneeId, setManualAssigneeId] = useState<string>("none");
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const handledResultRef = useRef(false);
@@ -111,13 +118,18 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     enabled: !!client,
   });
 
+  const { data: staff } = useQuery<StaffMember[]>({
+    queryKey: ["/api/admin/staff"],
+    enabled: !!client,
+  });
+
   const sortedReminders = (reminders ?? []).slice().sort((a, b) => {
     if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
     return (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
   });
 
   const createMut = useMutation({
-    mutationFn: async (data: { text: string; dueDate: string | null; priority: string; projectId?: number | null }) => {
+    mutationFn: async (data: { text: string; dueDate: string | null; priority: string; projectId?: number | null; assignedToUserId?: number | null }) => {
       const res = await apiRequest("POST", `/api/admin/clients/${client!.id}/reminders`, data);
       if (!res.ok) throw new Error("Ошибка создания напоминания");
       return res.json();
@@ -128,6 +140,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
       setManualDueDate("");
       setManualPriority("normal");
       setManualProjectId("none");
+      setManualAssigneeId("none");
       toast({ title: "Напоминание сохранено" });
     },
     onError: () => {
@@ -167,6 +180,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     setManualDueDate("");
     setManualPriority("normal");
     setManualProjectId("none");
+    setManualAssigneeId("none");
     setEditingId(null);
   };
 
@@ -178,6 +192,7 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
     setManualDueDate(r.dueDate ?? "");
     setManualPriority(r.priority);
     setManualProjectId(r.projectId != null ? String(r.projectId) : "none");
+    setManualAssigneeId(r.assignedToUserId != null ? String(r.assignedToUserId) : "none");
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
@@ -188,13 +203,14 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
       return;
     }
     const projectId = manualProjectId === "none" ? null : parseInt(manualProjectId);
+    const assignedToUserId = manualAssigneeId === "none" ? null : parseInt(manualAssigneeId);
     if (editingId) {
       updateMut.mutate(
-        { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId } },
+        { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId, assignedToUserId } },
         { onSuccess: () => { resetForm(); toast({ title: "Изменения сохранены" }); } },
       );
     } else {
-      createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId });
+      createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, projectId, assignedToUserId });
     }
   };
 
@@ -304,6 +320,11 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                     <span className="text-muted-foreground text-xs">
                       {client?.projects.find((p) => p.id === r.projectId)?.name ?? "Объект"}
                     </span>
+                  )}
+                  {r.assignedToUserId != null && (
+                    <Badge variant="outline" data-testid={`badge-assignee-${r.id}`}>
+                      {staff?.find((s) => s.id === r.assignedToUserId)?.username ?? "Сотрудник"}
+                    </Badge>
                   )}
                 </div>
                 <p className={r.status === "done" ? "line-through" : ""}>{r.text}</p>
@@ -471,6 +492,19 @@ function ReminderDialog({ client, onClose }: { client: ClientWithAccount | null;
                   <SelectItem value="none">Без объекта</SelectItem>
                   {client.projects.map((p) => (
                     <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {staff && staff.length > 0 && (
+              <Select value={manualAssigneeId} onValueChange={setManualAssigneeId}>
+                <SelectTrigger data-testid="select-reminder-assignee">
+                  <SelectValue placeholder="Назначить сотруднику" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Не назначено</SelectItem>
+                  {staff.map((s) => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.username}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

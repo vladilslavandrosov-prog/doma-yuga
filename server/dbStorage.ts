@@ -291,6 +291,16 @@ export class DatabaseStorage implements IStorage {
     await db.delete(users).where(eq(users.clientId, clientId));
   }
 
+  async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
+    const [row] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    return row;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
+  }
+
   async getNonWorkingDaysByProjectId(projectId: number): Promise<NonWorkingDay[]> {
     return db.select().from(nonWorkingDays).where(eq(nonWorkingDays.projectId, projectId));
   }

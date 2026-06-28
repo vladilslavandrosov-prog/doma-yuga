@@ -22,6 +22,7 @@ import {
   insertLeadSchema,
   insertWorkGroupSchema,
   insertClientReminderSchema,
+  type ClientReminder,
 } from "@shared/schema";
 
 const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
@@ -437,6 +438,58 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
+  app.get("/api/admin/staff", requireAdmin, async (_req, res) => {
+    const users = await storage.getAllUsers();
+    const staff = users
+      .filter((u) => u.role === "staff")
+      .map((u) => ({ id: u.id, username: u.username, telegramChatId: u.telegramChatId }));
+    res.json(staff);
+  });
+
+  app.post("/api/admin/staff", requireAdmin, async (req, res) => {
+    const { username, password, telegramChatId } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: "Логин и пароль обязательны" });
+    }
+    const existing = await storage.getUserByUsername(username);
+    if (existing) {
+      return res.status(400).json({ error: "Пользователь с таким логином уже существует" });
+    }
+    const hashedPwd = await hashPassword(password);
+    const user = await storage.createUser({
+      username,
+      password: hashedPwd,
+      role: "staff",
+      clientId: null,
+      telegramChatId: telegramChatId || null,
+    });
+    res.json({ id: user.id, username: user.username, telegramChatId: user.telegramChatId });
+  });
+
+  app.patch("/api/admin/staff/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id as string);
+    const { telegramChatId, password } = req.body;
+    const updateData: Record<string, unknown> = {};
+    if (telegramChatId !== undefined) updateData.telegramChatId = telegramChatId || null;
+    if (password) updateData.password = await hashPassword(password);
+    const updated = await storage.updateUser(id, updateData as any);
+    if (!updated || updated.role !== "staff") {
+      return res.status(404).json({ error: "Сотрудник не найден" });
+    }
+    res.json({ id: updated.id, username: updated.username, telegramChatId: updated.telegramChatId });
+  });
+
+  app.delete("/api/admin/staff/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id as string);
+    const users = await storage.getAllUsers();
+    const target = users.find((u) => u.id === id && u.role === "staff");
+    if (!target) {
+      return res.status(404).json({ error: "Сотрудник не найден" });
+    }
+    await storage.deleteUser(id);
+    res.status(204).end();
+  });
+
   app.get("/api/admin/clients/:id/reminders", requireAdmin, async (req, res) => {
     const clientId = parseInt(req.params.id as string);
     const reminders = await storage.getClientRemindersByClientId(clientId);
@@ -458,7 +511,8 @@ export async function registerRoutes(
       const { notifyClientReminderDue } = await import("./telegram");
       const client = await storage.getClientById(clientId);
       if (client) {
-        await notifyClientReminderDue(client.name, reminder.text, reminder.priority);
+        const assignee = reminder.assignedToUserId ? await storage.getUserById(reminder.assignedToUserId) : undefined;
+        await notifyClientReminderDue(client.name, reminder.text, reminder.priority, assignee?.telegramChatId);
         await storage.updateClientReminder(reminder.id, { notifiedAt: new Date().toISOString() });
       }
     }
@@ -466,7 +520,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/reminders/:id", requireAdmin, async (req, res) => {
-    const allowed = ["text", "dueDate", "priority", "status", "resolutionNote", "resolutionQuality", "projectId"];
+    const allowed = ["text", "dueDate", "priority", "status", "resolutionNote", "resolutionQuality", "projectId", "assignedToUserId"];
     const filtered: Record<string, any> = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) filtered[key] = req.body[key];
@@ -480,6 +534,14 @@ export async function registerRoutes(
     const reminder = await storage.updateClientReminder(parseInt(req.params.id as string), filtered);
     if (!reminder) {
       return res.status(404).json({ error: "Напоминание не найдено" });
+    }
+    if (filtered.assignedToUserId !== undefined && filtered.assignedToUserId !== null && reminder.status === "pending" && reminder.priority === "urgent") {
+      const { notifyClientReminderDue } = await import("./telegram");
+      const client = await storage.getClientById(reminder.clientId);
+      const assignee = await storage.getUserById(filtered.assignedToUserId);
+      if (client && assignee) {
+        await notifyClientReminderDue(client.name, reminder.text, reminder.priority, assignee.telegramChatId);
+      }
     }
     res.json(reminder);
   });
@@ -1518,19 +1580,28 @@ export async function registerRoutes(
     const clientById = new Map(clients.map((c) => [c.id, c]));
     const projects = await storage.getAllProjects();
     const projectById = new Map(projects.map((p) => [p.id, p]));
+    const users = await storage.getAllUsers();
+    const userById = new Map(users.map((u) => [u.id, u]));
     const today = new Date().toISOString().slice(0, 10);
     const in7Days = new Date();
     in7Days.setDate(in7Days.getDate() + 7);
     const in7DaysStr = in7Days.toISOString().slice(0, 10);
 
+    const enrich = (r: ClientReminder) => ({
+      ...r,
+      clientName: clientById.get(r.clientId)?.name ?? "—",
+      projectName: r.projectId != null ? projectById.get(r.projectId)?.name ?? null : null,
+      assignedToName: r.assignedToUserId != null ? userById.get(r.assignedToUserId)?.username ?? null : null,
+    });
+
     const pending = reminders.filter((r) => r.status === "pending");
     const burning = pending
       .filter((r) => r.priority === "urgent" || (r.dueDate && r.dueDate <= today))
-      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—", projectName: r.projectId != null ? projectById.get(r.projectId)?.name ?? null : null }))
+      .map(enrich)
       .sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"));
     const upcoming = pending
       .filter((r) => !burning.some((b) => b.id === r.id) && r.dueDate && r.dueDate > today && r.dueDate <= in7DaysStr)
-      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—", projectName: r.projectId != null ? projectById.get(r.projectId)?.name ?? null : null }))
+      .map(enrich)
       .sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"));
 
     res.json({ burning, upcoming });
@@ -1542,8 +1613,15 @@ export async function registerRoutes(
     const clientById = new Map(clients.map((c) => [c.id, c]));
     const projects = await storage.getAllProjects();
     const projectById = new Map(projects.map((p) => [p.id, p]));
+    const users = await storage.getAllUsers();
+    const userById = new Map(users.map((u) => [u.id, u]));
     const result = reminders
-      .map((r) => ({ ...r, clientName: clientById.get(r.clientId)?.name ?? "—", projectName: r.projectId != null ? projectById.get(r.projectId)?.name ?? null : null }))
+      .map((r) => ({
+        ...r,
+        clientName: clientById.get(r.clientId)?.name ?? "—",
+        projectName: r.projectId != null ? projectById.get(r.projectId)?.name ?? null : null,
+        assignedToName: r.assignedToUserId != null ? userById.get(r.assignedToUserId)?.username ?? null : null,
+      }))
       .sort((a, b) => {
         if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
         return (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");

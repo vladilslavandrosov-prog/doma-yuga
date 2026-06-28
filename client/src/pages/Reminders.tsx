@@ -21,6 +21,7 @@ import type { ClientReminder } from "@shared/schema";
 interface ReminderWithClient extends ClientReminder {
   clientName: string;
   projectName: string | null;
+  assignedToName: string | null;
 }
 
 const PRIORITY_LABEL: Record<string, string> = {
@@ -206,6 +207,7 @@ export default function Reminders() {
                       </span>
                       {r.dueDate && <span className="text-muted-foreground text-xs">до {formatDate(r.dueDate)}</span>}
                       {r.projectName && <span className="text-muted-foreground text-xs">{r.projectName}</span>}
+                      {r.assignedToName && <Badge variant="outline" data-testid={`badge-assignee-${r.id}`}>{r.assignedToName}</Badge>}
                       <Badge variant="outline">{r.status === "done" ? "Выполнено" : "В работе"}</Badge>
                     </div>
                     <p className={r.status === "done" ? "line-through" : ""}>{r.text}</p>

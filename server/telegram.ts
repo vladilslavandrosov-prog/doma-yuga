@@ -29,6 +29,29 @@ export async function sendTelegramText(text: string) {
   }
 }
 
+export async function sendTelegramTextTo(chatId: string, text: string) {
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.log("[telegram] Bot token not configured, skipping personal notification");
+    return;
+  }
+
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("[telegram] Failed to send personal notification:", err);
+    }
+  } catch (error) {
+    console.error("[telegram] Error sending personal notification:", error);
+  }
+}
+
 export async function sendTelegramNotification(
   projectName: string,
   senderName: string,
@@ -78,11 +101,20 @@ export async function notifyExtraWork(projectName: string, itemName: string, tot
   await sendTelegramText(text);
 }
 
-export async function notifyClientReminderDue(clientName: string, reminderText: string, priority: string) {
+export async function notifyClientReminderDue(
+  clientName: string,
+  reminderText: string,
+  priority: string,
+  assigneeChatId?: string | null,
+) {
   const priorityLabel = priority === "urgent" ? "🔴 Срочно" : priority === "low" ? "🔵 Не срочно" : "🟡 Обычная";
   const text = `📌 Напоминание по клиенту\n\n` +
     `👤 Клиент: ${clientName}\n` +
     `${priorityLabel}\n\n` +
     `${reminderText}`;
-  await sendTelegramText(text);
+  if (assigneeChatId) {
+    await sendTelegramTextTo(assigneeChatId, text);
+  } else {
+    await sendTelegramText(text);
+  }
 }

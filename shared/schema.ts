@@ -111,6 +111,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role").notNull().default("client"),
   clientId: integer("client_id"),
+  telegramChatId: text("telegram_chat_id"),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
@@ -222,6 +223,7 @@ export const clientReminders = pgTable("client_reminders", {
   resolutionNote: text("resolution_note"),
   resolutionQuality: text("resolution_quality"),
   notifiedAt: text("notified_at"),
+  assignedToUserId: integer("assigned_to_user_id"),
 });
 
 export const insertClientReminderSchema = createInsertSchema(clientReminders).omit({ id: true });

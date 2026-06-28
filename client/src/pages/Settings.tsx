@@ -8,7 +8,125 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
-import { Lock, Loader2, Check, Send } from "lucide-react";
+import { Lock, Loader2, Check, Send, Users2, Trash2, UserPlus } from "lucide-react";
+
+interface StaffMember {
+  id: number;
+  username: string;
+  telegramChatId: string | null;
+}
+
+function StaffManager() {
+  const { toast } = useToast();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [telegramChatId, setTelegramChatId] = useState("");
+
+  const { data: staff, isLoading } = useQuery<StaffMember[]>({
+    queryKey: ["/api/admin/staff"],
+  });
+
+  const createMut = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/staff", { username, password, telegramChatId: telegramChatId || null });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Ошибка создания сотрудника");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/staff"] });
+      setUsername("");
+      setPassword("");
+      setTelegramChatId("");
+      toast({ title: "Сотрудник добавлен" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/staff/${id}`);
+      if (!res.ok) throw new Error("Ошибка удаления");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/staff"] });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim() || password.length < 8) {
+      toast({ title: "Логин обязателен, пароль — не менее 8 символов", variant: "destructive" });
+      return;
+    }
+    createMut.mutate();
+  };
+
+  return (
+    <Card className="max-w-md">
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Users2 className="h-5 w-5 text-muted-foreground" />
+          Сотрудники
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2" data-testid="list-staff">
+          {isLoading && <p className="text-sm text-muted-foreground">Загрузка...</p>}
+          {!isLoading && (staff?.length ?? 0) === 0 && (
+            <p className="text-sm text-muted-foreground" data-testid="text-no-staff">Сотрудников нет</p>
+          )}
+          {staff?.map((s) => (
+            <div key={s.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm" data-testid={`row-staff-${s.id}`}>
+              <div>
+                <div className="font-medium">{s.username}</div>
+                {s.telegramChatId && <div className="text-xs text-muted-foreground">Telegram: {s.telegramChatId}</div>}
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                onClick={() => deleteMut.mutate(s.id)}
+                aria-label="Удалить сотрудника"
+                data-testid={`button-delete-staff-${s.id}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-2 border-t pt-4">
+          <Input
+            placeholder="Логин"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            data-testid="input-staff-username"
+          />
+          <Input
+            type="password"
+            placeholder="Пароль (мин. 8 символов)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            data-testid="input-staff-password"
+          />
+          <Input
+            placeholder="Telegram chat ID (необязательно)"
+            value={telegramChatId}
+            onChange={(e) => setTelegramChatId(e.target.value)}
+            data-testid="input-staff-telegram-chat-id"
+          />
+          <Button type="submit" size="sm" className="w-full" disabled={createMut.isPending} data-testid="button-add-staff">
+            {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserPlus className="h-4 w-4 mr-2" />Добавить сотрудника</>}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
 
 function FaqTelegramNotificationsSetting() {
   const { toast } = useToast();
@@ -141,6 +259,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {isAdmin && <StaffManager />}
       {isAdmin && <FaqTelegramNotificationsSetting />}
     </div>
   );

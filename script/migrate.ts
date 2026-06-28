@@ -70,7 +70,9 @@ async function main() {
   await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS resolution_quality TEXT`);
   await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS notified_at TEXT`);
   await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS project_id INTEGER`);
-  console.log("✓ колонки resolution_note/resolution_quality/notified_at/project_id готовы");
+  await pool.query(`ALTER TABLE client_reminders ADD COLUMN IF NOT EXISTS assigned_to_user_id INTEGER`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id TEXT`);
+  console.log("✓ колонки resolution_note/resolution_quality/notified_at/project_id/assigned_to_user_id готовы");
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_settings (

@@ -71,8 +71,10 @@ export interface IStorage {
   deleteClient(id: number): Promise<boolean>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(id: number, password: string): Promise<boolean>;
+  updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   deleteUsersByClientId(clientId: number): Promise<void>;
+  deleteUser(id: number): Promise<boolean>;
   getNonWorkingDaysByProjectId(projectId: number): Promise<NonWorkingDay[]>;
   createNonWorkingDay(day: InsertNonWorkingDay): Promise<NonWorkingDay>;
   deleteNonWorkingDay(id: number): Promise<boolean>;
