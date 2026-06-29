@@ -318,13 +318,13 @@ function ItemPhotos({
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setUploading(true);
+    const results = await Promise.allSettled(Array.from(files).map((file) => uploadFile(file)));
     let success = 0;
-    for (const file of Array.from(files)) {
-      try {
-        await uploadFile(file);
+    for (const result of results) {
+      if (result.status === "fulfilled") {
         success++;
-      } catch (e: any) {
-        toast({ title: `Ошибка: ${e.message}`, variant: "destructive" });
+      } else {
+        toast({ title: `Ошибка: ${result.reason?.message ?? "Ошибка загрузки"}`, variant: "destructive" });
       }
     }
     setUploading(false);
