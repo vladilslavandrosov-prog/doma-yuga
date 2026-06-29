@@ -28,6 +28,15 @@ import {
 const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
+// APP_URL — публичный адрес приложения для ссылок в Telegram-уведомлениях.
+// REPLIT_DEPLOYMENT_URL/REPLIT_DEV_DOMAIN оставлены как fallback для совместимости со старым хостингом.
+function getAppUrl(): string {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  if (process.env.REPLIT_DEPLOYMENT_URL) return `https://${process.env.REPLIT_DEPLOYMENT_URL}`;
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  return "";
+}
+
 // Автоматически переводит проект в "completed", когда все позиции смет выполнены,
 // и возвращает обратно в "active", если позиция переоткрыта. Статус "paused" не трогаем —
 // это осознанное решение администратора.
@@ -1598,10 +1607,7 @@ export async function registerRoutes(
       let clientName = "Клиент";
       const client = await storage.getClientById(project.clientId);
       if (client) clientName = client.name;
-      const appUrl = process.env.REPLIT_DEPLOYMENT_URL
-        ? `https://${process.env.REPLIT_DEPLOYMENT_URL}`
-        : `https://${process.env.REPLIT_DEV_DOMAIN}`;
-      const link = `${appUrl}/cabinet/project/${projectId}?tab=work`;
+      const link = `${getAppUrl()}/cabinet/project/${projectId}?tab=work`;
       sendTelegramNotification(
         project.name,
         clientName,
@@ -1632,10 +1638,7 @@ export async function registerRoutes(
         const client = await storage.getClientById(project.clientId);
         if (client) clientName = client.name;
       }
-      const appUrl = process.env.REPLIT_DEPLOYMENT_URL
-        ? `https://${process.env.REPLIT_DEPLOYMENT_URL}`
-        : `https://${process.env.REPLIT_DEV_DOMAIN}`;
-      const link = `${appUrl}/cabinet/project/${projectId}?tab=work`;
+      const link = `${getAppUrl()}/cabinet/project/${projectId}?tab=work`;
       sendTelegramNotification(
         project?.name ?? `Проект #${projectId}`,
         clientName,
