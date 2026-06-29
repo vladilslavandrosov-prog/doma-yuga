@@ -4,6 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { formatCurrency as formatCurrencyBase, formatDate } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1106,21 +1107,31 @@ const STATUS_PHRASES: { status: string; label: string; phrases: string[] }[] = [
   { status: "planned", label: "запланировано", phrases: ["запланировано", "не начато", "отменить", "сбросить", "запланировать"] },
 ];
 
+const VOICE_MATCH_AUTO_THRESHOLD = 0.85;
+const VOICE_MATCH_MIN_THRESHOLD = 0.5;
+const VOICE_MATCH_AMBIGUITY_GAP = 0.15;
+
 function findItemMatch(transcript: string, items: { id: number; name: string }[]) {
   const cleaned = normalizeText(transcript);
   let best: { id: number; name: string } | null = null;
   let bestScore = 0;
+  let secondScore = 0;
   for (const item of items) {
     const itemWords = normalizeText(item.name).split(" ").filter((w) => w.length > 2);
     if (itemWords.length === 0) continue;
     const matched = itemWords.filter((w) => cleaned.includes(w)).length;
     const score = matched / itemWords.length;
     if (score > bestScore) {
+      secondScore = bestScore;
       bestScore = score;
       best = item;
+    } else if (score > secondScore) {
+      secondScore = score;
     }
   }
-  return bestScore >= 0.5 ? best : null;
+  if (bestScore < VOICE_MATCH_MIN_THRESHOLD || !best) return null;
+  const needsConfirmation = bestScore < VOICE_MATCH_AUTO_THRESHOLD || bestScore - secondScore < VOICE_MATCH_AMBIGUITY_GAP;
+  return { item: best, needsConfirmation };
 }
 
 function VoiceStatusControl({ projectId, items }: { projectId: number; items: EstimateItemWithPhotos[] }) {
@@ -1158,8 +1169,27 @@ function VoiceStatusControl({ projectId, items }: { projectId: number; items: Es
       toast({ title: "Не найдена позиция сметы", description: `Сказано: «${transcript}»`, variant: "destructive" });
       return;
     }
-    statusMut.mutate({ id: match.id, status: statusEntry.status });
-    toast({ title: "Статус обновлён", description: `«${match.name}» → ${statusEntry.label}` });
+    const { item, needsConfirmation } = match;
+    if (!needsConfirmation) {
+      statusMut.mutate({ id: item.id, status: statusEntry.status });
+      toast({ title: "Статус обновлён", description: `«${item.name}» → ${statusEntry.label}` });
+      return;
+    }
+    toast({
+      title: "Подтвердите распознанную позицию",
+      description: `Сказано: «${transcript}». Похоже на «${item.name}» → ${statusEntry.label}.`,
+      action: (
+        <ToastAction
+          altText="Подтвердить"
+          onClick={() => {
+            statusMut.mutate({ id: item.id, status: statusEntry.status });
+            toast({ title: "Статус обновлён", description: `«${item.name}» → ${statusEntry.label}` });
+          }}
+        >
+          Подтвердить
+        </ToastAction>
+      ),
+    });
   };
 
   const toggleListening = () => {
