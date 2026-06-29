@@ -542,21 +542,27 @@ export async function registerRoutes(
       return res.status(400).json({ error: parsed.error.message });
     }
     const reminder = await storage.createClientReminder(parsed.data);
-    await storage.addReminderHistory({
-      reminderId: reminder.id,
-      action: "created",
-      details: reminder.text,
-      userId: req.session.userId ?? null,
-      createdAt: new Date().toISOString(),
-    });
-    if (reminder.priority === "urgent") {
-      const { notifyClientReminderDue } = await import("./telegram");
-      const client = await storage.getClientById(clientId);
-      if (client) {
-        const assignee = reminder.assignedToUserId ? await storage.getUserById(reminder.assignedToUserId) : undefined;
-        await notifyClientReminderDue(client.name, reminder.text, reminder.priority, assignee?.telegramChatId);
-        await storage.updateClientReminder(reminder.id, { notifiedAt: new Date().toISOString() });
+    // Напоминание уже сохранено — сбой истории/уведомления ниже не должен
+    // превращать успешное создание в ошибку на клиенте.
+    try {
+      await storage.addReminderHistory({
+        reminderId: reminder.id,
+        action: "created",
+        details: reminder.text,
+        userId: req.session.userId ?? null,
+        createdAt: new Date().toISOString(),
+      });
+      if (reminder.priority === "urgent") {
+        const { notifyClientReminderDue } = await import("./telegram");
+        const client = await storage.getClientById(clientId);
+        if (client) {
+          const assignee = reminder.assignedToUserId ? await storage.getUserById(reminder.assignedToUserId) : undefined;
+          await notifyClientReminderDue(client.name, reminder.text, reminder.priority, assignee?.telegramChatId);
+          await storage.updateClientReminder(reminder.id, { notifiedAt: new Date().toISOString() });
+        }
       }
+    } catch (err) {
+      console.error("[reminders] post-create side effects failed:", err);
     }
     res.json(reminder);
   });
@@ -583,21 +589,25 @@ export async function registerRoutes(
       return res.status(400).json({ error: parsed.error.message });
     }
     const reminder = await storage.createClientReminder(parsed.data);
-    await storage.addReminderHistory({
-      reminderId: reminder.id,
-      action: "created",
-      details: reminder.text,
-      userId: req.session.userId ?? null,
-      createdAt: new Date().toISOString(),
-    });
-    if (reminder.priority === "urgent") {
-      const { notifyClientReminderDue } = await import("./telegram");
-      const client = await storage.getClientById(project.clientId);
-      if (client) {
-        const assignee = reminder.assignedToUserId ? await storage.getUserById(reminder.assignedToUserId) : undefined;
-        await notifyClientReminderDue(client.name, reminder.text, reminder.priority, assignee?.telegramChatId);
-        await storage.updateClientReminder(reminder.id, { notifiedAt: new Date().toISOString() });
+    try {
+      await storage.addReminderHistory({
+        reminderId: reminder.id,
+        action: "created",
+        details: reminder.text,
+        userId: req.session.userId ?? null,
+        createdAt: new Date().toISOString(),
+      });
+      if (reminder.priority === "urgent") {
+        const { notifyClientReminderDue } = await import("./telegram");
+        const client = await storage.getClientById(project.clientId);
+        if (client) {
+          const assignee = reminder.assignedToUserId ? await storage.getUserById(reminder.assignedToUserId) : undefined;
+          await notifyClientReminderDue(client.name, reminder.text, reminder.priority, assignee?.telegramChatId);
+          await storage.updateClientReminder(reminder.id, { notifiedAt: new Date().toISOString() });
+        }
       }
+    } catch (err) {
+      console.error("[reminders] post-create side effects failed:", err);
     }
     res.json(reminder);
   });
@@ -716,11 +726,15 @@ export async function registerRoutes(
       }
     }
     if (filtered.assignedToUserId !== undefined && filtered.assignedToUserId !== null && reminder.status === "pending" && reminder.priority === "urgent") {
-      const { notifyClientReminderDue } = await import("./telegram");
-      const client = await storage.getClientById(reminder.clientId);
-      const assignee = await storage.getUserById(filtered.assignedToUserId);
-      if (client && assignee) {
-        await notifyClientReminderDue(client.name, reminder.text, reminder.priority, assignee.telegramChatId);
+      try {
+        const { notifyClientReminderDue } = await import("./telegram");
+        const client = await storage.getClientById(reminder.clientId);
+        const assignee = await storage.getUserById(filtered.assignedToUserId);
+        if (client && assignee) {
+          await notifyClientReminderDue(client.name, reminder.text, reminder.priority, assignee.telegramChatId);
+        }
+      } catch (err) {
+        console.error("[reminders] notify-on-assign failed:", err);
       }
     }
     res.json(reminder);
