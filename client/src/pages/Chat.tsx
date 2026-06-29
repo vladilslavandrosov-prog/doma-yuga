@@ -39,6 +39,7 @@ export default function Chat({ projectId }: { projectId: number }) {
 
   const { data: messages, isLoading, error } = useQuery<Message[]>({
     queryKey: ["/api/project", projectId, "messages"],
+    refetchInterval: 5000,
   });
 
   const sendMutation = useMutation({
