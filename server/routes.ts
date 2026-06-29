@@ -463,9 +463,7 @@ export async function registerRoutes(
     if (projects.length > 0) {
       return res.status(400).json({ error: "У клиента есть объекты — сначала отвяжите или удалите их" });
     }
-    await storage.deleteUsersByClientId(id);
-    await storage.deleteClientRemindersByClientId(id);
-    const ok = await storage.deleteClient(id);
+    const ok = await storage.deleteClientCascade(id);
     if (!ok) {
       return res.status(404).json({ error: "Клиент не найден" });
     }
@@ -801,28 +799,12 @@ export async function registerRoutes(
       return res.status(400).json({ error: "Invalid id" });
     }
 
-    const estimates = await storage.getEstimatesByProjectId(id);
-    const estimateIds = estimates.map((e) => e.id);
-    const estimateItems = await storage.getEstimateItemsByEstimateIds(estimateIds);
-    const itemIds = estimateItems.map((i) => i.id);
-    const itemPhotoUrls = await storage.deleteEstimateItemPhotosByEstimateItemIds(itemIds);
-    await storage.deleteEstimateItemsByEstimateIds(estimateIds);
-    await storage.deleteEstimatesByProjectId(id);
-
-    await storage.deletePaymentsByProjectId(id);
-    const documentUrls = await storage.deleteDocumentsByProjectId(id);
-    const photoUrls = await storage.deletePhotosByProjectId(id);
-    const videoUrls = await storage.deleteVideosByProjectId(id);
-    await storage.deleteMessagesByProjectId(id);
-    await storage.deleteNonWorkingDaysByProjectId(id);
-    await storage.deleteDayCommentsByProjectId(id);
-
-    const ok = await storage.deleteProject(id);
+    const { ok, fileUrls } = await storage.deleteProjectCascade(id);
     if (!ok) {
       return res.status(404).json({ error: "Project not found" });
     }
 
-    [...itemPhotoUrls, ...documentUrls, ...photoUrls, ...videoUrls].forEach(deleteUploadedFile);
+    fileUrls.forEach(deleteUploadedFile);
     res.status(204).end();
   });
 

@@ -65,10 +65,12 @@ export interface IStorage {
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, data: Partial<InsertProject>): Promise<Project | undefined>;
   deleteProject(id: number): Promise<boolean>;
+  deleteProjectCascade(id: number): Promise<{ ok: boolean; fileUrls: string[] }>;
   createClient(client: InsertClient): Promise<Client>;
   getAllClients(): Promise<Client[]>;
   updateClient(id: number, data: Partial<InsertClient>): Promise<Client | undefined>;
   deleteClient(id: number): Promise<boolean>;
+  deleteClientCascade(id: number): Promise<boolean>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(id: number, password: string): Promise<boolean>;
   updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined>;

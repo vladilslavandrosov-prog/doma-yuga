@@ -254,6 +254,43 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
+  async deleteProjectCascade(id: number): Promise<{ ok: boolean; fileUrls: string[] }> {
+    return db.transaction(async (tx) => {
+      const estimateRows = await tx.select({ id: estimates.id }).from(estimates).where(eq(estimates.projectId, id));
+      const estimateIds = estimateRows.map((r) => r.id);
+
+      let itemPhotoUrls: string[] = [];
+      if (estimateIds.length > 0) {
+        const itemRows = await tx.select({ id: estimateItems.id }).from(estimateItems).where(inArray(estimateItems.estimateId, estimateIds));
+        const itemIds = itemRows.map((r) => r.id);
+        if (itemIds.length > 0) {
+          const photoRows = await tx.delete(estimateItemPhotos).where(inArray(estimateItemPhotos.estimateItemId, itemIds)).returning();
+          itemPhotoUrls = photoRows.map((r) => r.url);
+          await tx.delete(estimateItems).where(inArray(estimateItems.estimateId, estimateIds));
+        }
+        await tx.delete(estimates).where(eq(estimates.projectId, id));
+      }
+
+      await tx.delete(payments).where(eq(payments.projectId, id));
+      const documentRows = await tx.delete(documents).where(eq(documents.projectId, id)).returning();
+      const photoRows = await tx.delete(photos).where(eq(photos.projectId, id)).returning();
+      const videoRows = await tx.delete(videos).where(eq(videos.projectId, id)).returning();
+      await tx.delete(messages).where(eq(messages.projectId, id));
+      await tx.delete(nonWorkingDays).where(eq(nonWorkingDays.projectId, id));
+      await tx.delete(dayComments).where(eq(dayComments.projectId, id));
+
+      const reminderRows = await tx.select({ id: clientReminders.id }).from(clientReminders).where(eq(clientReminders.projectId, id));
+      if (reminderRows.length > 0) {
+        await tx.delete(reminderHistory).where(inArray(reminderHistory.reminderId, reminderRows.map((r) => r.id)));
+        await tx.delete(clientReminders).where(eq(clientReminders.projectId, id));
+      }
+
+      const result = await tx.delete(projects).where(eq(projects.id, id)).returning();
+      const fileUrls = [...itemPhotoUrls, ...documentRows.map((r) => r.url), ...photoRows.map((r) => r.url), ...videoRows.map((r) => r.url)];
+      return { ok: result.length > 0, fileUrls };
+    });
+  }
+
   async createClient(client: InsertClient): Promise<Client> {
     const [row] = await db.insert(clients).values(client).returning();
     return row;
@@ -271,6 +308,19 @@ export class DatabaseStorage implements IStorage {
   async deleteClient(id: number): Promise<boolean> {
     const result = await db.delete(clients).where(eq(clients.id, id)).returning();
     return result.length > 0;
+  }
+
+  async deleteClientCascade(id: number): Promise<boolean> {
+    return db.transaction(async (tx) => {
+      await tx.delete(users).where(eq(users.clientId, id));
+      const reminderRows = await tx.select({ id: clientReminders.id }).from(clientReminders).where(eq(clientReminders.clientId, id));
+      if (reminderRows.length > 0) {
+        await tx.delete(reminderHistory).where(inArray(reminderHistory.reminderId, reminderRows.map((r) => r.id)));
+        await tx.delete(clientReminders).where(eq(clientReminders.clientId, id));
+      }
+      const result = await tx.delete(clients).where(eq(clients.id, id)).returning();
+      return result.length > 0;
+    });
   }
 
   async createUser(user: InsertUser): Promise<User> {
