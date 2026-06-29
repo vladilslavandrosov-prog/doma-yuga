@@ -379,6 +379,10 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(clientReminders).where(eq(clientReminders.clientId, clientId));
   }
 
+  async getClientRemindersByProjectId(projectId: number): Promise<ClientReminder[]> {
+    return db.select().from(clientReminders).where(eq(clientReminders.projectId, projectId));
+  }
+
   async getAllClientReminders(): Promise<ClientReminder[]> {
     return db.select().from(clientReminders);
   }

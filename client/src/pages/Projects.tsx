@@ -1,20 +1,21 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import type { Project, Client } from "@shared/schema";
+import type { Project, Client, ClientReminder } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatDate } from "@/lib/format";
+import { formatDate, overdueUrgencyClass, addDaysToToday } from "@/lib/format";
 import {
   Select,
   SelectContent,
@@ -25,10 +26,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
-import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter, HelpCircle, AlertTriangle, Wallet, Building2, QrCode, Download } from "lucide-react";
+import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter, HelpCircle, AlertTriangle, Wallet, Building2, QrCode, Download, Bell, Check, X, History } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import QRCode from "qrcode";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
+import { ReminderHistoryDialog } from "@/components/ReminderHistoryDialog";
+import { PRIORITY_LABEL, PRIORITY_BADGE_CLASS, RECURRENCE_LABEL } from "@/lib/reminderConstants";
 
 const PROJECTS_TOUR_STEPS: TourStep[] = [
   { target: "text-projects-title", title: "Объекты", description: "Здесь собраны все строительные объекты компании — карточки, статусы и быстрый доступ к каждому из них." },
@@ -51,7 +54,7 @@ function getStatusBadge(status: string) {
   }
 }
 
-function ProjectCard({ project, isAdmin, debtAmount, onEdit, onDelete, onShowQr }: { project: Project; isAdmin: boolean; debtAmount: number; onEdit: (p: Project) => void; onDelete: (p: Project) => void; onShowQr: (p: Project) => void }) {
+function ProjectCard({ project, isAdmin, debtAmount, onEdit, onDelete, onShowQr, onShowReminders }: { project: Project; isAdmin: boolean; debtAmount: number; onEdit: (p: Project) => void; onDelete: (p: Project) => void; onShowQr: (p: Project) => void; onShowReminders: (p: Project) => void }) {
   const hasDebt = debtAmount > 0;
   const { data: client } = useQuery<Client>({
     queryKey: ["/api/project", project.id, "client"],
@@ -61,6 +64,13 @@ function ProjectCard({ project, isAdmin, debtAmount, onEdit, onDelete, onShowQr 
     <Card className={`hover-elevate h-full relative ${hasDebt ? "border-destructive/50" : ""}`} data-testid={`card-project-${project.id}`}>
       {isAdmin && (
         <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+          <button
+            className="p-1.5 rounded-md hover:bg-muted transition-colors"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onShowReminders(project); }}
+            data-testid={`button-reminders-project-${project.id}`}
+          >
+            <Bell className="w-4 h-4 text-muted-foreground hover:text-primary" />
+          </button>
           <button
             className="p-1.5 rounded-md hover:bg-muted transition-colors"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onShowQr(project); }}
@@ -86,7 +96,7 @@ function ProjectCard({ project, isAdmin, debtAmount, onEdit, onDelete, onShowQr 
       )}
       <Link href={`/cabinet/project/${project.id}`}>
         <div className="cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 pr-28">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 pr-36">
             <CardTitle className="text-base font-medium truncate min-w-0" data-testid={`text-project-name-${project.id}`}>
               {project.name}
             </CardTitle>
@@ -225,6 +235,365 @@ function ProjectQrDialog({ project, onClose }: { project: Project | null; onClos
   );
 }
 
+interface StaffMember {
+  id: number;
+  username: string;
+}
+
+function ProjectReminderDialog({ project, onClose }: { project: Project | null; onClose: () => void }) {
+  const { toast } = useToast();
+  const [manualText, setManualText] = useState("");
+  const [manualDueDate, setManualDueDate] = useState("");
+  const [manualPriority, setManualPriority] = useState("normal");
+  const [manualAssigneeId, setManualAssigneeId] = useState<string>("none");
+  const [manualRecurrence, setManualRecurrence] = useState<string>("none");
+  const [historyId, setHistoryId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [resolvingId, setResolvingId] = useState<number | null>(null);
+  const [resolutionNote, setResolutionNote] = useState("");
+
+  const { data: reminders } = useQuery<ClientReminder[]>({
+    queryKey: ["/api/admin/projects", project?.id, "reminders"],
+    enabled: !!project,
+    refetchOnMount: "always",
+    staleTime: 0,
+  });
+
+  const { data: staff } = useQuery<StaffMember[]>({
+    queryKey: ["/api/admin/staff"],
+    enabled: !!project,
+  });
+
+  const sortedReminders = (reminders ?? []).slice().sort((a, b) => {
+    if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
+    return (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
+  });
+
+  const resetForm = () => {
+    setManualText("");
+    setManualDueDate("");
+    setManualPriority("normal");
+    setManualAssigneeId("none");
+    setManualRecurrence("none");
+    setEditingId(null);
+  };
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/projects", project?.id, "reminders"] });
+  };
+
+  const createMut = useMutation({
+    mutationFn: async (data: { text: string; dueDate: string | null; priority: string; assignedToUserId?: number | null; recurrence?: string }) => {
+      const res = await apiRequest("POST", `/api/admin/projects/${project!.id}/reminders`, data);
+      if (!res.ok) throw new Error("Ошибка создания напоминания");
+      return res.json();
+    },
+    onSuccess: () => {
+      invalidate();
+      resetForm();
+      toast({ title: "Напоминание сохранено" });
+    },
+    onError: () => {
+      toast({ title: "Ошибка", description: "Не удалось сохранить напоминание", variant: "destructive" });
+    },
+  });
+
+  const updateMut = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) => {
+      const res = await apiRequest("PATCH", `/api/admin/reminders/${id}`, data);
+      if (!res.ok) throw new Error("Ошибка обновления");
+      return res.json();
+    },
+    onSuccess: () => invalidate(),
+    onError: () => {
+      toast({ title: "Ошибка", description: "Не удалось обновить напоминание", variant: "destructive" });
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/reminders/${id}`);
+      if (!res.ok) throw new Error("Ошибка удаления");
+      return id;
+    },
+    onSuccess: (id: number) => {
+      invalidate();
+      if (editingId === id) resetForm();
+      if (resolvingId === id) { setResolvingId(null); setResolutionNote(""); }
+    },
+  });
+
+  const startEdit = (r: ClientReminder) => {
+    setResolvingId(null);
+    setResolutionNote("");
+    setEditingId(r.id);
+    setManualText(r.text);
+    setManualDueDate(r.dueDate ?? "");
+    setManualPriority(r.priority);
+    setManualAssigneeId(r.assignedToUserId != null ? String(r.assignedToUserId) : "none");
+    setManualRecurrence(r.recurrence ?? "none");
+  };
+
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualText.trim()) {
+      toast({ title: "Введите текст напоминания", variant: "destructive" });
+      return;
+    }
+    const assignedToUserId = manualAssigneeId === "none" ? null : parseInt(manualAssigneeId);
+    if (editingId) {
+      updateMut.mutate(
+        { id: editingId, data: { text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, assignedToUserId, recurrence: manualRecurrence } },
+        { onSuccess: () => { resetForm(); toast({ title: "Изменения сохранены" }); } },
+      );
+    } else {
+      createMut.mutate({ text: manualText.trim(), dueDate: manualDueDate || null, priority: manualPriority, assignedToUserId, recurrence: manualRecurrence });
+    }
+  };
+
+  const confirmResolve = (id: number, quality: "good" | "bad") => {
+    updateMut.mutate(
+      { id, data: { status: "done", resolutionNote: resolutionNote.trim() || null, resolutionQuality: quality } },
+      { onSuccess: () => { setResolvingId(null); setResolutionNote(""); } },
+    );
+  };
+
+  return (
+    <Dialog open={!!project} onOpenChange={(open) => { if (!open) { resetForm(); setResolvingId(null); setResolutionNote(""); setHistoryId(null); onClose(); } }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Напоминания — {project?.name}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3 max-h-64 overflow-y-auto" data-testid="list-project-reminders">
+          {sortedReminders.length === 0 && (
+            <p className="text-sm text-muted-foreground">Нет напоминаний</p>
+          )}
+          {sortedReminders.map((r) => (
+            <div
+              key={r.id}
+              className={`flex items-start justify-between gap-2 rounded-md border p-2 text-sm ${r.status === "done" ? "opacity-50" : overdueUrgencyClass(r.dueDate)}`}
+              data-testid={`row-project-reminder-${r.id}`}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge className={PRIORITY_BADGE_CLASS[r.priority] ?? PRIORITY_BADGE_CLASS.normal}>
+                    {PRIORITY_LABEL[r.priority] ?? r.priority}
+                  </Badge>
+                  {r.dueDate && <span className="text-muted-foreground text-xs">до {formatDate(r.dueDate)}</span>}
+                  {r.assignedToUserId != null && (
+                    <Badge variant="outline" data-testid={`badge-assignee-${r.id}`}>
+                      {staff?.find((s) => s.id === r.assignedToUserId)?.username ?? "Сотрудник"}
+                    </Badge>
+                  )}
+                  {r.recurrence && r.recurrence !== "none" && (
+                    <Badge variant="outline" data-testid={`badge-recurrence-${r.id}`}>{RECURRENCE_LABEL[r.recurrence] ?? r.recurrence}</Badge>
+                  )}
+                </div>
+                <p className={r.status === "done" ? "line-through" : ""}>{r.text}</p>
+                {r.status === "pending" ? (
+                  <div className="flex items-center gap-1 pt-1">
+                    <Clock className="w-3 h-3 text-muted-foreground" />
+                    {[1, 3].map((days) => (
+                      <Button
+                        key={days}
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => updateMut.mutate({ id: r.id, data: { dueDate: addDaysToToday(days) } })}
+                        data-testid={`button-snooze-${days}-${r.id}`}
+                      >
+                        +{days} дн.
+                      </Button>
+                    ))}
+                  </div>
+                ) : null}
+                {r.status === "done" && r.resolutionNote ? (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    {r.resolutionQuality === "good" ? (
+                      <Badge className="bg-green-100 text-green-700">Хорошо</Badge>
+                    ) : r.resolutionQuality === "bad" ? (
+                      <Badge className="bg-red-100 text-red-700">Плохо</Badge>
+                    ) : null}
+                    {r.resolutionNote}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => setHistoryId(r.id)}
+                  aria-label="История изменений"
+                  data-testid={`button-history-project-reminder-${r.id}`}
+                >
+                  <History className="h-3.5 w-3.5" />
+                </Button>
+                {r.status === "pending" ? (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => startEdit(r)}
+                      aria-label="Изменить напоминание"
+                      data-testid={`button-edit-project-reminder-${r.id}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => { resetForm(); setResolvingId(r.id); setResolutionNote(""); }}
+                      aria-label="Отметить выполненным"
+                      data-testid={`button-done-project-reminder-${r.id}`}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                ) : null}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => deleteMut.mutate(r.id)}
+                  aria-label="Удалить напоминание"
+                  data-testid={`button-delete-project-reminder-${r.id}`}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          {sortedReminders.map((r) =>
+            resolvingId === r.id ? (
+              <div key={`resolve-${r.id}`} className="rounded-md border p-2 space-y-2 bg-muted/30">
+                <p className="text-xs text-muted-foreground">Как прошло: «{r.text}»?</p>
+                <Textarea
+                  value={resolutionNote}
+                  onChange={(e) => setResolutionNote(e.target.value)}
+                  placeholder="Комментарий по результату (необязательно)"
+                  data-testid={`input-resolution-note-project-${r.id}`}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => confirmResolve(r.id, "good")}
+                    data-testid={`button-resolve-good-project-${r.id}`}
+                  >
+                    Хорошо
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => confirmResolve(r.id, "bad")}
+                    data-testid={`button-resolve-bad-project-${r.id}`}
+                  >
+                    Плохо
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setResolvingId(null); setResolutionNote(""); }}
+                    data-testid={`button-resolve-cancel-project-${r.id}`}
+                  >
+                    Отмена
+                  </Button>
+                </div>
+              </div>
+            ) : null
+          )}
+        </div>
+
+        <div className="border-t pt-3 space-y-2">
+          <form
+            onSubmit={handleManualSubmit}
+            className={`space-y-2 ${editingId ? "rounded-md border-2 border-primary p-2 -m-2" : ""}`}
+          >
+            {editingId && (
+              <p className="text-xs font-medium text-primary" data-testid="text-editing-project-reminder">
+                Редактирование напоминания
+              </p>
+            )}
+            <Textarea
+              value={manualText}
+              onChange={(e) => setManualText(e.target.value)}
+              placeholder="Что нужно сделать по этому объекту"
+              data-testid="input-project-reminder-text"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="date"
+                value={manualDueDate}
+                onChange={(e) => setManualDueDate(e.target.value)}
+                data-testid="input-project-reminder-due-date"
+              />
+              <Select value={manualPriority} onValueChange={setManualPriority}>
+                <SelectTrigger data-testid="select-project-reminder-priority">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="urgent">Важно</SelectItem>
+                  <SelectItem value="normal">Обычно</SelectItem>
+                  <SelectItem value="low">Не важно</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {staff && staff.length > 0 && (
+              <Select value={manualAssigneeId} onValueChange={setManualAssigneeId}>
+                <SelectTrigger data-testid="select-project-reminder-assignee">
+                  <SelectValue placeholder="Назначить сотруднику" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Не назначено</SelectItem>
+                  {staff.map((s) => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.username}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={manualRecurrence} onValueChange={setManualRecurrence}>
+              <SelectTrigger data-testid="select-project-reminder-recurrence">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{RECURRENCE_LABEL.none}</SelectItem>
+                <SelectItem value="weekly">{RECURRENCE_LABEL.weekly}</SelectItem>
+                <SelectItem value="monthly">{RECURRENCE_LABEL.monthly}</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={(editingId ? updateMut.isPending : createMut.isPending) || !manualText.trim()}
+                data-testid="button-add-project-reminder"
+              >
+                {(editingId ? updateMut.isPending : createMut.isPending) ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : editingId ? (
+                  "Сохранить изменения"
+                ) : (
+                  "Добавить"
+                )}
+              </Button>
+              {editingId ? (
+                <Button type="button" size="sm" variant="ghost" onClick={resetForm} data-testid="button-cancel-edit-project-reminder">
+                  Отмена
+                </Button>
+              ) : null}
+            </div>
+          </form>
+        </div>
+      </DialogContent>
+      <ReminderHistoryDialog reminderId={historyId} onClose={() => setHistoryId(null)} />
+    </Dialog>
+  );
+}
+
 function ProjectsSkeleton() {
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -252,6 +621,7 @@ export default function Projects() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [qrProject, setQrProject] = useState<Project | null>(null);
+  const [remindersProject, setRemindersProject] = useState<Project | null>(null);
   const [formName, setFormName] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formStartDate, setFormStartDate] = useState("");
@@ -485,7 +855,7 @@ export default function Projects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-projects">
           {sortedAndFiltered.map((project) => (
-            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} debtAmount={debtByProjectId?.[project.id] ?? 0} onEdit={openEdit} onDelete={handleDelete} onShowQr={setQrProject} />
+            <ProjectCard key={project.id} project={project} isAdmin={isAdmin} debtAmount={debtByProjectId?.[project.id] ?? 0} onEdit={openEdit} onDelete={handleDelete} onShowQr={setQrProject} onShowReminders={setRemindersProject} />
           ))}
         </div>
       )}
@@ -639,6 +1009,7 @@ export default function Projects() {
       </Dialog>
 
       <ProjectQrDialog project={qrProject} onClose={() => setQrProject(null)} />
+      <ProjectReminderDialog project={remindersProject} onClose={() => setRemindersProject(null)} />
     </div>
   );
 }

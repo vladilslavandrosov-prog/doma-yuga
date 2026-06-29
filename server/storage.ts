@@ -92,6 +92,7 @@ export interface IStorage {
   deleteDayComment(id: number): Promise<boolean>;
   deleteDayCommentsByProjectId(projectId: number): Promise<void>;
   getClientRemindersByClientId(clientId: number): Promise<ClientReminder[]>;
+  getClientRemindersByProjectId(projectId: number): Promise<ClientReminder[]>;
   getAllClientReminders(): Promise<ClientReminder[]>;
   getClientReminderById(id: number): Promise<ClientReminder | undefined>;
   createClientReminder(reminder: InsertClientReminder): Promise<ClientReminder>;

@@ -561,6 +561,47 @@ export async function registerRoutes(
     res.json(reminder);
   });
 
+  app.get("/api/admin/projects/:id/reminders", requireAdminOrStaff, async (req, res) => {
+    const projectId = parseInt(req.params.id as string);
+    const reminders = await storage.getClientRemindersByProjectId(projectId);
+    res.json(reminders);
+  });
+
+  app.post("/api/admin/projects/:id/reminders", requireAdminOrStaff, async (req, res) => {
+    const projectId = parseInt(req.params.id as string);
+    const project = await storage.getProjectById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: "Объект не найден" });
+    }
+    const parsed = insertClientReminderSchema.safeParse({
+      ...req.body,
+      clientId: project.clientId,
+      projectId,
+      createdAt: new Date().toISOString(),
+    });
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.message });
+    }
+    const reminder = await storage.createClientReminder(parsed.data);
+    await storage.addReminderHistory({
+      reminderId: reminder.id,
+      action: "created",
+      details: reminder.text,
+      userId: req.session.userId ?? null,
+      createdAt: new Date().toISOString(),
+    });
+    if (reminder.priority === "urgent") {
+      const { notifyClientReminderDue } = await import("./telegram");
+      const client = await storage.getClientById(project.clientId);
+      if (client) {
+        const assignee = reminder.assignedToUserId ? await storage.getUserById(reminder.assignedToUserId) : undefined;
+        await notifyClientReminderDue(client.name, reminder.text, reminder.priority, assignee?.telegramChatId);
+        await storage.updateClientReminder(reminder.id, { notifiedAt: new Date().toISOString() });
+      }
+    }
+    res.json(reminder);
+  });
+
   app.patch("/api/admin/reminders/:id", requireAdminOrStaff, async (req, res) => {
     const isStaff = req.session.role === "staff";
     if (isStaff) {
