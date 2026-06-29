@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, numeric, boolean, timestamp, date } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, numeric, boolean, timestamp, date, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -22,7 +22,9 @@ export const projects = pgTable("projects", {
   startDate: text("start_date").notNull(),
   status: text("status").notNull().default("active"),
   clientId: integer("client_id").notNull(),
-});
+}, (table) => [
+  index("idx_projects_client_id").on(table.clientId),
+]);
 
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true });
 export type InsertProject = z.infer<typeof insertProjectSchema>;
@@ -33,7 +35,9 @@ export const estimates = pgTable("estimates", {
   projectId: integer("project_id").notNull(),
   category: text("category").notNull(),
   title: text("title").notNull(),
-});
+}, (table) => [
+  index("idx_estimates_project_id").on(table.projectId),
+]);
 
 export const insertEstimateSchema = createInsertSchema(estimates).omit({ id: true });
 export type InsertEstimate = z.infer<typeof insertEstimateSchema>;
@@ -50,7 +54,9 @@ export const estimateItems = pgTable("estimate_items", {
   totalPrice: numeric("total_price").notNull(),
   status: text("status").notNull().default("planned"),
   workGroup: text("work_group"),
-});
+}, (table) => [
+  index("idx_estimate_items_estimate_id").on(table.estimateId),
+]);
 
 export const insertEstimateItemSchema = createInsertSchema(estimateItems).omit({ id: true });
 export type InsertEstimateItem = z.infer<typeof insertEstimateItemSchema>;
@@ -62,7 +68,9 @@ export const payments = pgTable("payments", {
   amount: numeric("amount").notNull(),
   date: text("date").notNull(),
   description: text("description").notNull(),
-});
+}, (table) => [
+  index("idx_payments_project_id").on(table.projectId),
+]);
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true });
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
@@ -74,7 +82,9 @@ export const documents = pgTable("documents", {
   name: text("name").notNull(),
   url: text("url").notNull(),
   type: text("type").notNull(),
-});
+}, (table) => [
+  index("idx_documents_project_id").on(table.projectId),
+]);
 
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true });
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
@@ -86,7 +96,9 @@ export const photos = pgTable("photos", {
   url: text("url").notNull(),
   caption: text("caption").notNull(),
   date: text("date").notNull(),
-});
+}, (table) => [
+  index("idx_photos_project_id").on(table.projectId),
+]);
 
 export const insertPhotoSchema = createInsertSchema(photos).omit({ id: true });
 export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
@@ -99,7 +111,9 @@ export const videos = pgTable("videos", {
   title: text("title").notNull(),
   description: text("description"),
   date: text("date").notNull(),
-});
+}, (table) => [
+  index("idx_videos_project_id").on(table.projectId),
+]);
 
 export const insertVideoSchema = createInsertSchema(videos).omit({ id: true });
 export type InsertVideo = z.infer<typeof insertVideoSchema>;
@@ -123,7 +137,9 @@ export const nonWorkingDays = pgTable("non_working_days", {
   projectId: integer("project_id").notNull(),
   date: text("date").notNull(),
   reason: text("reason").notNull(),
-});
+}, (table) => [
+  index("idx_non_working_days_project_id").on(table.projectId),
+]);
 
 export const insertNonWorkingDaySchema = createInsertSchema(nonWorkingDays).omit({ id: true });
 export type InsertNonWorkingDay = z.infer<typeof insertNonWorkingDaySchema>;
@@ -133,7 +149,9 @@ export const estimateItemPhotos = pgTable("estimate_item_photos", {
   id: serial("id").primaryKey(),
   estimateItemId: integer("estimate_item_id").notNull(),
   url: text("url").notNull(),
-});
+}, (table) => [
+  index("idx_estimate_item_photos_estimate_item_id").on(table.estimateItemId),
+]);
 
 export const insertEstimateItemPhotoSchema = createInsertSchema(estimateItemPhotos).omit({ id: true });
 export type InsertEstimateItemPhoto = z.infer<typeof insertEstimateItemPhotoSchema>;
@@ -157,7 +175,9 @@ export const dayComments = pgTable("day_comments", {
   text: text("text").notNull(),
   sender: text("sender").notNull().default("admin"),
   createdAt: text("created_at").notNull(),
-});
+}, (table) => [
+  index("idx_day_comments_project_id").on(table.projectId),
+]);
 
 export const insertDayCommentSchema = createInsertSchema(dayComments).omit({ id: true });
 export type InsertDayComment = z.infer<typeof insertDayCommentSchema>;
@@ -170,7 +190,9 @@ export const messages = pgTable("messages", {
   text: text("text").notNull(),
   createdAt: text("created_at").notNull(),
   isRead: boolean("is_read").notNull().default(false),
-});
+}, (table) => [
+  index("idx_messages_project_id").on(table.projectId),
+]);
 
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true });
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
@@ -225,7 +247,12 @@ export const clientReminders = pgTable("client_reminders", {
   notifiedAt: text("notified_at"),
   assignedToUserId: integer("assigned_to_user_id"),
   recurrence: text("recurrence").notNull().default("none"),
-});
+}, (table) => [
+  index("idx_client_reminders_client_id").on(table.clientId),
+  index("idx_client_reminders_project_id").on(table.projectId),
+  index("idx_client_reminders_assigned_to_user_id").on(table.assignedToUserId),
+  index("idx_client_reminders_status_due_date").on(table.status, table.dueDate),
+]);
 
 export const insertClientReminderSchema = createInsertSchema(clientReminders, {
   priority: z.enum(["urgent", "normal", "low"]).optional(),
@@ -242,7 +269,9 @@ export const reminderHistory = pgTable("reminder_history", {
   details: text("details"),
   userId: integer("user_id"),
   createdAt: text("created_at").notNull(),
-});
+}, (table) => [
+  index("idx_reminder_history_reminder_id").on(table.reminderId),
+]);
 
 export type ReminderHistory = typeof reminderHistory.$inferSelect;
 
