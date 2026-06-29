@@ -24,6 +24,7 @@ import {
   insertClientReminderSchema,
   type ClientReminder,
   type Project,
+  roundMoney,
 } from "@shared/schema";
 
 const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
@@ -68,10 +69,10 @@ export async function checkOverduePayments(): Promise<void> {
     if (project.status !== "active") continue;
     const estimates = await storage.getEstimatesByProjectId(project.id);
     const items = await storage.getEstimateItemsByEstimateIds(estimates.map((e) => e.id));
-    const totalEstimateSum = items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
+    const totalEstimateSum = roundMoney(items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0));
     const payments = await storage.getPaymentsByProjectId(project.id);
-    const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-    const remaining = totalEstimateSum - totalPaid;
+    const totalPaid = roundMoney(payments.reduce((sum, p) => sum + parseFloat(p.amount), 0));
+    const remaining = roundMoney(totalEstimateSum - totalPaid);
     if (remaining > 0) {
       await notifyOverduePayment(project.name, remaining);
     }
@@ -971,9 +972,9 @@ export async function registerRoutes(
     const allEstimateItems = await storage.getEstimateItemsByEstimateIds(estimates.map(e => e.id));
     totalItems = allEstimateItems.length;
     completedItems = allEstimateItems.filter(i => i.status === "completed").length;
-    totalEstimateSum = allEstimateItems.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
+    totalEstimateSum = roundMoney(allEstimateItems.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0));
     const payments = await storage.getPaymentsByProjectId(project.id);
-    const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    const totalPaid = roundMoney(payments.reduce((sum, p) => sum + parseFloat(p.amount), 0));
     const unreadSender = req.session.role === "admin" ? "client" : "admin";
     const unreadCount = await storage.getUnreadCount(project.id, unreadSender);
 
@@ -1015,7 +1016,7 @@ export async function registerRoutes(
       financial: {
         totalEstimate: totalEstimateSum,
         totalPaid,
-        remaining: totalEstimateSum - totalPaid,
+        remaining: roundMoney(totalEstimateSum - totalPaid),
       },
       unreadMessages: unreadCount,
       workGroups,
@@ -1215,9 +1216,9 @@ export async function registerRoutes(
     const allEstimateItems = await storage.getEstimateItemsByEstimateIds(estimates.map(e => e.id));
     totalItems = allEstimateItems.length;
     completedItems = allEstimateItems.filter(i => i.status === "completed").length;
-    totalEstimateSum = allEstimateItems.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
+    totalEstimateSum = roundMoney(allEstimateItems.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0));
     const payments = await storage.getPaymentsByProjectId(project.id);
-    const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    const totalPaid = roundMoney(payments.reduce((sum, p) => sum + parseFloat(p.amount), 0));
     const unreadSender = req.session.role === "admin" ? "client" : "admin";
     const unreadCount = await storage.getUnreadCount(project.id, unreadSender);
 
@@ -1232,7 +1233,7 @@ export async function registerRoutes(
       financial: {
         totalEstimate: totalEstimateSum,
         totalPaid,
-        remaining: totalEstimateSum - totalPaid,
+        remaining: roundMoney(totalEstimateSum - totalPaid),
       },
       unreadMessages: unreadCount,
     });
@@ -1748,7 +1749,7 @@ export async function registerRoutes(
     }
 
     for (const projectId of activeProjectIds) {
-      const remaining = (estimateSumByProjectId.get(projectId) ?? 0) - (paidByProjectId.get(projectId) ?? 0);
+      const remaining = roundMoney((estimateSumByProjectId.get(projectId) ?? 0) - (paidByProjectId.get(projectId) ?? 0));
       remainingByProjectId.set(projectId, remaining);
     }
     return remainingByProjectId;
@@ -1775,7 +1776,7 @@ export async function registerRoutes(
       }
     }
 
-    res.json({ activeCount, overdueCount, overdueTotal, completedCount, totalCount: projects.length });
+    res.json({ activeCount, overdueCount, overdueTotal: roundMoney(overdueTotal), completedCount, totalCount: projects.length });
   });
 
   app.get("/api/admin/projects-debt", requireAdmin, async (_req, res) => {

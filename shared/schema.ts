@@ -3,6 +3,13 @@ import { pgTable, text, varchar, serial, integer, numeric, boolean, timestamp, d
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Деньги в numeric-колонках хранятся как строки и суммируются через parseFloat,
+// что копит ошибки округления (12345.670000000001). roundMoney округляет до копеек
+// после каждого накопления, чтобы такие артефакты не просачивались в ответ API.
+export function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
