@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { Project, Client, ClientReminder } from "@shared/schema";
@@ -26,12 +26,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
-import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter, HelpCircle, AlertTriangle, Wallet, Building2, QrCode, Download, Bell, Check, X, History } from "lucide-react";
+import { MapPin, Calendar, CheckCircle2, Clock, CircleDot, ChevronRight, FolderKanban, User, Plus, Loader2, Pencil, Trash2, Search, Filter, HelpCircle, AlertTriangle, Wallet, Building2, QrCode, Download, Bell, Check, X, History, Mic, MicOff } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import QRCode from "qrcode";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
 import { ReminderHistoryDialog } from "@/components/ReminderHistoryDialog";
-import { PRIORITY_LABEL, PRIORITY_BADGE_CLASS, RECURRENCE_LABEL } from "@/lib/reminderConstants";
+import { PRIORITY_LABEL, PRIORITY_BADGE_CLASS, RECURRENCE_LABEL, parseReminderTranscript } from "@/lib/reminderConstants";
 
 const PROJECTS_TOUR_STEPS: TourStep[] = [
   { target: "text-projects-title", title: "Объекты", description: "Здесь собраны все строительные объекты компании — карточки, статусы и быстрый доступ к каждому из них." },
@@ -251,6 +251,13 @@ function ProjectReminderDialog({ project, onClose }: { project: Project | null; 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [resolutionNote, setResolutionNote] = useState("");
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const handledResultRef = useRef(false);
+  const listenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const SpeechRecognitionCtor =
+    typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
 
   const { data: reminders } = useQuery<ClientReminder[]>({
     queryKey: ["/api/admin/projects", project?.id, "reminders"],
@@ -356,6 +363,80 @@ function ProjectReminderDialog({ project, onClose }: { project: Project | null; 
       { id, data: { status: "done", resolutionNote: resolutionNote.trim() || null, resolutionQuality: quality } },
       { onSuccess: () => { setResolvingId(null); setResolutionNote(""); } },
     );
+  };
+
+  const handleTranscript = (transcript: string) => {
+    const parsed = parseReminderTranscript(transcript);
+    setManualText(parsed.text);
+    setManualDueDate(parsed.dueDate ?? "");
+    setManualPriority(parsed.priority);
+    toast({ title: "Распознано", description: "Проверьте текст и нажмите «Добавить»" });
+  };
+
+  const toggleListening = () => {
+    if (!SpeechRecognitionCtor) {
+      toast({ title: "Голосовой ввод не поддерживается в этом браузере", variant: "destructive" });
+      return;
+    }
+    if (listening) {
+      if (listenTimeoutRef.current) {
+        clearTimeout(listenTimeoutRef.current);
+        listenTimeoutRef.current = null;
+      }
+      recognitionRef.current?.abort();
+      setListening(false);
+      return;
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.onend = null;
+      recognitionRef.current.onerror = null;
+      recognitionRef.current.abort();
+    }
+    if (listenTimeoutRef.current) {
+      clearTimeout(listenTimeoutRef.current);
+      listenTimeoutRef.current = null;
+    }
+    handledResultRef.current = false;
+    const recognition = new SpeechRecognitionCtor();
+    recognitionRef.current = recognition;
+    recognition.lang = "ru-RU";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event: any) => {
+      if (handledResultRef.current) return;
+      const transcript = event.results[0]?.[0]?.transcript ?? "";
+      if (transcript) {
+        handledResultRef.current = true;
+        handleTranscript(transcript);
+      }
+      recognition.stop();
+    };
+    recognition.onerror = () => {
+      toast({ title: "Ошибка распознавания речи", variant: "destructive" });
+      setListening(false);
+    };
+    recognition.onend = () => {
+      if (listenTimeoutRef.current) {
+        clearTimeout(listenTimeoutRef.current);
+        listenTimeoutRef.current = null;
+      }
+      setListening(false);
+      if (recognitionRef.current === recognition) recognitionRef.current = null;
+    };
+    recognition.start();
+    setListening(true);
+    listenTimeoutRef.current = setTimeout(() => {
+      toast({ title: "Не удалось распознать речь", description: "Попробуйте ещё раз", variant: "destructive" });
+      recognition.onresult = null;
+      recognition.onend = null;
+      recognition.onerror = null;
+      recognition.abort();
+      if (recognitionRef.current === recognition) recognitionRef.current = null;
+      setListening(false);
+      listenTimeoutRef.current = null;
+    }, 8000);
   };
 
   return (
@@ -509,6 +590,19 @@ function ProjectReminderDialog({ project, onClose }: { project: Project | null; 
         </div>
 
         <div className="border-t pt-3 space-y-2">
+          {SpeechRecognitionCtor && (
+            <Button
+              type="button"
+              size="sm"
+              variant={listening ? "destructive" : "outline"}
+              onClick={toggleListening}
+              className="w-full"
+              data-testid="button-voice-project-reminder"
+            >
+              {listening ? <MicOff className="w-4 h-4 mr-1" /> : <Mic className="w-4 h-4 mr-1" />}
+              {listening ? "Слушаю..." : "Добавить голосом"}
+            </Button>
+          )}
           <form
             onSubmit={handleManualSubmit}
             className={`space-y-2 ${editingId ? "rounded-md border-2 border-primary p-2 -m-2" : ""}`}
