@@ -43,6 +43,7 @@ function StaffManager() {
       toast({ title: "Сотрудник добавлен" });
     },
     onError: (err: any) => {
+      setPassword("");
       toast({ title: "Ошибка", description: err.message, variant: "destructive" });
     },
   });
@@ -203,6 +204,9 @@ export default function Settings() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: any) {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
       toast({ title: "Ошибка", description: err.message, variant: "destructive" });
     } finally {
       setIsPending(false);
