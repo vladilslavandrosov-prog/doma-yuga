@@ -47,7 +47,6 @@ app.use(express.urlencoded({ extended: false }));
 
 const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-app.use("/uploads", express.static(uploadsDir));
 
 const PgSession = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production";
@@ -95,6 +94,32 @@ app.use(
     },
   }),
 );
+
+// Файлы проекта (фото, документы, видео) лежат под /uploads/projects/<id>/...
+// и не должны быть доступны по прямой ссылке кому угодно — те же правила
+// доступа, что и у requireProjectAccess в routes.ts: админ/сотрудник видят всё,
+// клиент — только свои проекты, анонимный посетитель — только демо-проект.
+// Файлы вне projects/ (галерея, общие демо-ассеты) остаются публичными.
+const DEMO_PROJECT_ID = 1;
+app.use("/uploads", async (req, res, next) => {
+  const match = req.path.match(/^\/projects\/(\d+)\//);
+  if (!match) return next();
+  const projectId = parseInt(match[1], 10);
+
+  if (!req.session.userId) {
+    if (projectId !== DEMO_PROJECT_ID) return res.status(403).end();
+    return next();
+  }
+  if (req.session.role === "admin" || req.session.role === "staff") return next();
+
+  const { storage } = await import("./storage");
+  const project = await storage.getProjectById(projectId);
+  if (!project || project.clientId !== req.session.clientId) {
+    return res.status(403).end();
+  }
+  next();
+});
+app.use("/uploads", express.static(uploadsDir));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

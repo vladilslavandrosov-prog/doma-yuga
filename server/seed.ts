@@ -172,6 +172,9 @@ export async function seedDatabase() {
     { id: 8, projectId: 2, sender: "admin", text: "Напоминаем об оплате следующего этапа — кладка стен.", createdAt: "2026-02-01T11:00:00", isRead: false },
   ]);
 
+  if (process.env.NODE_ENV === "production" && !process.env.ADMIN_PASSWORD) {
+    throw new Error("ADMIN_PASSWORD не задан — обязателен для первого сидинга в production");
+  }
   const [pwAdmin, pwClient, pwPetrov] = await Promise.all([
     hashPassword(process.env.ADMIN_PASSWORD || "Wlad2193@"),
     hashPassword("client123"),

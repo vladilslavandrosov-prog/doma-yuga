@@ -240,22 +240,32 @@ function requireAdminOrStaff(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+// Единственный проект, который показывается как публичная демо-витрина
+// неавторизованным посетителям (см. CabinetHome в client/src/App.tsx).
+const DEMO_PROJECT_ID = 1;
+
 /**
  * IDOR-защита: если в сессии есть клиент — он может обращаться
- * только к своим проектам. Администратор и неавторизованный (демо)
- * проходят без ограничений.
+ * только к своим проектам. Администратор и сотрудник — без ограничений
+ * (доверенные роли компании). Неавторизованный посетитель видит только
+ * выделенный демо-проект, остальные проекты для него — 403/404.
  */
 async function requireProjectAccess(req: Request, res: Response, next: NextFunction) {
-  // Нет сессии → публичный/демо-доступ
-  if (!req.session.userId) return next();
-  // Администратор → без ограничений
-  if (req.session.role === "admin") return next();
-  // Клиент → проверяем владельца
   const rawId = (req.params.id ?? req.params.projectId) as string;
   const projectId = parseInt(rawId);
   if (isNaN(projectId)) {
     return res.status(400).json({ error: "Invalid project ID" });
   }
+  // Нет сессии → доступ только к демо-проекту
+  if (!req.session.userId) {
+    if (projectId !== DEMO_PROJECT_ID) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    return next();
+  }
+  // Администратор и сотрудник → без ограничений
+  if (req.session.role === "admin" || req.session.role === "staff") return next();
+  // Клиент → проверяем владельца
   const project = await storage.getProjectById(projectId);
   if (!project) return res.status(404).json({ error: "Project not found" });
   if (project.clientId !== req.session.clientId) {
@@ -769,21 +779,21 @@ export async function registerRoutes(
     res.json(projects);
   });
 
-  app.get("/api/projects", async (req, res) => {
+  app.get("/api/projects", requireAdmin, async (req, res) => {
     const projects = await storage.getAllProjects();
     res.json(projects);
   });
 
-  app.get("/api/client/:uid", async (req, res) => {
-    const client = await storage.getClientByUid(req.params.uid);
+  app.get("/api/client/:uid", requireAdmin, async (req, res) => {
+    const client = await storage.getClientByUid(req.params.uid as string);
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
     }
     res.json(client);
   });
 
-  app.get("/api/client/:uid/projects", async (req, res) => {
-    const client = await storage.getClientByUid(req.params.uid);
+  app.get("/api/client/:uid/projects", requireAdmin, async (req, res) => {
+    const client = await storage.getClientByUid(req.params.uid as string);
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
     }
@@ -1141,8 +1151,8 @@ export async function registerRoutes(
     res.json({ analysis, weather: weatherDays, groups: groupsBreakdown });
   });
 
-  app.get("/api/dashboard/:uid", async (req, res) => {
-    const client = await storage.getClientByUid(req.params.uid);
+  app.get("/api/dashboard/:uid", requireAdmin, async (req, res) => {
+    const client = await storage.getClientByUid(req.params.uid as string);
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
     }
