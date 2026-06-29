@@ -25,6 +25,7 @@ export interface IStorage {
   getProjectsByClientId(clientId: number): Promise<Project[]>;
   getProjectById(id: number): Promise<Project | undefined>;
   getEstimatesByProjectId(projectId: number): Promise<Estimate[]>;
+  getEstimatesByProjectIds(projectIds: number[]): Promise<Estimate[]>;
   getEstimateById(id: number): Promise<Estimate | undefined>;
   getEstimateItemsByEstimateId(estimateId: number): Promise<EstimateItem[]>;
   getEstimateItemsByEstimateIds(estimateIds: number[]): Promise<EstimateItem[]>;
@@ -32,6 +33,7 @@ export interface IStorage {
   deleteEstimateItemsByEstimateIds(estimateIds: number[]): Promise<void>;
   deleteEstimateItemPhotosByEstimateItemIds(estimateItemIds: number[]): Promise<string[]>;
   getPaymentsByProjectId(projectId: number): Promise<Payment[]>;
+  getPaymentsByProjectIds(projectIds: number[]): Promise<Payment[]>;
   deletePaymentsByProjectId(projectId: number): Promise<void>;
   getDocumentsByProjectId(projectId: number): Promise<Document[]>;
   deleteDocumentsByProjectId(projectId: number): Promise<string[]>;

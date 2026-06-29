@@ -55,6 +55,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(estimates).where(eq(estimates.projectId, projectId));
   }
 
+  async getEstimatesByProjectIds(projectIds: number[]): Promise<Estimate[]> {
+    if (projectIds.length === 0) return [];
+    return db.select().from(estimates).where(inArray(estimates.projectId, projectIds));
+  }
+
   async getEstimateById(id: number): Promise<Estimate | undefined> {
     const [row] = await db.select().from(estimates).where(eq(estimates.id, id));
     return row;
@@ -86,6 +91,11 @@ export class DatabaseStorage implements IStorage {
 
   async getPaymentsByProjectId(projectId: number): Promise<Payment[]> {
     return db.select().from(payments).where(eq(payments.projectId, projectId));
+  }
+
+  async getPaymentsByProjectIds(projectIds: number[]): Promise<Payment[]> {
+    if (projectIds.length === 0) return [];
+    return db.select().from(payments).where(inArray(payments.projectId, projectIds));
   }
 
   async deletePaymentsByProjectId(projectId: number): Promise<void> {

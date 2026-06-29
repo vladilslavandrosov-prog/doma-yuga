@@ -23,6 +23,7 @@ import {
   insertWorkGroupSchema,
   insertClientReminderSchema,
   type ClientReminder,
+  type Project,
 } from "@shared/schema";
 
 const uploadsDir = process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve("uploads");
@@ -1723,8 +1724,40 @@ export async function registerRoutes(
     }
   });
 
+  // Считает остаток долга по каждому активному проекту, используя пакетную загрузку
+  // (по одному запросу на смет/позиции/оплаты для всех проектов сразу) вместо N+1.
+  async function computeRemainingByActiveProject(projects: Project[]): Promise<Map<number, number>> {
+    const activeProjectIds = projects.filter((p) => p.status === "active").map((p) => p.id);
+    const remainingByProjectId = new Map<number, number>();
+    if (activeProjectIds.length === 0) return remainingByProjectId;
+
+    const estimates = await storage.getEstimatesByProjectIds(activeProjectIds);
+    const items = await storage.getEstimateItemsByEstimateIds(estimates.map((e) => e.id));
+    const payments = await storage.getPaymentsByProjectIds(activeProjectIds);
+
+    const estimateIdToProjectId = new Map(estimates.map((e) => [e.id, e.projectId]));
+    const estimateSumByProjectId = new Map<number, number>();
+    for (const item of items) {
+      const projectId = estimateIdToProjectId.get(item.estimateId);
+      if (projectId === undefined) continue;
+      estimateSumByProjectId.set(projectId, (estimateSumByProjectId.get(projectId) ?? 0) + parseFloat(item.totalPrice));
+    }
+    const paidByProjectId = new Map<number, number>();
+    for (const payment of payments) {
+      paidByProjectId.set(payment.projectId, (paidByProjectId.get(payment.projectId) ?? 0) + parseFloat(payment.amount));
+    }
+
+    for (const projectId of activeProjectIds) {
+      const remaining = (estimateSumByProjectId.get(projectId) ?? 0) - (paidByProjectId.get(projectId) ?? 0);
+      remainingByProjectId.set(projectId, remaining);
+    }
+    return remainingByProjectId;
+  }
+
   app.get("/api/admin/dashboard-summary", requireAdmin, async (_req, res) => {
     const projects = await storage.getAllProjects();
+    const remainingByProjectId = await computeRemainingByActiveProject(projects);
+
     let activeCount = 0;
     let overdueCount = 0;
     let overdueTotal = 0;
@@ -1735,12 +1768,7 @@ export async function registerRoutes(
       if (project.status !== "active") continue;
       activeCount++;
 
-      const estimates = await storage.getEstimatesByProjectId(project.id);
-      const items = await storage.getEstimateItemsByEstimateIds(estimates.map((e) => e.id));
-      const totalEstimateSum = items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
-      const payments = await storage.getPaymentsByProjectId(project.id);
-      const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-      const remaining = totalEstimateSum - totalPaid;
+      const remaining = remainingByProjectId.get(project.id) ?? 0;
       if (remaining > 0) {
         overdueCount++;
         overdueTotal += remaining;
@@ -1752,18 +1780,12 @@ export async function registerRoutes(
 
   app.get("/api/admin/projects-debt", requireAdmin, async (_req, res) => {
     const projects = await storage.getAllProjects();
-    const debtByProjectId: Record<number, number> = {};
+    const remainingByProjectId = await computeRemainingByActiveProject(projects);
 
-    for (const project of projects) {
-      if (project.status !== "active") continue;
-      const estimates = await storage.getEstimatesByProjectId(project.id);
-      const items = await storage.getEstimateItemsByEstimateIds(estimates.map((e) => e.id));
-      const totalEstimateSum = items.reduce((sum, i) => sum + parseFloat(i.totalPrice), 0);
-      const payments = await storage.getPaymentsByProjectId(project.id);
-      const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-      const remaining = totalEstimateSum - totalPaid;
+    const debtByProjectId: Record<number, number> = {};
+    for (const [projectId, remaining] of remainingByProjectId) {
       if (remaining > 0) {
-        debtByProjectId[project.id] = remaining;
+        debtByProjectId[projectId] = remaining;
       }
     }
 
