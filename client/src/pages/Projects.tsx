@@ -31,6 +31,7 @@ import { formatCurrency } from "@/lib/format";
 import QRCode from "qrcode";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
 import { ReminderHistoryDialog } from "@/components/ReminderHistoryDialog";
+import { ProjectStatusBadge } from "@/components/ProjectStatusBadge";
 import { PRIORITY_LABEL, PRIORITY_BADGE_CLASS, RECURRENCE_LABEL, parseReminderTranscript } from "@/lib/reminderConstants";
 
 const PROJECTS_TOUR_STEPS: TourStep[] = [
@@ -40,19 +41,6 @@ const PROJECTS_TOUR_STEPS: TourStep[] = [
   { target: "select-status-filter", title: "Фильтр по статусу", description: "Показывайте только активные объекты или все сразу." },
   { target: "grid-projects", title: "Карточки объектов", description: "Кликните по карточке, чтобы открыть личный кабинет объекта — прогресс, оплаты, документы и переписку." },
 ];
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case "active":
-      return <Badge variant="default"><CircleDot className="w-3 h-3 mr-1" />Активен</Badge>;
-    case "completed":
-      return <Badge variant="secondary"><CheckCircle2 className="w-3 h-3 mr-1" />Завершён</Badge>;
-    case "paused":
-      return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />Приостановлен</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-}
 
 function ProjectCard({ project, isAdmin, debtAmount, onEdit, onDelete, onShowQr, onShowReminders }: { project: Project; isAdmin: boolean; debtAmount: number; onEdit: (p: Project) => void; onDelete: (p: Project) => void; onShowQr: (p: Project) => void; onShowReminders: (p: Project) => void }) {
   const hasDebt = debtAmount > 0;
@@ -102,7 +90,7 @@ function ProjectCard({ project, isAdmin, debtAmount, onEdit, onDelete, onShowQr,
             </CardTitle>
             <div className="shrink-0 flex items-center gap-1">
               {hasDebt && <AlertTriangle className="w-4 h-4 text-destructive" data-testid={`icon-debt-${project.id}`} />}
-              {getStatusBadge(project.status)}
+              <ProjectStatusBadge status={project.status} />
             </div>
           </CardHeader>
           <CardContent className="space-y-2">

@@ -71,6 +71,7 @@ import { useAuth } from "@/lib/auth";
 import { OnboardingTour, startOnboardingTour, type TourStep } from "@/components/OnboardingTour";
 import { HelpCircle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { ProjectStatusBadge } from "@/components/ProjectStatusBadge";
 
 interface DashboardData {
   client: {
@@ -102,19 +103,6 @@ interface DashboardData {
   workGroups: { name: string; total: number; completed: number; percentage: number }[];
   activity: { type: "photo" | "payment" | "item" | "message"; date: string; title: string; subtitle?: string; url?: string }[];
   heroPhoto: string | null;
-}
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case "active":
-      return <Badge variant="default" data-testid="badge-project-status"><CircleDot className="w-3 h-3 mr-1" />Активен</Badge>;
-    case "completed":
-      return <Badge variant="secondary" data-testid="badge-project-status"><CheckCircle2 className="w-3 h-3 mr-1" />Завершён</Badge>;
-    case "paused":
-      return <Badge variant="outline" data-testid="badge-project-status"><Clock className="w-3 h-3 mr-1" />Приостановлен</Badge>;
-    default:
-      return <Badge variant="secondary" data-testid="badge-project-status">{status}</Badge>;
-  }
 }
 
 function daysSince(dateStr: string): number {
@@ -334,7 +322,7 @@ export default function Dashboard({ projectId, basePath }: { projectId: number; 
                 >
                   <HelpCircle className="w-4 h-4" />
                 </Button>
-                {getStatusBadge(project.status)}
+                <ProjectStatusBadge status={project.status} testId="badge-project-status" />
               </div>
             </div>
           </div>
